@@ -1,0 +1,10 @@
+export { PhysicsLab } from './PhysicsLab';
+export { ProjectileMotion } from './ProjectileMotion';
+export { PendulumSimulator } from './PendulumSimulator';
+export { CollisionSimulator } from './CollisionSimulator';
+export { WaveSimulator } from './WaveSimulator';
+export { OpticsSimulator } from './OpticsSimulator';
+export { ElectricFieldVisualizer } from './ElectricFieldVisualizer';
+export { MagneticFieldVisualizer } from './MagneticFieldVisualizer';
+export { RocketPropulsion } from './RocketPropulsion';
+export { ElectromagneticLab } from './ElectromagneticLab';
