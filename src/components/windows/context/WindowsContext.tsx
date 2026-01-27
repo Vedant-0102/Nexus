@@ -10,6 +10,8 @@ import { Paint } from '../features/creative/Paint';
 import { SuperCalculator } from '../features/math/SuperCalculator';
 import { GeometryCalculator } from '../features/math/GeometryCalculator';
 import { Calendar } from '../features/utilities/Calendar';
+import { Browser } from '../features/utilities/Browser';
+import { UtilitiesFolder } from '../features/utilities/UtilitiesFolder';
 import { MindMapCreator } from '../features/creative/engine/MindMapCreator';
 import { GitVisualizer } from '../features/development/GitVisualizer';
 import { ElectromagneticLab } from '../features/science/physics/ElectromagneticLab';
@@ -164,22 +166,22 @@ interface WindowsContextType {
 const WindowsContext = createContext<WindowsContextType>({
   windows: [],
   highestZIndex: 100,
-  toggleWindow: () => {},
-  closeWindow: () => {},
-  minimizeWindow: () => {},
-  bringToFront: () => {},
+  toggleWindow: () => { },
+  closeWindow: () => { },
+  minimizeWindow: () => { },
+  bringToFront: () => { },
   settings: {
     theme: 'light',
     showClock: true,
     showNotepad: true,
     showBattery: true,
   },
-  setSettings: () => {},
+  setSettings: () => { },
   minimizedWindows: [],
-  setWallpaper: () => {},
+  setWallpaper: () => { },
   wallpaper: '',
   isShuttingDown: false,
-  handleShutdown: () => {},
+  handleShutdown: () => { },
 });
 
 export const useWindows = () => useContext(WindowsContext);
@@ -266,7 +268,7 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         try {
           const parsedSettings = JSON.parse(savedSettings);
           setSettings(parsedSettings);
-          
+
           // Apply theme immediately on load
           if (parsedSettings.theme === 'dark') {
             document.documentElement.classList.add('dark');
@@ -373,6 +375,20 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         isResizable: true,
         isMaximizable: true,
         defaultSize: { width: 1200, height: 700 },
+      },
+      {
+        id: 'browser',
+        title: 'Web Browser',
+        content: <Browser />,
+        isOpen: openWindowIds.includes('browser'),
+        isMinimized: minimizedWindowIds.includes('browser'),
+        icon: <Globe className="h-5 w-5 text-blue-500" />,
+        zIndex: 100,
+        showInStartMenu: true,
+        showInTaskbar: true,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1000, height: 800 },
       },
       {
         id: 'geometry-calculator',
@@ -2066,7 +2082,7 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const utilitiesFolderWindow: WindowType = {
       id: 'utilities-folder-window',
       title: 'Utilities',
-      content: <FolderContent type="utilities" />,
+      content: <UtilitiesFolder />,
       isOpen: openWindowIds.includes('utilities-folder-window'),
       isMinimized: minimizedWindowIds.includes('utilities-folder-window'),
       icon: <Folder className="h-5 w-5 text-blue-500" />,
@@ -2158,14 +2174,14 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     localStorage.setItem('win11-settings', JSON.stringify(settings));
     localStorage.setItem('win11-theme', settings.theme);
-    
+
     // Apply dark mode immediately and smoothly
     if (settings.theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-    
+
     // Re-initialize windows when settings change to reflect toggle changes
     const openWindows = windows.filter(w => w.isOpen).map(w => w.id);
     const minimized = minimizedWindows;
@@ -2189,12 +2205,12 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // First, immediately bring to front to ensure highest z-index
     setWindows(prevWindows => {
       const existingWindow = prevWindows.find(w => w.id === id);
-      
+
       // ALWAYS get the absolute highest z-index and add a significant amount
       const allZIndexes = prevWindows.map(w => w.zIndex || 0);
       const absoluteMaxZIndex = Math.max(...allZIndexes, APP_ZINDEX);
       const newZIndex = absoluteMaxZIndex + (ZINDEX_INCREMENT * 2); // Double increment for more separation
-      
+
       console.log('toggleWindow:', id, 'absoluteMax:', absoluteMaxZIndex, 'newZIndex:', newZIndex);
 
       if (existingWindow) {
@@ -2230,14 +2246,14 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
 
     setMinimizedWindows(prev => prev.filter(winId => winId !== id));
-    
+
     // Force a second update after a tiny delay to ensure z-index is applied
     setTimeout(() => {
       setWindows(prevWindows => {
         const allZIndexes = prevWindows.map(w => w.zIndex || 0);
         const absoluteMaxZIndex = Math.max(...allZIndexes, APP_ZINDEX);
         const newZIndex = absoluteMaxZIndex + ZINDEX_INCREMENT;
-        
+
         return prevWindows.map(window => ({
           ...window,
           zIndex: window.id === id ? newZIndex : window.zIndex
