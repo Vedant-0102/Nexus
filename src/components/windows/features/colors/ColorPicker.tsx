@@ -59,12 +59,7 @@ export const ColorPicker: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col bg-white dark:bg-gray-900">
-      <div className="p-4 border-b dark:border-gray-700">
-        <h2 className="text-2xl font-semibold dark:text-white flex items-center gap-2">
-          <Palette className="h-6 w-6" />
-          Color Picker
-        </h2>
-      </div>
+
 
       <div className="flex-1 overflow-auto p-4">
         <div className="max-w-4xl mx-auto space-y-6">

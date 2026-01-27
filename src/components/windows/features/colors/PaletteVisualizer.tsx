@@ -77,21 +77,17 @@ export const PaletteVisualizer: React.FC = () => {
   return (
     <div className="h-full w-full bg-white dark:bg-gray-900 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
-        <div className="flex items-center gap-2">
-          <Eye className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Palette Visualizer</h2>
-        </div>
-        <div className="flex gap-2">
-          <Button onClick={randomizePalette} size="sm" variant="outline">
-            <Shuffle className="h-4 w-4 mr-2" />
-            Random
-          </Button>
-          <Button onClick={copyPalette} size="sm">
-            {copiedCode ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
-            Copy
-          </Button>
-        </div>
+
+
+      <div className="flex justify-end gap-2 p-4 pb-0">
+        <Button onClick={randomizePalette} size="sm" variant="outline">
+          <Shuffle className="h-4 w-4 mr-2" />
+          Random
+        </Button>
+        <Button onClick={copyPalette} size="sm">
+          {copiedCode ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+          Copy
+        </Button>
       </div>
 
       {/* Main Tabs */}

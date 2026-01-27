@@ -14,10 +14,10 @@ export const ContrastChecker: React.FC = () => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result
       ? {
-          r: parseInt(result[1], 16),
-          g: parseInt(result[2], 16),
-          b: parseInt(result[3], 16),
-        }
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16),
+      }
       : null;
   };
 
@@ -82,10 +82,7 @@ export const ContrastChecker: React.FC = () => {
 
   return (
     <div className="h-full w-full bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 p-6 overflow-auto">
-      <div className="flex items-center gap-2 mb-6">
-        <CheckCircle2 className="h-6 w-6 text-green-600" />
-        <h2 className="text-2xl font-bold">Contrast Checker</h2>
-      </div>
+
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Controls Panel */}

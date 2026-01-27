@@ -58,14 +58,7 @@ export const GradientGenerator: React.FC = () => {
   return (
     <div className="h-full w-full bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 p-6 overflow-auto">
       <div className="max-w-6xl mx-auto w-full">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">
-            Gradient Generator
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Create stunning CSS gradients with custom colors and directions
-          </p>
-        </div>
+
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
           {/* Left Side - Controls */}
@@ -116,11 +109,10 @@ export const GradientGenerator: React.FC = () => {
                   return (
                     <button
                       key={direction.value}
-                      className={`w-10 h-10 border-2 rounded-lg cursor-pointer flex items-center justify-center transition-all hover:scale-110 ${
-                        currentDirection === direction.value
+                      className={`w-10 h-10 border-2 rounded-lg cursor-pointer flex items-center justify-center transition-all hover:scale-110 ${currentDirection === direction.value
                           ? 'bg-blue-500 text-white border-blue-600'
                           : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'
-                      }`}
+                        }`}
                       onClick={() => setCurrentDirection(direction.value)}
                       title={direction.label}
                     >

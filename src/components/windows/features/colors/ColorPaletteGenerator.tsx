@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
-import { 
-  Shuffle, 
+import {
+  Shuffle,
   Copy,
   Lock,
   Unlock,
@@ -154,7 +154,7 @@ function generateColors(): string[] {
 
 export const ColorPaletteGenerator: React.FC = () => {
   const { toast } = useToast();
-  
+
   const [currentPalette, setCurrentPalette] = useState<Color[]>(() => {
     const colors = generateColors();
     return colors.map(hex => ({ hex, locked: false }));
@@ -164,8 +164,8 @@ export const ColorPaletteGenerator: React.FC = () => {
 
   const generateRandomPalette = () => {
     const newColors = generateColors();
-    setCurrentPalette(prev => 
-      prev.map((color, index) => 
+    setCurrentPalette(prev =>
+      prev.map((color, index) =>
         color.locked ? color : { hex: newColors[index] || color.hex, locked: false }
       )
     );
@@ -258,18 +258,12 @@ export const ColorPaletteGenerator: React.FC = () => {
 
   return (
     <div className="h-full w-full bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 p-6 overflow-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
-          <Palette className="h-6 w-6 text-purple-600" />
-          <h2 className="text-2xl font-bold">Random Palette Generator</h2>
-        </div>
+      <div className="flex justify-end mb-4">
         <Button onClick={generateRandomPalette} className="gap-2">
           <RefreshCw className="h-4 w-4" />
           Generate New
         </Button>
-      </div>
-
-      <Card className="p-6 mb-4">
+      </div>      <Card className="p-6 mb-4">
         <div className="grid grid-cols-6 gap-4 mb-6">
           {currentPalette.map((color, index) => (
             <div key={index} className="space-y-2">
@@ -308,9 +302,9 @@ export const ColorPaletteGenerator: React.FC = () => {
             <CheckCircle2 className="h-4 w-4" />
             Make WCAG Compliant
           </Button>
-          <Button 
-            variant={showExportPreview ? "default" : "outline"} 
-            onClick={() => setShowExportPreview(!showExportPreview)} 
+          <Button
+            variant={showExportPreview ? "default" : "outline"}
+            onClick={() => setShowExportPreview(!showExportPreview)}
             className="gap-2"
           >
             <Download className="h-4 w-4" />
@@ -370,11 +364,10 @@ export const ColorPaletteGenerator: React.FC = () => {
                 <button
                   key={item.format}
                   onClick={() => setExportFormat(item.format as any)}
-                  className={`p-3 rounded-lg border-2 transition-all text-left ${
-                    exportFormat === item.format
-                      ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
-                      : 'border-slate-200 dark:border-slate-700 hover:border-purple-300'
-                  }`}
+                  className={`p-3 rounded-lg border-2 transition-all text-left ${exportFormat === item.format
+                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
+                    : 'border-slate-200 dark:border-slate-700 hover:border-purple-300'
+                    }`}
                 >
                   <div className="font-semibold text-sm">{item.label}</div>
                   <div className="text-xs text-slate-600 dark:text-slate-400">{item.desc}</div>

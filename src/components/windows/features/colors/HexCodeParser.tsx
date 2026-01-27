@@ -23,10 +23,10 @@ export const HexCodeParser: React.FC = () => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result
       ? {
-          r: parseInt(result[1], 16),
-          g: parseInt(result[2], 16),
-          b: parseInt(result[3], 16),
-        }
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16),
+      }
       : { r: 0, g: 0, b: 0 };
   };
 
@@ -165,10 +165,7 @@ export const HexCodeParser: React.FC = () => {
 
   return (
     <div className="h-full w-full bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 p-6 overflow-auto">
-      <div className="flex items-center gap-2 mb-6">
-        <Code className="h-6 w-6 text-orange-600" />
-        <h2 className="text-2xl font-bold">Hex Code Parser</h2>
-      </div>
+
 
       {/* Input Section */}
       <Card className="p-6 mb-6">

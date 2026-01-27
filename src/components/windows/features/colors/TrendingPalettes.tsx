@@ -79,10 +79,7 @@ export const TrendingPalettes: React.FC = () => {
 
   return (
     <div className="h-full w-full bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 p-6 overflow-auto">
-      <div className="flex items-center gap-2 mb-6">
-        <TrendingUp className="h-6 w-6 text-blue-600" />
-        <h2 className="text-2xl font-bold">Trending Palettes</h2>
-      </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {trendingPalettes.map((palette) => (
@@ -117,31 +114,28 @@ export const TrendingPalettes: React.FC = () => {
                     >
                       {/* Hex Code Overlay */}
                       <div
-                        className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 p-1 ${
-                          isCopied && isHovered
+                        className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 p-1 ${isCopied && isHovered
                             ? 'opacity-100'
                             : isCopied
-                            ? 'opacity-100'
-                            : 'opacity-0 group-hover:opacity-100'
-                        }`}
+                              ? 'opacity-100'
+                              : 'opacity-0 group-hover:opacity-100'
+                          }`}
                       >
                         {isCopied ? (
                           <div
-                            className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-bold ${
-                              isLight
+                            className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-bold ${isLight
                                 ? 'text-green-600 bg-white/95 shadow-sm'
                                 : 'text-green-400 bg-black/80'
-                            }`}
+                              }`}
                           >
                             <Check className="w-3 h-3" />
                           </div>
                         ) : (
                           <span
-                            className={`text-xs font-mono font-medium px-2 py-1 rounded ${
-                              isLight
+                            className={`text-xs font-mono font-medium px-2 py-1 rounded ${isLight
                                 ? 'text-slate-900 bg-white/90 shadow-sm'
                                 : 'text-white bg-black/70'
-                            }`}
+                              }`}
                           >
                             {color.replace('#', '').toUpperCase()}
                           </span>
