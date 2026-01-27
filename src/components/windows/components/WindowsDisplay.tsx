@@ -1,33 +1,30 @@
-
-import React from 'react';
-import { Window } from '../Window';
+import React, { useCallback } from 'react';
+import { MemoizedWindow as Window } from '../Window';
 import { useWindows } from '../context/WindowsContext';
 
 export const WindowsDisplay: React.FC = () => {
   const { windows, closeWindow, minimizeWindow, bringToFront, minimizedWindows } = useWindows();
-  
-  const handleClose = (windowId: string) => {
-    closeWindow(windowId);
-  };
-  
-  const handleMinimize = (windowId: string) => {
-    minimizeWindow(windowId);
-  };
-  
+
+  const openWindows = windows.filter(w => w.isOpen);
+
   return (
     <>
-      {windows.filter(w => w.isOpen).map(window => (
-        <Window 
-          key={window.id}
-          window={{
-            ...window,
-            isMinimized: minimizedWindows.includes(window.id)
-          }}
-          onClose={() => handleClose(window.id)}
-          onMinimize={() => handleMinimize(window.id)}
-          onFocus={() => bringToFront(window.id)}
-        />
-      ))}
+      {openWindows.map(window => {
+        const config = {
+          ...window,
+          isMinimized: minimizedWindows.includes(window.id)
+        };
+
+        return (
+          <Window
+            key={window.id}
+            window={config}
+            onClose={() => closeWindow(window.id)}
+            onMinimize={() => minimizeWindow(window.id)}
+            onFocus={() => bringToFront(window.id)}
+          />
+        );
+      })}
     </>
   );
 };

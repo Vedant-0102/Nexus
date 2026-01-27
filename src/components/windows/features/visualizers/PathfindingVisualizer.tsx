@@ -44,7 +44,7 @@ export const PathfindingVisualizer: React.FC = () => {
         let type: CellType = 'empty';
         if (row === startPos.row && col === startPos.col) type = 'start';
         if (row === endPos.row && col === endPos.col) type = 'end';
-        
+
         currentRow.push({ row, col, type, distance: Infinity, previous: null });
       }
       newGrid.push(currentRow);
@@ -55,7 +55,7 @@ export const PathfindingVisualizer: React.FC = () => {
   };
 
   const resetPath = () => {
-    const newGrid = grid.map(row => 
+    const newGrid = grid.map(row =>
       row.map(cell => ({
         ...cell,
         type: cell.type === 'visited' || cell.type === 'path' ? 'empty' : cell.type,
@@ -69,7 +69,7 @@ export const PathfindingVisualizer: React.FC = () => {
   };
 
   const clearWalls = () => {
-    const newGrid = grid.map(row => 
+    const newGrid = grid.map(row =>
       row.map(cell => ({ ...cell, type: cell.type === 'wall' ? 'empty' : cell.type }))
     );
     setGrid(newGrid);
@@ -78,9 +78,9 @@ export const PathfindingVisualizer: React.FC = () => {
   const handleCellClick = (row: number, col: number) => {
     if (isRunning) return;
     const cell = grid[row][col];
-    
+
     const newGrid = [...grid];
-    
+
     if (drawMode === 'start') {
       // Clear old start position
       newGrid[startPos.row][startPos.col].type = 'empty';
@@ -100,7 +100,7 @@ export const PathfindingVisualizer: React.FC = () => {
     } else if (drawMode === 'erase') {
       if (cell.type === 'wall') newGrid[row][col].type = 'empty';
     }
-    
+
     setGrid(newGrid);
   };
 
@@ -285,16 +285,16 @@ export const PathfindingVisualizer: React.FC = () => {
     // Relax edges V-1 times
     for (let i = 0; i < allCells.length - 1; i++) {
       if (!isRunningRef.current) return;
-      
+
       for (const cell of allCells) {
         if (cell.distance === Infinity) continue;
-        
+
         for (const neighbor of getNeighbors(cell, gridData)) {
           const alt = cell.distance + 1;
           if (alt < neighbor.distance) {
             neighbor.distance = alt;
             neighbor.previous = cell;
-            
+
             if (neighbor.type !== 'start' && neighbor.type !== 'end' && neighbor.type !== 'visited') {
               neighbor.type = 'visited';
               count++;
@@ -325,15 +325,15 @@ export const PathfindingVisualizer: React.FC = () => {
       // Expand from start
       if (queueStart.length > 0) {
         const current = queueStart.shift()!;
-        
+
         for (const neighbor of getNeighbors(current, gridData)) {
           const key = `${neighbor.row},${neighbor.col}`;
-          
+
           // Check if we met the other search
           if (visitedEnd.has(key)) {
             neighbor.previous = current;
             const meetPoint = visitedEnd.get(key)!;
-            
+
             // Reconstruct path from both sides
             const pathFromStart: Cell[] = [];
             let curr: Cell | null = neighbor;
@@ -341,14 +341,14 @@ export const PathfindingVisualizer: React.FC = () => {
               pathFromStart.unshift(curr);
               curr = curr.previous;
             }
-            
+
             const pathFromEnd: Cell[] = [];
             curr = meetPoint;
             while (curr && curr !== neighbor) {
               pathFromEnd.push(curr);
               curr = curr.previous;
             }
-            
+
             const fullPath = [...pathFromStart, ...pathFromEnd];
             for (const cell of fullPath) {
               if (!isRunningRef.current) return;
@@ -361,12 +361,12 @@ export const PathfindingVisualizer: React.FC = () => {
             setPathLength(fullPath.length - 1);
             return;
           }
-          
+
           if (!visitedStart.has(key)) {
             visitedStart.set(key, neighbor);
             neighbor.previous = current;
             queueStart.push(neighbor);
-            
+
             if (neighbor.type !== 'start' && neighbor.type !== 'end') {
               neighbor.type = 'visited';
               count++;
@@ -381,28 +381,28 @@ export const PathfindingVisualizer: React.FC = () => {
       // Expand from end
       if (queueEnd.length > 0) {
         const current = queueEnd.shift()!;
-        
+
         for (const neighbor of getNeighbors(current, gridData)) {
           const key = `${neighbor.row},${neighbor.col}`;
-          
+
           if (visitedStart.has(key)) {
             neighbor.previous = current;
             const meetPoint = visitedStart.get(key)!;
-            
+
             const pathFromStart: Cell[] = [];
             let curr: Cell | null = meetPoint;
             while (curr) {
               pathFromStart.unshift(curr);
               curr = curr.previous;
             }
-            
+
             const pathFromEnd: Cell[] = [];
             curr = neighbor;
             while (curr && curr !== meetPoint) {
               pathFromEnd.push(curr);
               curr = curr.previous;
             }
-            
+
             const fullPath = [...pathFromStart, ...pathFromEnd];
             for (const cell of fullPath) {
               if (!isRunningRef.current) return;
@@ -415,12 +415,12 @@ export const PathfindingVisualizer: React.FC = () => {
             setPathLength(fullPath.length - 1);
             return;
           }
-          
+
           if (!visitedEnd.has(key)) {
             visitedEnd.set(key, neighbor);
             neighbor.previous = current;
             queueEnd.push(neighbor);
-            
+
             if (neighbor.type !== 'start' && neighbor.type !== 'end') {
               neighbor.type = 'visited';
               count++;
@@ -460,7 +460,7 @@ export const PathfindingVisualizer: React.FC = () => {
         const newRow = row + dr;
         const newCol = col + dc;
         if (newRow > 0 && newRow < ROWS - 1 && newCol > 0 && newCol < COLS - 1 &&
-            newGrid[newRow][newCol].type === 'wall') {
+          newGrid[newRow][newCol].type === 'wall') {
           newGrid[row + dr / 2][col + dc / 2].type = 'empty';
           newGrid[newRow][newCol].type = 'empty';
           carve(newRow, newCol);
@@ -476,7 +476,7 @@ export const PathfindingVisualizer: React.FC = () => {
   const generateVerticalMaze = () => {
     if (isRunning) return;
     const newGrid = grid.map(row => row.map(cell => ({ ...cell, type: 'empty' as CellType })));
-    
+
     for (let col = 2; col < COLS; col += 3) {
       const gapRow = Math.floor(Math.random() * ROWS);
       for (let row = 0; row < ROWS; row++) {
@@ -491,7 +491,7 @@ export const PathfindingVisualizer: React.FC = () => {
   const generateHorizontalMaze = () => {
     if (isRunning) return;
     const newGrid = grid.map(row => row.map(cell => ({ ...cell, type: 'empty' as CellType })));
-    
+
     for (let row = 2; row < ROWS; row += 3) {
       const gapCol = Math.floor(Math.random() * COLS);
       for (let col = 0; col < COLS; col++) {
@@ -544,7 +544,7 @@ export const PathfindingVisualizer: React.FC = () => {
                 <SelectTrigger className="dark:bg-gray-700 dark:text-white dark:border-gray-600">
                   <SelectValue placeholder="Select algorithm" />
                 </SelectTrigger>
-                <SelectContent className="z-[9999] bg-white dark:bg-gray-800">
+                <SelectContent className="z-[999999] bg-white dark:bg-gray-800">
                   <SelectItem value="astar">A* (Optimal & Fast)</SelectItem>
                   <SelectItem value="dijkstra">Dijkstra (Optimal)</SelectItem>
                   <SelectItem value="bfs">BFS (Unweighted)</SelectItem>
@@ -564,7 +564,7 @@ export const PathfindingVisualizer: React.FC = () => {
                 <SelectTrigger className="dark:bg-gray-700 dark:text-white dark:border-gray-600">
                   <SelectValue placeholder="Select mode" />
                 </SelectTrigger>
-                <SelectContent className="z-[9999] bg-white dark:bg-gray-800">
+                <SelectContent className="z-[999999] bg-white dark:bg-gray-800">
                   <SelectItem value="wall">Draw Walls</SelectItem>
                   <SelectItem value="erase">Erase Walls</SelectItem>
                   <SelectItem value="start">Move Start</SelectItem>
@@ -617,12 +617,12 @@ export const PathfindingVisualizer: React.FC = () => {
                     onMouseUp={() => setIsDrawing(false)}
                     title={
                       cell.type === 'start' ? 'Start Point' :
-                      cell.type === 'end' ? 'End Point' :
-                      cell.type === 'wall' ? 'Wall' :
-                      drawMode === 'start' ? 'Click to set Start' :
-                      drawMode === 'end' ? 'Click to set End' :
-                      drawMode === 'wall' ? 'Click to draw Wall' :
-                      'Click to erase'
+                        cell.type === 'end' ? 'End Point' :
+                          cell.type === 'wall' ? 'Wall' :
+                            drawMode === 'start' ? 'Click to set Start' :
+                              drawMode === 'end' ? 'Click to set End' :
+                                drawMode === 'wall' ? 'Click to draw Wall' :
+                                  'Click to erase'
                     }
                   />
                 ))}

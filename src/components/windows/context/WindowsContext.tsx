@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef, useMemo } from 'react';
 import { WindowType } from '../types/WindowTypes';
 import { WINDOW_THEMES } from '../themes/windowThemes';
 import { Settings as SettingsIcon, Clock, FileText, Battery, Timer, Terminal as TerminalIcon, StickyNote, Gamepad, PaintBucket, Folder, Crown, Globe, RefreshCcw, Code, Layers, Flag, Cloud, Image, Table, Presentation, TrendingUp, Bitcoin, Trophy, Rocket, Briefcase, Repeat, FlaskConical, BarChart3, Beaker, Zap, Atom, QrCode, Plane, Ship, Palette, Sparkles, CheckCircle2, Eye, Newspaper, Cpu, Waves, Brain, ClipboardList, CheckSquare, Ruler, Weight, DollarSign, Sigma, Calculator, Grid3x3, PieChart, Calendar as CalendarIcon, GitBranch, Gauge, Thermometer, Droplet } from 'lucide-react';
@@ -200,6 +200,14 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
     showBattery: true,
   });
 
+  // Store window content to prevent remounting on state changes
+  const windowContentRef = useRef<Map<string, React.ReactNode>>(new Map());
+
+  // Debug: Log when windows array changes
+  useEffect(() => {
+    console.log('🔄 Windows state changed, count:', windows.length);
+  }, [windows]);
+
   useEffect(() => {
     const isShutdown = localStorage.getItem('win11-is-shutdown') === 'true';
     if (isShutdown) {
@@ -302,14 +310,32 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
     loadSavedState();
   }, []);
 
+  // Helper to get or create window content (prevents remounting)
+  const getOrCreateContent = (id: string, createFn: () => React.ReactNode) => {
+    if (!windowContentRef.current.has(id)) {
+      windowContentRef.current.set(id, createFn());
+    }
+    return windowContentRef.current.get(id)!;
+  };
+
+  // Track if windows have been initialized
+  const windowsInitialized = useRef(false);
+
   const initializeWindows = (openWindowIds: string[], minimizedWindowIds: string[]) => {
+    // Only initialize once!
+    if (windowsInitialized.current) {
+      console.log('Windows already initialized, skipping...');
+      return;
+    }
+    windowsInitialized.current = true;
+    console.log('Initializing windows for the first and only time');
     const portfolioWindows: WindowType[] = [];
 
     const utilityWindows: WindowType[] = [
       {
         id: 'settings',
         title: 'Settings',
-        content: <SettingsApp initialSettings={settings} onApply={setSettings} />,
+        content: getOrCreateContent('settings', () => <SettingsApp initialSettings={settings} onApply={setSettings} />),
         isOpen: openWindowIds.includes('settings'),
         isMinimized: minimizedWindowIds.includes('settings'),
         icon: <SettingsIcon className="h-5 w-5" />,
@@ -2182,10 +2208,8 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
       document.documentElement.classList.remove('dark');
     }
 
-    // Re-initialize windows when settings change to reflect toggle changes
-    const openWindows = windows.filter(w => w.isOpen).map(w => w.id);
-    const minimized = minimizedWindows;
-    initializeWindows(openWindows, minimized);
+    // Don't reinitialize windows - this causes state loss!
+    // Settings changes should not recreate window objects
   }, [settings]);
 
   useEffect(() => {
@@ -2227,19 +2251,29 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
           }
 
           // When opening a window, give it the HIGHEST z-index
-          return prevWindows.map(window => ({
-            ...window,
-            isOpen: window.id === id ? true : window.isOpen,
-            isMinimized: window.id === id ? false : window.isMinimized,
-            defaultPosition: window.id === id ? cascadePosition : window.defaultPosition,
-            zIndex: window.id === id ? newZIndex : window.zIndex
-          }));
+          return prevWindows.map(window => {
+            if (window.id === id) {
+              return {
+                ...window,
+                isOpen: true,
+                isMinimized: false,
+                defaultPosition: cascadePosition,
+                zIndex: newZIndex
+              };
+            }
+            return window; // Keep original reference for unchanged windows
+          });
         } else {
           // If window is already open, just bring it to front with highest z-index
-          return prevWindows.map(window => ({
-            ...window,
-            zIndex: window.id === id ? newZIndex : window.zIndex
-          }));
+          return prevWindows.map(window => {
+            if (window.id === id) {
+              return {
+                ...window,
+                zIndex: newZIndex
+              };
+            }
+            return window; // Keep original reference for unchanged windows
+          });
         }
       }
       return prevWindows;
@@ -2254,32 +2288,46 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const absoluteMaxZIndex = Math.max(...allZIndexes, APP_ZINDEX);
         const newZIndex = absoluteMaxZIndex + ZINDEX_INCREMENT;
 
-        return prevWindows.map(window => ({
-          ...window,
-          zIndex: window.id === id ? newZIndex : window.zIndex
-        }));
+        return prevWindows.map(window => {
+          if (window.id === id) {
+            return {
+              ...window,
+              zIndex: newZIndex
+            };
+          }
+          return window; // Keep original reference
+        });
       });
     }, 50);
   };
 
   const closeWindow = (id: string) => {
     setWindows(prevWindows =>
-      prevWindows.map(window => ({
-        ...window,
-        isOpen: window.id === id ? false : window.isOpen,
-        isMinimized: window.id === id ? false : window.isMinimized
-      }))
+      prevWindows.map(window => {
+        if (window.id === id) {
+          return {
+            ...window,
+            isOpen: false
+          };
+        }
+        return window; // Keep original reference
+      })
     );
     setMinimizedWindows(prev => prev.filter(winId => winId !== id));
   };
 
   const minimizeWindow = (id: string) => {
     setWindows(prevWindows =>
-      prevWindows.map(window => ({
-        ...window,
-        isMinimized: window.id === id ? true : window.isMinimized,
-        isOpen: window.id === id ? true : window.isOpen
-      }))
+      prevWindows.map(window => {
+        if (window.id === id) {
+          return {
+            ...window,
+            isMinimized: true,
+            isOpen: true
+          };
+        }
+        return window;
+      })
     );
 
     if (!minimizedWindows.includes(id)) {
@@ -2292,12 +2340,17 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const currentMaxZIndex = Math.max(...prevWindows.map(w => w.zIndex || 0));
       const newZIndex = Math.max(currentMaxZIndex, APP_ZINDEX) + ZINDEX_INCREMENT;
 
-      return prevWindows.map(window => ({
-        ...window,
-        zIndex: window.id === id ? newZIndex : window.zIndex,
-        isMinimized: window.id === id ? false : window.isMinimized,
-        isOpen: window.id === id ? true : window.isOpen
-      }));
+      return prevWindows.map(window => {
+        if (window.id === id) {
+          return {
+            ...window,
+            zIndex: newZIndex,
+            isMinimized: false,
+            isOpen: true
+          };
+        }
+        return window;
+      });
     });
 
     setMinimizedWindows(prev => prev.filter(winId => winId !== id));
