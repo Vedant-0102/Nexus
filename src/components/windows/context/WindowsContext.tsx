@@ -9,7 +9,7 @@ import { KanbanBoard } from '../features/office/KanbanBoard';
 import { Paint } from '../features/creative/Paint';
 import { SuperCalculator } from '../features/math/SuperCalculator';
 import { GeometryCalculator } from '../features/math/GeometryCalculator';
-import { Calendar } from '../features/math/Calendar';
+import { Calendar } from '../features/utilities/Calendar';
 import { MindMapCreator } from '../features/creative/engine/MindMapCreator';
 import { GitVisualizer } from '../features/development/GitVisualizer';
 import { ElectromagneticLab } from '../features/science/physics/ElectromagneticLab';
