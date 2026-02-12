@@ -149,16 +149,27 @@ export const PathfindingVisualizer: React.FC = () => {
 
   const visualizeAlgorithm = async () => {
     if (isRunning) {
+      // Stop the current execution
       isRunningRef.current = false;
       setIsRunning(false);
       return;
     }
 
+    // Always reset path before starting a new visualization
     resetPath();
+    
+    // Small delay to ensure state is updated
+    await sleep(50);
+    
     setIsRunning(true);
     isRunningRef.current = true;
 
-    const gridCopy = grid.map(row => row.map(cell => ({ ...cell, distance: Infinity, previous: null })));
+    const gridCopy = grid.map(row => row.map(cell => ({ 
+      ...cell, 
+      distance: Infinity, 
+      previous: null,
+      type: cell.type === 'visited' || cell.type === 'path' ? 'empty' : cell.type
+    })));
     const startCell = gridCopy[startPos.row][startPos.col];
     const endCell = gridCopy[endPos.row][endPos.col];
 
@@ -176,10 +187,11 @@ export const PathfindingVisualizer: React.FC = () => {
       }
     } catch (error) {
       console.error('Error:', error);
+    } finally {
+      // Always clean up running state
+      setIsRunning(false);
+      isRunningRef.current = false;
     }
-
-    setIsRunning(false);
-    isRunningRef.current = false;
   };
 
   const runDijkstraOrAStar = async (gridData: Cell[][], start: Cell, end: Cell, useHeuristic: boolean) => {
@@ -255,10 +267,12 @@ export const PathfindingVisualizer: React.FC = () => {
     while (stack.length > 0) {
       if (!isRunningRef.current) return;
       const current = stack.pop()!;
+      
       if (current.row === end.row && current.col === end.col) {
         await reconstructPath(current, gridData);
         return;
       }
+      
       if (current.type !== 'start' && current.type !== 'end') {
         current.type = 'visited';
         count++;
@@ -266,7 +280,10 @@ export const PathfindingVisualizer: React.FC = () => {
         setGrid([...gridData]);
         await sleep(Math.max(10, 101 - speed));
       }
-      for (const neighbor of getNeighbors(current, gridData)) {
+      
+      // Get neighbors and reverse to maintain consistent direction
+      const neighbors = getNeighbors(current, gridData).reverse();
+      for (const neighbor of neighbors) {
         const key = `${neighbor.row},${neighbor.col}`;
         if (!visited.has(key)) {
           visited.add(key);
@@ -438,7 +455,13 @@ export const PathfindingVisualizer: React.FC = () => {
     if (isRunning) return;
     const newGrid = grid.map(row =>
       row.map(cell => {
-        if (cell.type === 'start' || cell.type === 'end') return cell;
+        // Preserve start and end positions
+        if (cell.row === startPos.row && cell.col === startPos.col) {
+          return { ...cell, type: 'start' as CellType };
+        }
+        if (cell.row === endPos.row && cell.col === endPos.col) {
+          return { ...cell, type: 'end' as CellType };
+        }
         return { ...cell, type: Math.random() < 0.3 ? 'wall' as CellType : 'empty' as CellType };
       })
     );
@@ -448,7 +471,16 @@ export const PathfindingVisualizer: React.FC = () => {
   const generateRecursiveMaze = () => {
     if (isRunning) return;
     const newGrid = grid.map(row =>
-      row.map(cell => ({ ...cell, type: cell.type === 'start' || cell.type === 'end' ? cell.type : 'wall' as CellType }))
+      row.map(cell => {
+        // Preserve start and end positions
+        if (cell.row === startPos.row && cell.col === startPos.col) {
+          return { ...cell, type: 'start' as CellType };
+        }
+        if (cell.row === endPos.row && cell.col === endPos.col) {
+          return { ...cell, type: 'end' as CellType };
+        }
+        return { ...cell, type: 'wall' as CellType };
+      })
     );
 
     const carve = (row: number, col: number) => {
@@ -461,45 +493,91 @@ export const PathfindingVisualizer: React.FC = () => {
         const newCol = col + dc;
         if (newRow > 0 && newRow < ROWS - 1 && newCol > 0 && newCol < COLS - 1 &&
           newGrid[newRow][newCol].type === 'wall') {
-          newGrid[row + dr / 2][col + dc / 2].type = 'empty';
-          newGrid[newRow][newCol].type = 'empty';
-          carve(newRow, newCol);
+          // Don't overwrite start/end
+          if (!(newRow === startPos.row && newCol === startPos.col) && 
+              !(newRow === endPos.row && newCol === endPos.col)) {
+            newGrid[row + dr / 2][col + dc / 2].type = 'empty';
+            newGrid[newRow][newCol].type = 'empty';
+            carve(newRow, newCol);
+          }
         }
       }
     };
 
-    newGrid[1][1].type = 'empty';
-    carve(1, 1);
+    // Start carving from a position that's not start/end
+    const startCarveRow = startPos.row === 1 ? 3 : 1;
+    const startCarveCol = startPos.col === 1 ? 3 : 1;
+    newGrid[startCarveRow][startCarveCol].type = 'empty';
+    carve(startCarveRow, startCarveCol);
+    
+    // Ensure start and end are accessible
+    newGrid[startPos.row][startPos.col].type = 'start';
+    newGrid[endPos.row][endPos.col].type = 'end';
+    
     setGrid(newGrid);
   };
 
   const generateVerticalMaze = () => {
     if (isRunning) return;
-    const newGrid = grid.map(row => row.map(cell => ({ ...cell, type: 'empty' as CellType })));
+    const newGrid = grid.map(row => row.map(cell => {
+      // Preserve start and end positions
+      if (cell.row === startPos.row && cell.col === startPos.col) {
+        return { ...cell, type: 'start' as CellType };
+      }
+      if (cell.row === endPos.row && cell.col === endPos.col) {
+        return { ...cell, type: 'end' as CellType };
+      }
+      return { ...cell, type: 'empty' as CellType };
+    }));
 
     for (let col = 2; col < COLS; col += 3) {
       const gapRow = Math.floor(Math.random() * ROWS);
       for (let row = 0; row < ROWS; row++) {
-        if (row !== gapRow && newGrid[row][col].type !== 'start' && newGrid[row][col].type !== 'end') {
+        // Don't place walls on start/end or gap
+        if (row !== gapRow && 
+            !(row === startPos.row && col === startPos.col) && 
+            !(row === endPos.row && col === endPos.col)) {
           newGrid[row][col].type = 'wall';
         }
       }
     }
+    
+    // Ensure start and end are preserved
+    newGrid[startPos.row][startPos.col].type = 'start';
+    newGrid[endPos.row][endPos.col].type = 'end';
+    
     setGrid(newGrid);
   };
 
   const generateHorizontalMaze = () => {
     if (isRunning) return;
-    const newGrid = grid.map(row => row.map(cell => ({ ...cell, type: 'empty' as CellType })));
+    const newGrid = grid.map(row => row.map(cell => {
+      // Preserve start and end positions
+      if (cell.row === startPos.row && cell.col === startPos.col) {
+        return { ...cell, type: 'start' as CellType };
+      }
+      if (cell.row === endPos.row && cell.col === endPos.col) {
+        return { ...cell, type: 'end' as CellType };
+      }
+      return { ...cell, type: 'empty' as CellType };
+    }));
 
     for (let row = 2; row < ROWS; row += 3) {
       const gapCol = Math.floor(Math.random() * COLS);
       for (let col = 0; col < COLS; col++) {
-        if (col !== gapCol && newGrid[row][col].type !== 'start' && newGrid[row][col].type !== 'end') {
+        // Don't place walls on start/end or gap
+        if (col !== gapCol && 
+            !(row === startPos.row && col === startPos.col) && 
+            !(row === endPos.row && col === endPos.col)) {
           newGrid[row][col].type = 'wall';
         }
       }
     }
+    
+    // Ensure start and end are preserved
+    newGrid[startPos.row][startPos.col].type = 'start';
+    newGrid[endPos.row][endPos.col].type = 'end';
+    
     setGrid(newGrid);
   };
 
@@ -534,77 +612,80 @@ export const PathfindingVisualizer: React.FC = () => {
   };
 
   return (
-    <div className="h-full w-full bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 p-6 overflow-auto">
-      <div className="space-y-4">
-        <Card className="p-4 dark:bg-gray-800 dark:border-gray-700">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block dark:text-white">Algorithm</label>
-              <Select value={algorithm} onValueChange={(v) => setAlgorithm(v as Algorithm)} disabled={isRunning}>
-                <SelectTrigger className="dark:bg-gray-700 dark:text-white dark:border-gray-600">
-                  <SelectValue placeholder="Select algorithm" />
-                </SelectTrigger>
-                <SelectContent className="z-[999999] bg-white dark:bg-gray-800">
-                  <SelectItem value="astar">A* (Optimal & Fast)</SelectItem>
-                  <SelectItem value="dijkstra">Dijkstra (Optimal)</SelectItem>
-                  <SelectItem value="bfs">BFS (Unweighted)</SelectItem>
-                  <SelectItem value="dfs">DFS (Not Optimal)</SelectItem>
-                  <SelectItem value="bellmanford">Bellman-Ford (Negative Weights)</SelectItem>
-                  <SelectItem value="bidirectional">Bidirectional Search (Fast)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block dark:text-white">Speed: {speed}</label>
-              <Slider value={[speed]} onValueChange={(v) => setSpeed(v[0])} min={1} max={100} className="dark:bg-gray-700" />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block dark:text-white">Draw Mode</label>
-              <Select value={drawMode} onValueChange={(v) => setDrawMode(v as 'wall' | 'erase' | 'start' | 'end')} disabled={isRunning}>
-                <SelectTrigger className="dark:bg-gray-700 dark:text-white dark:border-gray-600">
-                  <SelectValue placeholder="Select mode" />
-                </SelectTrigger>
-                <SelectContent className="z-[999999] bg-white dark:bg-gray-800">
-                  <SelectItem value="wall">Draw Walls</SelectItem>
-                  <SelectItem value="erase">Erase Walls</SelectItem>
-                  <SelectItem value="start">Move Start</SelectItem>
-                  <SelectItem value="end">Move End</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-end">
-              <Button onClick={visualizeAlgorithm} className="w-full">
-                {isRunning ? <><Pause className="mr-2 h-4 w-4" />Stop</> : <><Play className="mr-2 h-4 w-4" />Start</>}
-              </Button>
-            </div>
+    <div className="h-full w-full bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 p-4 overflow-hidden flex flex-col">
+      {/* Top Controls */}
+      <Card className="p-3 dark:bg-gray-800 dark:border-gray-700 mb-3 flex-shrink-0">
+        <div className="grid grid-cols-4 gap-3 mb-3">
+          <div>
+            <label className="text-xs font-medium mb-1 block dark:text-white">Algorithm</label>
+            <Select value={algorithm} onValueChange={(v) => setAlgorithm(v as Algorithm)} disabled={isRunning}>
+              <SelectTrigger className="dark:bg-gray-700 dark:text-white dark:border-gray-600 h-9">
+                <SelectValue placeholder="Select algorithm" />
+              </SelectTrigger>
+              <SelectContent className="z-[999999] bg-white dark:bg-gray-800">
+                <SelectItem value="astar">A* (Optimal & Fast)</SelectItem>
+                <SelectItem value="dijkstra">Dijkstra (Optimal)</SelectItem>
+                <SelectItem value="bfs">BFS (Unweighted)</SelectItem>
+                <SelectItem value="dfs">DFS (Not Optimal)</SelectItem>
+                <SelectItem value="bellmanford">Bellman-Ford (Negative Weights)</SelectItem>
+                <SelectItem value="bidirectional">Bidirectional Search (Fast)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={resetPath} variant="outline" disabled={isRunning} size="sm">
-              <RotateCcw className="mr-2 h-4 w-4" />Reset Path
-            </Button>
-            <Button onClick={clearWalls} variant="outline" disabled={isRunning} size="sm">
-              <Eraser className="mr-2 h-4 w-4" />Clear Walls
-            </Button>
-            <Button onClick={initializeGrid} variant="outline" disabled={isRunning} size="sm">
-              Reset All
-            </Button>
-            <div className="w-px h-8 bg-gray-300 dark:bg-gray-600" />
-            <Button onClick={generateRandomMaze} variant="outline" disabled={isRunning} size="sm">
-              Random Maze
-            </Button>
-            <Button onClick={generateRecursiveMaze} variant="outline" disabled={isRunning} size="sm">
-              Recursive Maze
-            </Button>
-            <Button onClick={generateVerticalMaze} variant="outline" disabled={isRunning} size="sm">
-              Vertical Maze
-            </Button>
-            <Button onClick={generateHorizontalMaze} variant="outline" disabled={isRunning} size="sm">
-              Horizontal Maze
+          <div>
+            <label className="text-xs font-medium mb-1 block dark:text-white">Speed: {speed}</label>
+            <Slider value={[speed]} onValueChange={(v) => setSpeed(v[0])} min={1} max={100} className="dark:bg-gray-700 mt-2" />
+          </div>
+          <div>
+            <label className="text-xs font-medium mb-1 block dark:text-white">Draw Mode</label>
+            <Select value={drawMode} onValueChange={(v) => setDrawMode(v as 'wall' | 'erase' | 'start' | 'end')} disabled={isRunning}>
+              <SelectTrigger className="dark:bg-gray-700 dark:text-white dark:border-gray-600 h-9">
+                <SelectValue placeholder="Select mode" />
+              </SelectTrigger>
+              <SelectContent className="z-[999999] bg-white dark:bg-gray-800">
+                <SelectItem value="wall">Draw Walls</SelectItem>
+                <SelectItem value="erase">Erase Walls</SelectItem>
+                <SelectItem value="start">Move Start</SelectItem>
+                <SelectItem value="end">Move End</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-end">
+            <Button onClick={visualizeAlgorithm} className="w-full h-9">
+              {isRunning ? <><Pause className="mr-2 h-4 w-4" />Stop</> : <><Play className="mr-2 h-4 w-4" />Visualize</>}
             </Button>
           </div>
-        </Card>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={resetPath} variant="outline" disabled={isRunning} size="sm">
+            <RotateCcw className="mr-1 h-3 w-3" />Reset Path
+          </Button>
+          <Button onClick={clearWalls} variant="outline" disabled={isRunning} size="sm">
+            <Eraser className="mr-1 h-3 w-3" />Clear Walls
+          </Button>
+          <Button onClick={initializeGrid} variant="outline" disabled={isRunning} size="sm">
+            Reset All
+          </Button>
+          <div className="w-px h-6 bg-gray-300 dark:bg-gray-600" />
+          <Button onClick={generateRandomMaze} variant="outline" disabled={isRunning} size="sm">
+            Random Maze
+          </Button>
+          <Button onClick={generateRecursiveMaze} variant="outline" disabled={isRunning} size="sm">
+            Recursive Maze
+          </Button>
+          <Button onClick={generateVerticalMaze} variant="outline" disabled={isRunning} size="sm">
+            Vertical Maze
+          </Button>
+          <Button onClick={generateHorizontalMaze} variant="outline" disabled={isRunning} size="sm">
+            Horizontal Maze
+          </Button>
+        </div>
+      </Card>
 
-        <Card className="p-4 overflow-x-auto dark:bg-gray-800 dark:border-gray-700">
+      {/* Main Content Area - Grid and Stats Side by Side */}
+      <div className="flex gap-3 flex-1 min-h-0">
+        {/* Grid Area */}
+        <Card className="p-3 dark:bg-gray-800 dark:border-gray-700 flex-1 flex items-center justify-center overflow-hidden">
           <div className="inline-block" onMouseLeave={() => setIsDrawing(false)}>
             {grid.map((row, rowIdx) => (
               <div key={rowIdx} className="flex">
@@ -631,26 +712,28 @@ export const PathfindingVisualizer: React.FC = () => {
           </div>
         </Card>
 
-        <div className="grid md:grid-cols-3 gap-4">
-          <Card className="p-4 dark:bg-gray-800">
-            <h3 className="font-bold mb-2 dark:text-white">Algorithm Info</h3>
-            <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 mb-2">
+        {/* Right Sidebar - Stats and Info */}
+        <div className="w-64 flex flex-col gap-3 flex-shrink-0">
+          <Card className="p-3 dark:bg-gray-800 dark:border-gray-700">
+            <h3 className="font-bold text-sm mb-2 dark:text-white">Algorithm Info</h3>
+            <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mb-2">
               {algorithm.toUpperCase().replace('BELLMANFORD', 'BELLMAN-FORD').replace('BIDIRECTIONAL', 'BIDIRECTIONAL SEARCH')}
             </p>
-            <p className="text-xs text-gray-600 dark:text-gray-400">{getAlgorithmDescription()}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">{getAlgorithmDescription()}</p>
           </Card>
-          <Card className="p-4 dark:bg-gray-800">
-            <h3 className="font-bold mb-2 dark:text-white">Statistics</h3>
-            <div className="space-y-1">
-              <div className="flex justify-between text-sm">
+
+          <Card className="p-3 dark:bg-gray-800 dark:border-gray-700">
+            <h3 className="font-bold text-sm mb-2 dark:text-white">Statistics</h3>
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs">
                 <span className="text-gray-600 dark:text-gray-400">Cells Visited:</span>
                 <span className="font-bold text-blue-600 dark:text-blue-400">{visitedCount}</span>
               </div>
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-xs">
                 <span className="text-gray-600 dark:text-gray-400">Path Length:</span>
                 <span className="font-bold text-yellow-600 dark:text-yellow-400">{pathLength}</span>
               </div>
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-xs">
                 <span className="text-gray-600 dark:text-gray-400">Efficiency:</span>
                 <span className="font-bold text-green-600 dark:text-green-400">
                   {pathLength > 0 ? `${((pathLength / Math.max(visitedCount, 1)) * 100).toFixed(1)}%` : 'N/A'}
@@ -658,28 +741,29 @@ export const PathfindingVisualizer: React.FC = () => {
               </div>
             </div>
           </Card>
-          <Card className="p-4 dark:bg-gray-800">
-            <h3 className="font-bold mb-2 dark:text-white">Legend</h3>
-            <div className="grid grid-cols-2 gap-2 text-xs">
+
+          <Card className="p-3 dark:bg-gray-800 dark:border-gray-700">
+            <h3 className="font-bold text-sm mb-2 dark:text-white">Legend</h3>
+            <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-green-500 rounded" />
-                <span className="dark:text-gray-300">Start</span>
+                <div className="w-4 h-4 bg-green-500 rounded flex-shrink-0" />
+                <span className="text-xs dark:text-gray-300">Start Point</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-red-500 rounded" />
-                <span className="dark:text-gray-300">End</span>
+                <div className="w-4 h-4 bg-red-500 rounded flex-shrink-0" />
+                <span className="text-xs dark:text-gray-300">End Point</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-gray-800 dark:bg-gray-700 rounded" />
-                <span className="dark:text-gray-300">Wall</span>
+                <div className="w-4 h-4 bg-gray-800 dark:bg-gray-700 rounded flex-shrink-0" />
+                <span className="text-xs dark:text-gray-300">Wall</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-blue-300 dark:bg-blue-600 rounded" />
-                <span className="dark:text-gray-300">Visited</span>
+                <div className="w-4 h-4 bg-blue-300 dark:bg-blue-600 rounded flex-shrink-0" />
+                <span className="text-xs dark:text-gray-300">Visited Cell</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-yellow-400 dark:bg-yellow-500 rounded" />
-                <span className="dark:text-gray-300">Path</span>
+                <div className="w-4 h-4 bg-yellow-400 dark:bg-yellow-500 rounded flex-shrink-0" />
+                <span className="text-xs dark:text-gray-300">Final Path</span>
               </div>
             </div>
           </Card>

@@ -35,6 +35,16 @@ export const Window = ({ window, onClose, onMinimize, onFocus }: WindowProps) =>
   const nodeRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ x: number; y: number } | null>(null);
   const isDraggingRef = useRef(false);
+  
+  // Store window content in a ref to prevent remounting when window state changes
+  const contentRef = useRef(window.content);
+  
+  // Only update content ref if the content prop actually changes (by reference)
+  useEffect(() => {
+    if (window.content !== contentRef.current) {
+      contentRef.current = window.content;
+    }
+  }, [window.content]);
 
   const { position, setPosition, originalPosition, setOriginalPosition } =
     useWindowPosition(window, windowSize);
@@ -335,7 +345,7 @@ export const Window = ({ window, onClose, onMinimize, onFocus }: WindowProps) =>
         </div>
 
         <WindowContent windowRef={windowRef}>
-          {window.content}
+          {contentRef.current}
         </WindowContent>
       </div>
     );
@@ -403,7 +413,7 @@ export const Window = ({ window, onClose, onMinimize, onFocus }: WindowProps) =>
         />
 
         <WindowContent windowRef={windowRef}>
-          {window.content}
+          {contentRef.current}
         </WindowContent>
       </div>
     );
@@ -462,7 +472,7 @@ export const Window = ({ window, onClose, onMinimize, onFocus }: WindowProps) =>
         />
 
         <WindowContent windowRef={windowRef}>
-          {window.content}
+          {contentRef.current}
         </WindowContent>
 
         { }
@@ -479,15 +489,14 @@ export const MemoizedWindow = React.memo(Window, (prevProps, nextProps) => {
   // Return true if props are equal (skip re-render)
   // Return false if props changed (do re-render)
 
-  // If content reference changed, always re-render
-  if (prevProps.window.content !== nextProps.window.content) {
-    return false;
-  }
+  // Don't check content reference - we handle that internally with contentRef
+  // This prevents unnecessary re-renders when window state changes
 
   // Check if important state changed
   const stateChanged =
     prevProps.window.isMinimized !== nextProps.window.isMinimized ||
-    prevProps.window.zIndex !== nextProps.window.zIndex;
+    prevProps.window.zIndex !== nextProps.window.zIndex ||
+    prevProps.window.isOpen !== nextProps.window.isOpen;
 
   // Return true (skip render) if state didn't change
   return !stateChanged;

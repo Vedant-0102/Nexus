@@ -1685,7 +1685,7 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
       {
         id: 'qrcode',
         title: 'QR Code Generator',
-        content: <QRCodeVisualizer />,
+        content: getOrCreateContent('qrcode', () => <QRCodeVisualizer />),
         isOpen: openWindowIds.includes('qrcode'),
         isMinimized: minimizedWindowIds.includes('qrcode'),
         icon: <QrCode className="h-5 w-5 text-purple-600" />,
