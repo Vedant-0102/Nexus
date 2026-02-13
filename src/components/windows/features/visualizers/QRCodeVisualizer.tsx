@@ -1,200 +1,166 @@
 import React, { useState, useRef, useEffect } from 'react';
+import QRCode from 'qrcode';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { QrCode, Download, Play, Pause, RotateCcw, Palette } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { QrCode, Download, Copy, Link, Mail, Phone, Wifi, MapPin, Check } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+
+type QRType = 'text' | 'url' | 'email' | 'phone' | 'wifi' | 'sms' | 'location';
+type ErrorCorrectionLevel = 'L' | 'M' | 'Q' | 'H';
+
+const EC_DESCRIPTIONS = {
+  L: 'Low - 7% recovery',
+  M: 'Medium - 15% recovery',
+  Q: 'Quartile - 25% recovery',
+  H: 'High - 30% recovery'
+};
+
+const EC_DETAILS = {
+  L: { recovery: '7%', use: 'Clean environments, printed materials' },
+  M: { recovery: '15%', use: 'General purpose, standard use' },
+  Q: { recovery: '25%', use: 'Industrial, outdoor applications' },
+  H: { recovery: '30%', use: 'Critical data, damaged surfaces' }
+};
 
 export const QRCodeVisualizer: React.FC = () => {
+  const [qrType, setQrType] = useState<QRType>('text');
   const [text, setText] = useState('Hello, World!');
-  const [size, setSize] = useState(200);
+  const [url, setUrl] = useState('https://example.com');
+  const [email, setEmail] = useState('example@email.com');
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+  const [phone, setPhone] = useState('+1234567890');
+  const [smsNumber, setSmsNumber] = useState('+1234567890');
+  const [smsMessage, setSmsMessage] = useState('');
+  const [wifiSSID, setWifiSSID] = useState('MyNetwork');
+  const [wifiPassword, setWifiPassword] = useState('password123');
+  const [wifiEncryption, setWifiEncryption] = useState('WPA');
+  const [wifiHidden, setWifiHidden] = useState(false);
+  const [latitude, setLatitude] = useState('40.7128');
+  const [longitude, setLongitude] = useState('-74.0060');
+  
+  const [qrSize, setQrSize] = useState(300);
+  const [margin, setMargin] = useState(4);
   const [fgColor, setFgColor] = useState('#000000');
   const [bgColor, setBgColor] = useState('#ffffff');
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [step, setStep] = useState(0);
+  const [errorCorrection, setErrorCorrection] = useState<ErrorCorrectionLevel>('M');
+  const [copied, setCopied] = useState(false);
+  
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const steps = [
-    'Encoding text to binary',
-    'Adding error correction',
-    'Creating data matrix',
-    'Adding finder patterns',
-    'Adding alignment patterns',
-    'Adding timing patterns',
-    'Finalizing QR code'
-  ];
+  const getQRData = (): string => {
+    switch (qrType) {
+      case 'url':
+        return url;
+      case 'email':
+        let emailData = `mailto:${email}`;
+        if (emailSubject || emailBody) {
+          emailData += '?';
+          if (emailSubject) emailData += `subject=${encodeURIComponent(emailSubject)}`;
+          if (emailSubject && emailBody) emailData += '&';
+          if (emailBody) emailData += `body=${encodeURIComponent(emailBody)}`;
+        }
+        return emailData;
+      case 'phone':
+        return `tel:${phone}`;
+      case 'sms':
+        return `sms:${smsNumber}${smsMessage ? `?body=${encodeURIComponent(smsMessage)}` : ''}`;
+      case 'wifi':
+        return `WIFI:T:${wifiEncryption};S:${wifiSSID};P:${wifiPassword};H:${wifiHidden};`;
+      case 'location':
+        return `geo:${latitude},${longitude}`;
+      default:
+        return text;
+    }
+  };
 
   useEffect(() => {
-    if (isAnimating) {
-      const interval = setInterval(() => {
-        setStep(prev => {
-          if (prev >= steps.length - 1) {
-            setIsAnimating(false);
-            return prev;
-          }
-          return prev + 1;
-        });
-      }, 800);
-
-      return () => clearInterval(interval);
-    }
-  }, [isAnimating]);
-
-  useEffect(() => {
-    generateQRCode();
-  }, [text, size, fgColor, bgColor, step, isAnimating]);
-
-  const generateQRCode = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const moduleSize = 10;
-    const modules = 25;
-    const canvasSize = modules * moduleSize;
-    
-    canvas.width = canvasSize;
-    canvas.height = canvasSize;
-
-    // Background
-    ctx.fillStyle = bgColor;
-    ctx.fillRect(0, 0, canvasSize, canvasSize);
-
-    // Simple QR-like pattern
-    ctx.fillStyle = fgColor;
-
-    if (!isAnimating || step >= 3) {
-      // Finder patterns (corners)
-      drawFinderPattern(ctx, 0, 0, moduleSize);
-      drawFinderPattern(ctx, (modules - 7) * moduleSize, 0, moduleSize);
-      drawFinderPattern(ctx, 0, (modules - 7) * moduleSize, moduleSize);
-    }
-
-    if (!isAnimating || step >= 4) {
-      // Alignment pattern (center-ish)
-      drawAlignmentPattern(ctx, 17 * moduleSize, 17 * moduleSize, moduleSize);
-    }
-
-    if (!isAnimating || step >= 5) {
-      // Timing patterns
-      for (let i = 8; i < modules - 8; i++) {
-        if (i % 2 === 0) {
-          ctx.fillRect(i * moduleSize, 6 * moduleSize, moduleSize, moduleSize);
-          ctx.fillRect(6 * moduleSize, i * moduleSize, moduleSize, moduleSize);
-        }
-      }
-    }
-
-    if (!isAnimating || step >= 2) {
-      // Data modules (pseudo-random pattern based on text)
-      const seed = text.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      for (let y = 0; y < modules; y++) {
-        for (let x = 0; x < modules; x++) {
-          // Skip finder and timing areas
-          if (isFinderArea(x, y, modules) || isTimingArea(x, y)) continue;
-          
-          const hash = (x * 31 + y * 17 + seed) % 100;
-          if (hash < 45) {
-            ctx.fillRect(x * moduleSize, y * moduleSize, moduleSize, moduleSize);
-          }
-        }
-      }
-    }
-
-    // Highlight current step
-    if (isAnimating) {
-      ctx.strokeStyle = '#3b82f6';
-      ctx.lineWidth = 3;
+    const generateQR = async () => {
+      if (!canvasRef.current) return;
       
-      if (step === 3) {
-        ctx.strokeRect(0, 0, 7 * moduleSize, 7 * moduleSize);
-      } else if (step === 4) {
-        ctx.strokeRect(15 * moduleSize, 15 * moduleSize, 5 * moduleSize, 5 * moduleSize);
-      } else if (step === 5) {
-        ctx.strokeRect(6 * moduleSize, 0, moduleSize, canvasSize);
-        ctx.strokeRect(0, 6 * moduleSize, canvasSize, moduleSize);
+      try {
+        const data = getQRData();
+        await QRCode.toCanvas(canvasRef.current, data, {
+          width: qrSize,
+          margin: margin,
+          color: {
+            dark: fgColor,
+            light: bgColor
+          },
+          errorCorrectionLevel: errorCorrection
+        });
+      } catch (err) {
+        console.error('QR Code generation error:', err);
       }
-    }
-  };
+    };
 
-  const drawFinderPattern = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
-    // Outer square
-    ctx.fillRect(x, y, 7 * size, 7 * size);
-    ctx.fillStyle = bgColor;
-    ctx.fillRect(x + size, y + size, 5 * size, 5 * size);
-    ctx.fillStyle = fgColor;
-    ctx.fillRect(x + 2 * size, y + 2 * size, 3 * size, 3 * size);
-  };
-
-  const drawAlignmentPattern = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
-    ctx.fillRect(x, y, 5 * size, 5 * size);
-    ctx.fillStyle = bgColor;
-    ctx.fillRect(x + size, y + size, 3 * size, 3 * size);
-    ctx.fillStyle = fgColor;
-    ctx.fillRect(x + 2 * size, y + 2 * size, size, size);
-  };
-
-  const isFinderArea = (x: number, y: number, modules: number) => {
-    return (
-      (x < 8 && y < 8) ||
-      (x >= modules - 8 && y < 8) ||
-      (x < 8 && y >= modules - 8)
-    );
-  };
-
-  const isTimingArea = (x: number, y: number) => {
-    return x === 6 || y === 6;
-  };
+    generateQR();
+  }, [qrType, text, url, email, emailSubject, emailBody, phone, smsNumber, smsMessage, 
+      wifiSSID, wifiPassword, wifiEncryption, wifiHidden, latitude, longitude,
+      qrSize, margin, fgColor, bgColor, errorCorrection]);
 
   const handleDownload = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const link = document.createElement('a');
-    link.download = 'qrcode.png';
+    link.download = `qrcode-${qrType}.png`;
     link.href = canvas.toDataURL();
     link.click();
   };
 
-  const handleAnimate = () => {
-    setStep(0);
-    setIsAnimating(true);
+  const handleCopy = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    try {
+      canvas.toBlob(async (blob) => {
+        if (blob) {
+          await navigator.clipboard.write([
+            new ClipboardItem({ 'image/png': blob })
+          ]);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        }
+      });
+    } catch (err) {
+      console.error('Copy failed:', err);
+    }
   };
 
-  const handleReset = () => {
-    setStep(0);
-    setIsAnimating(false);
+  const renderTypeIcon = () => {
+    switch (qrType) {
+      case 'url': return <Link className="h-4 w-4" />;
+      case 'email': return <Mail className="h-4 w-4" />;
+      case 'phone': return <Phone className="h-4 w-4" />;
+      case 'wifi': return <Wifi className="h-4 w-4" />;
+      case 'sms': return <Phone className="h-4 w-4" />;
+      case 'location': return <MapPin className="h-4 w-4" />;
+      default: return <QrCode className="h-4 w-4" />;
+    }
   };
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-slate-50 to-purple-50 dark:from-slate-900 dark:to-slate-800 p-6">
-      <div className="flex items-center justify-between mb-4">
+    <div className="h-full flex flex-col bg-gradient-to-br from-slate-50 to-purple-50 dark:from-slate-900 dark:to-slate-800 overflow-hidden">
+      <div className="flex items-center justify-between p-4 border-b bg-white/50 dark:bg-slate-900/50 backdrop-blur">
         <div className="flex items-center gap-2">
           <QrCode className="h-6 w-6 text-purple-600" />
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white">QR Code Generator</h2>
+          <h2 className="text-xl font-bold text-slate-800 dark:text-white">QR Code Generator</h2>
         </div>
         <div className="flex gap-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={handleAnimate}
-            disabled={isAnimating}
+            onClick={handleCopy}
             className="gap-2"
           >
-            <Play className="h-4 w-4" />
-            Animate
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleReset}
-            className="gap-2"
-          >
-            <RotateCcw className="h-4 w-4" />
-            Reset
+            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            {copied ? 'Copied!' : 'Copy'}
           </Button>
           <Button
             variant="outline"
@@ -208,154 +174,322 @@ export const QRCodeVisualizer: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 flex-1">
-        {/* Left Panel - Controls */}
-        <Card className="p-4 space-y-4">
-          <div>
-            <Label htmlFor="text">Text to Encode</Label>
-            <Input
-              id="text"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Enter text..."
-              className="mt-2"
-            />
-          </div>
+      <div className="flex-1 overflow-auto p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+          {/* Left Panel - QR Type & Content */}
+          <Card className="p-6 space-y-6">
+            <div>
+              <Label className="text-base font-semibold mb-3 block">QR Code Type</Label>
+              <Tabs value={qrType} onValueChange={(v) => setQrType(v as QRType)} className="w-full">
+                <TabsList className="grid grid-cols-4 gap-1 h-auto p-1">
+                  <TabsTrigger value="text" className="text-xs">Text</TabsTrigger>
+                  <TabsTrigger value="url" className="text-xs">URL</TabsTrigger>
+                  <TabsTrigger value="email" className="text-xs">Email</TabsTrigger>
+                  <TabsTrigger value="phone" className="text-xs">Phone</TabsTrigger>
+                </TabsList>
+                <TabsList className="grid grid-cols-3 gap-1 h-auto p-1 mt-1">
+                  <TabsTrigger value="sms" className="text-xs">SMS</TabsTrigger>
+                  <TabsTrigger value="wifi" className="text-xs">WiFi</TabsTrigger>
+                  <TabsTrigger value="location" className="text-xs">Location</TabsTrigger>
+                </TabsList>
 
-          <div>
-            <Label>Size: {size}px</Label>
-            <Slider
-              value={[size]}
-              onValueChange={(value) => setSize(value[0])}
-              min={150}
-              max={400}
-              step={50}
-              className="mt-2"
-            />
-          </div>
+                <TabsContent value="text" className="mt-4 space-y-3">
+                  <div>
+                    <Label htmlFor="text">Text Content</Label>
+                    <Input
+                      id="text"
+                      value={text}
+                      onChange={(e) => setText(e.target.value)}
+                      placeholder="Enter text..."
+                      className="mt-2"
+                    />
+                  </div>
+                </TabsContent>
 
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Palette className="h-4 w-4" />
-              Colors
-            </Label>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label htmlFor="fg" className="text-xs">Foreground</Label>
-                <div className="flex gap-2 mt-1">
-                  <input
-                    id="fg"
-                    type="color"
-                    value={fgColor}
-                    onChange={(e) => setFgColor(e.target.value)}
-                    className="w-12 h-8 rounded cursor-pointer"
-                  />
-                  <Input
-                    value={fgColor}
-                    onChange={(e) => setFgColor(e.target.value)}
-                    className="flex-1 text-xs"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="bg" className="text-xs">Background</Label>
-                <div className="flex gap-2 mt-1">
-                  <input
-                    id="bg"
-                    type="color"
-                    value={bgColor}
-                    onChange={(e) => setBgColor(e.target.value)}
-                    className="w-12 h-8 rounded cursor-pointer"
-                  />
-                  <Input
-                    value={bgColor}
-                    onChange={(e) => setBgColor(e.target.value)}
-                    className="flex-1 text-xs"
-                  />
-                </div>
-              </div>
+                <TabsContent value="url" className="mt-4 space-y-3">
+                  <div>
+                    <Label htmlFor="url">Website URL</Label>
+                    <Input
+                      id="url"
+                      value={url}
+                      onChange={(e) => setUrl(e.target.value)}
+                      placeholder="https://example.com"
+                      className="mt-2"
+                    />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="email" className="mt-4 space-y-3">
+                  <div>
+                    <Label htmlFor="email">Email Address</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="example@email.com"
+                      className="mt-2"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="subject">Subject (Optional)</Label>
+                    <Input
+                      id="subject"
+                      value={emailSubject}
+                      onChange={(e) => setEmailSubject(e.target.value)}
+                      placeholder="Email subject"
+                      className="mt-2"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="body">Message (Optional)</Label>
+                    <Input
+                      id="body"
+                      value={emailBody}
+                      onChange={(e) => setEmailBody(e.target.value)}
+                      placeholder="Email body"
+                      className="mt-2"
+                    />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="phone" className="mt-4 space-y-3">
+                  <div>
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+1234567890"
+                      className="mt-2"
+                    />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="sms" className="mt-4 space-y-3">
+                  <div>
+                    <Label htmlFor="smsNumber">Phone Number</Label>
+                    <Input
+                      id="smsNumber"
+                      value={smsNumber}
+                      onChange={(e) => setSmsNumber(e.target.value)}
+                      placeholder="+1234567890"
+                      className="mt-2"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="smsMessage">Message (Optional)</Label>
+                    <Input
+                      id="smsMessage"
+                      value={smsMessage}
+                      onChange={(e) => setSmsMessage(e.target.value)}
+                      placeholder="SMS message"
+                      className="mt-2"
+                    />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="wifi" className="mt-4 space-y-3">
+                  <div>
+                    <Label htmlFor="ssid">Network Name (SSID)</Label>
+                    <Input
+                      id="ssid"
+                      value={wifiSSID}
+                      onChange={(e) => setWifiSSID(e.target.value)}
+                      placeholder="MyNetwork"
+                      className="mt-2"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={wifiPassword}
+                      onChange={(e) => setWifiPassword(e.target.value)}
+                      placeholder="password123"
+                      className="mt-2"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="encryption">Encryption</Label>
+                    <Select value={wifiEncryption} onValueChange={setWifiEncryption}>
+                      <SelectTrigger className="mt-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="WPA">WPA/WPA2</SelectItem>
+                        <SelectItem value="WEP">WEP</SelectItem>
+                        <SelectItem value="nopass">None</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="hidden">Hidden Network</Label>
+                    <Switch
+                      id="hidden"
+                      checked={wifiHidden}
+                      onCheckedChange={setWifiHidden}
+                    />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="location" className="mt-4 space-y-3">
+                  <div>
+                    <Label htmlFor="latitude">Latitude</Label>
+                    <Input
+                      id="latitude"
+                      value={latitude}
+                      onChange={(e) => setLatitude(e.target.value)}
+                      placeholder="40.7128"
+                      className="mt-2"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="longitude">Longitude</Label>
+                    <Input
+                      id="longitude"
+                      value={longitude}
+                      onChange={(e) => setLongitude(e.target.value)}
+                      placeholder="-74.0060"
+                      className="mt-2"
+                    />
+                  </div>
+                </TabsContent>
+              </Tabs>
             </div>
-          </div>
+          </Card>
 
-          <div className="pt-4 border-t">
-            <h3 className="font-semibold mb-2 text-sm">Generation Steps</h3>
-            <div className="space-y-2">
-              {steps.map((stepText, idx) => (
-                <div
-                  key={idx}
-                  className={`text-sm p-2 rounded transition-all ${
-                    isAnimating && idx === step
-                      ? 'bg-purple-100 dark:bg-purple-900 font-semibold'
-                      : idx < step || !isAnimating
-                      ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
-                  }`}
-                >
-                  {idx + 1}. {stepText}
-                </div>
-              ))}
+          {/* Center Panel - QR Code Display */}
+          <Card className="p-6 flex flex-col items-center justify-center">
+            <div className="mb-4 p-4 bg-white dark:bg-slate-800 rounded-lg shadow-lg">
+              <canvas
+                ref={canvasRef}
+                className="rounded"
+              />
             </div>
-          </div>
-        </Card>
-
-        {/* Center Panel - QR Code Display */}
-        <Card className="p-6 col-span-2 flex flex-col items-center justify-center">
-          <div className="mb-4">
-            <canvas
-              ref={canvasRef}
-              style={{ width: `${size}px`, height: `${size}px` }}
-              className="border-2 border-slate-200 dark:border-slate-700 rounded-lg shadow-lg"
-            />
-          </div>
-
-          {isAnimating && (
-            <div className="text-center">
-              <div className="text-lg font-semibold text-purple-600 dark:text-purple-400 mb-2">
-                {steps[step]}
-              </div>
-              <div className="w-64 bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-                <div
-                  className="bg-purple-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${((step + 1) / steps.length) * 100}%` }}
-                />
-              </div>
-            </div>
-          )}
-
-          {!isAnimating && (
             <div className="text-center space-y-2">
-              <div className="text-sm text-slate-600 dark:text-slate-400">
-                Scan this QR code with your phone
+              <div className="flex items-center justify-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+                {renderTypeIcon()}
+                <span className="capitalize">{qrType} QR Code</span>
               </div>
-              <div className="text-xs text-slate-500 dark:text-slate-500">
-                Contains: "{text.substring(0, 30)}{text.length > 30 ? '...' : ''}"
+              <div className="text-xs text-slate-500 dark:text-slate-400">
+                Scan with your phone camera
               </div>
             </div>
-          )}
-        </Card>
-      </div>
+          </Card>
 
-      {/* Info Panel */}
-      <Card className="mt-4 p-4">
-        <div className="grid grid-cols-4 gap-4 text-sm">
-          <div>
-            <div className="text-slate-600 dark:text-slate-400">Data Length</div>
-            <div className="font-semibold mt-1">{text.length} characters</div>
-          </div>
-          <div>
-            <div className="text-slate-600 dark:text-slate-400">Version</div>
-            <div className="font-semibold mt-1">Version 2</div>
-          </div>
-          <div>
-            <div className="text-slate-600 dark:text-slate-400">Error Correction</div>
-            <div className="font-semibold mt-1">Medium (15%)</div>
-          </div>
-          <div>
-            <div className="text-slate-600 dark:text-slate-400">Modules</div>
-            <div className="font-semibold mt-1">25 × 25</div>
-          </div>
+          {/* Right Panel - Customization */}
+          <Card className="p-6 space-y-6">
+            <div>
+              <Label className="text-base font-semibold mb-3 block">Customization</Label>
+              
+              <div className="space-y-4">
+                <div>
+                  <Label>Size: {qrSize}px</Label>
+                  <Slider
+                    value={[qrSize]}
+                    onValueChange={(value) => setQrSize(value[0])}
+                    min={200}
+                    max={500}
+                    step={50}
+                    className="mt-2"
+                  />
+                </div>
+
+                <div>
+                  <Label>Margin: {margin}</Label>
+                  <Slider
+                    value={[margin]}
+                    onValueChange={(value) => setMargin(value[0])}
+                    min={0}
+                    max={10}
+                    step={1}
+                    className="mt-2"
+                  />
+                </div>
+
+                <div>
+                  <Label>Error Correction</Label>
+                  <Select value={errorCorrection} onValueChange={(v) => setErrorCorrection(v as ErrorCorrectionLevel)}>
+                    <SelectTrigger className="mt-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="z-[999999]">
+                      <SelectItem value="L">{EC_DESCRIPTIONS.L}</SelectItem>
+                      <SelectItem value="M">{EC_DESCRIPTIONS.M}</SelectItem>
+                      <SelectItem value="Q">{EC_DESCRIPTIONS.Q}</SelectItem>
+                      <SelectItem value="H">{EC_DESCRIPTIONS.H}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {EC_DETAILS[errorCorrection].use}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Colors</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="fg" className="text-xs">Foreground</Label>
+                      <div className="flex gap-2 mt-1">
+                        <input
+                          id="fg"
+                          type="color"
+                          value={fgColor}
+                          onChange={(e) => setFgColor(e.target.value)}
+                          className="w-10 h-10 rounded cursor-pointer border"
+                        />
+                        <Input
+                          value={fgColor}
+                          onChange={(e) => setFgColor(e.target.value)}
+                          className="flex-1 text-xs"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="bg" className="text-xs">Background</Label>
+                      <div className="flex gap-2 mt-1">
+                        <input
+                          id="bg"
+                          type="color"
+                          value={bgColor}
+                          onChange={(e) => setBgColor(e.target.value)}
+                          className="w-10 h-10 rounded cursor-pointer border"
+                        />
+                        <Input
+                          value={bgColor}
+                          onChange={(e) => setBgColor(e.target.value)}
+                          className="flex-1 text-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t">
+              <Label className="text-sm font-semibold mb-2 block">Error Correction Levels</Label>
+              <div className="space-y-2">
+                {Object.entries(EC_DETAILS).map(([level, details]) => (
+                  <div
+                    key={level}
+                    className={`text-xs p-2 rounded transition-colors ${
+                      errorCorrection === level
+                        ? 'bg-purple-100 dark:bg-purple-900 border border-purple-300 dark:border-purple-700'
+                        : 'bg-slate-50 dark:bg-slate-800'
+                    }`}
+                  >
+                    <div className="font-semibold">{level} - {details.recovery}</div>
+                    <div className="text-slate-600 dark:text-slate-400">{details.use}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Card>
         </div>
-      </Card>
+      </div>
     </div>
   );
 };
