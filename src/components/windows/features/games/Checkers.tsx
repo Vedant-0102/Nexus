@@ -288,25 +288,23 @@ export const Checkers: React.FC = () => {
   };
 
   return (
-    <div className="h-full w-full bg-gradient-to-br from-amber-50 to-orange-50 dark:from-gray-900 dark:to-gray-800 p-6 overflow-auto">
-      <div className="max-w-5xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold dark:text-white">Checkers</h1>
-            <p className="text-gray-600 dark:text-gray-400">Classic board game vs AI</p>
-          </div>
-          <Button onClick={resetGame} variant="outline">
-            <RotateCcw className="h-4 w-4 mr-2" />
-            New Game
-          </Button>
+    <div className="h-full w-full bg-gradient-to-br from-amber-50 to-orange-50 dark:from-gray-900 dark:to-gray-800 p-3 overflow-hidden flex flex-col">
+      <div className="flex items-center justify-between mb-2 flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <h1 className="text-lg font-bold dark:text-white">Checkers</h1>
+          <span className="text-xs text-gray-500 dark:text-gray-400">vs AI</span>
         </div>
+        <Button onClick={resetGame} variant="outline" size="sm">
+          <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+          New Game
+        </Button>
+      </div>
 
-        <div className="grid lg:grid-cols-[1fr,300px] gap-6">
-          {/* Game Board */}
-          <Card className="p-6 dark:bg-gray-800">
-            <div className="aspect-square max-w-[600px] mx-auto">
-              <div className="grid grid-cols-8 gap-0 border-4 border-gray-800 dark:border-gray-600 rounded-lg overflow-hidden shadow-2xl">
+      <div className="flex-1 flex gap-3 min-h-0">
+        {/* Game Board */}
+        <div className="flex-shrink-0 flex items-center">
+          <div className="h-full max-h-full aspect-square">
+              <div className="grid grid-cols-8 gap-0 border-2 border-gray-800 dark:border-gray-600 rounded-lg overflow-hidden shadow-2xl h-full">
                 {board.map((row, rowIndex) =>
                   row.map((piece, colIndex) => {
                     const isLight = (rowIndex + colIndex) % 2 === 0;
@@ -354,13 +352,13 @@ export const Checkers: React.FC = () => {
                               shadow-lg transition-transform duration-200
                               ${isSelected ? 'scale-110' : 'hover:scale-105'}
                               ${getPieceColor(piece) === 'red'
-                                ? 'bg-gradient-to-br from-red-500 to-red-700 border-4 border-red-900'
-                                : 'bg-gradient-to-br from-gray-800 to-black border-4 border-gray-950'
+                                ? 'bg-gradient-to-br from-red-500 to-red-700 border-2 border-red-900'
+                                : 'bg-gradient-to-br from-gray-800 to-black border-2 border-gray-950'
                               }
                             `}
                           >
                             {isKing(piece) && (
-                              <div className="text-2xl font-bold text-yellow-300">
+                              <div className="text-base font-bold text-yellow-300">
                                 ♔
                               </div>
                             )}
@@ -372,84 +370,82 @@ export const Checkers: React.FC = () => {
                 )}
               </div>
             </div>
+          </div>
+
+        {/* Side Panel */}
+        <div className="flex-1 min-w-[180px] max-w-[220px] flex flex-col gap-2 overflow-y-auto">
+          {/* Current Turn */}
+          <Card className={`p-3 ${currentPlayer === 'red' ? 'bg-red-50 dark:bg-red-900/20 border-red-200' : 'bg-gray-100 dark:bg-gray-800 border-gray-300'}`}>
+            <div className="flex items-center gap-2">
+              {currentPlayer === 'red' ? (
+                <User className="h-5 w-5 text-red-600" />
+              ) : (
+                <Cpu className="h-5 w-5 text-gray-600" />
+              )}
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Turn</p>
+                <p className="text-sm font-bold dark:text-white">
+                  {currentPlayer === 'red' ? 'Your Turn' : 'AI Thinking...'}
+                </p>
+              </div>
+            </div>
+            {aiThinking && (
+              <div className="mt-2 flex gap-1">
+                <div className="w-1.5 h-1.5 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-1.5 h-1.5 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-1.5 h-1.5 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+            )}
           </Card>
 
-          {/* Side Panel */}
-          <div className="space-y-4">
-            {/* Current Turn */}
-            <Card className={`p-6 ${currentPlayer === 'red' ? 'bg-red-50 dark:bg-red-900/20 border-red-200' : 'bg-gray-100 dark:bg-gray-800 border-gray-300'}`}>
-              <div className="flex items-center gap-3">
-                {currentPlayer === 'red' ? (
-                  <User className="h-8 w-8 text-red-600" />
-                ) : (
-                  <Cpu className="h-8 w-8 text-gray-600" />
-                )}
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Current Turn</p>
-                  <p className="text-xl font-bold dark:text-white">
-                    {currentPlayer === 'red' ? 'Your Turn' : 'AI Thinking...'}
-                  </p>
+          {/* Score */}
+          <Card className="p-3 dark:bg-gray-800">
+            <h3 className="text-xs font-bold mb-2 dark:text-white">Pieces</h3>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-full bg-gradient-to-br from-red-500 to-red-700 border border-red-900" />
+                  <span className="text-xs font-semibold dark:text-white">You</span>
                 </div>
+                <span className="text-lg font-bold text-red-600">{score.red}</span>
               </div>
-              {aiThinking && (
-                <div className="mt-3 flex gap-1">
-                  <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-4 h-4 rounded-full bg-gradient-to-br from-gray-800 to-black border border-gray-950" />
+                  <span className="text-xs font-semibold dark:text-white">AI</span>
                 </div>
-              )}
-            </Card>
+                <span className="text-lg font-bold text-gray-800 dark:text-gray-300">{score.black}</span>
+              </div>
+            </div>
+          </Card>
 
-            {/* Score */}
-            <Card className="p-6 dark:bg-gray-800">
-              <h3 className="font-bold mb-4 dark:text-white">Pieces Remaining</h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-red-500 to-red-700 border-2 border-red-900" />
-                    <span className="font-semibold dark:text-white">You</span>
-                  </div>
-                  <span className="text-2xl font-bold text-red-600">{score.red}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-gray-800 to-black border-2 border-gray-950" />
-                    <span className="font-semibold dark:text-white">AI</span>
-                  </div>
-                  <span className="text-2xl font-bold text-gray-800 dark:text-gray-300">{score.black}</span>
-                </div>
+          {/* Game Over */}
+          {gameOver && (
+            <Card className="p-3 bg-gradient-to-br from-yellow-100 to-orange-100 dark:from-yellow-900/20 dark:to-orange-900/20 border-yellow-300">
+              <div className="text-center">
+                <Trophy className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
+                <h3 className="text-lg font-bold mb-1 dark:text-white">Game Over!</h3>
+                <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
+                  {winner} Wins!
+                </p>
+                <Button onClick={resetGame} size="sm" className="mt-2 w-full">
+                  Play Again
+                </Button>
               </div>
             </Card>
+          )}
 
-            {/* Game Over */}
-            {gameOver && (
-              <Card className="p-6 bg-gradient-to-br from-yellow-100 to-orange-100 dark:from-yellow-900/20 dark:to-orange-900/20 border-yellow-300">
-                <div className="text-center">
-                  <Trophy className="h-12 w-12 text-yellow-600 mx-auto mb-3" />
-                  <h3 className="text-2xl font-bold mb-2 dark:text-white">Game Over!</h3>
-                  <p className="text-lg font-semibold text-yellow-800 dark:text-yellow-200">
-                    {winner} Wins!
-                  </p>
-                  <Button onClick={resetGame} className="mt-4 w-full">
-                    Play Again
-                  </Button>
-                </div>
-              </Card>
-            )}
-
-            {/* Rules */}
-            <Card className="p-6 dark:bg-gray-800">
-              <h3 className="font-bold mb-3 dark:text-white">How to Play</h3>
-              <ul className="text-sm space-y-2 text-gray-600 dark:text-gray-400">
-                <li>• Click a piece to select it</li>
-                <li>• Click a highlighted square to move</li>
-                <li>• Jump over opponent pieces to capture</li>
-                <li>• Reach the opposite end to become a King</li>
-                <li>• Kings can move backwards</li>
-                <li>• Capture all opponent pieces to win</li>
-              </ul>
-            </Card>
-          </div>
+          {/* Rules */}
+          <Card className="p-3 dark:bg-gray-800">
+            <h3 className="text-xs font-bold mb-1.5 dark:text-white">How to Play</h3>
+            <ul className="text-[11px] space-y-0.5 text-gray-600 dark:text-gray-400">
+              <li>Click a piece to select it</li>
+              <li>Click highlighted square to move</li>
+              <li>Jump over pieces to capture</li>
+              <li>Reach opposite end = King</li>
+              <li>Kings can move backwards</li>
+            </ul>
+          </Card>
         </div>
       </div>
     </div>
