@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   GitBranch, GitCommit, GitMerge, RotateCcw, BookOpen, Zap, Copy, Terminal,
   Brain, ChevronRight, CheckCircle, XCircle, Play, Pause, SkipBack,
-  SkipForward, Hash, Clock, User, Tag, AlertCircle, Info
+  SkipForward, Hash, Clock, User, Tag, AlertCircle, Info, FolderOpen, FileText, RotateCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -31,7 +31,27 @@ interface BranchInfo {
 }
 
 type ScenarioKey = 'basic' | 'feature-branch' | 'merge' | 'rebase' | 'hotfix' | 'gitflow';
-type TabKey = 'visualizer' | 'commands' | 'guide';
+type TabKey = 'visualizer' | 'commands' | 'guide' | 'sandbox';
+type FileStatus = 'untracked' | 'modified' | 'staged' | 'committed';
+
+interface SimFile {
+  name: string;
+  status: FileStatus;
+  content: string;
+  diff?: string;
+}
+
+interface GitSimState {
+  initialized: boolean;
+  commits: CommitNode[];
+  branches: BranchInfo[];
+  currentBranch: string;
+  head: string;
+  files: SimFile[];
+  stash: SimFile[] | null;
+  terminalLines: { text: string; type: 'input' | 'output' | 'error' }[];
+  nextCommitNum: number;
+}
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -664,6 +684,392 @@ const createScenarios = (): Record<ScenarioKey, Scenario> => ({
   },
 });
 
+// ─── Sandbox: Constants & Command Processor ─────────────────────────────────
+
+const DUMMY_FILES: SimFile[] = [
+  { name: 'index.js', status: 'untracked', content: 'const app = require("express")();\napp.get("/", (req, res) => {\n  res.send("Hello World");\n});\napp.listen(3000);' },
+  { name: 'README.md', status: 'untracked', content: '# My Project\n\nA demo repository for learning git.' },
+  { name: 'utils.js', status: 'untracked', content: 'export function add(a, b) {\n  return a + b;\n}\n\nexport function multiply(a, b) {\n  return a * b;\n}' },
+  { name: 'package.json', status: 'untracked', content: '{\n  "name": "my-app",\n  "version": "1.0.0",\n  "main": "index.js"\n}' },
+];
+
+const FILE_DIFFS: Record<string, string[]> = {
+  'index.js': ['+ app.use(cors());', '+ app.use(express.json());', '- // TODO: add middleware'],
+  'README.md': ['+ ## Installation', '+ npm install', '- (no docs yet)'],
+  'utils.js': ['+ export function subtract(a, b) {', '+   return a - b;', '+ }'],
+  'package.json': ['+ "scripts": { "start": "node index.js" }', '- "main": "index.js"'],
+};
+
+const EMPTY_SIM_STATE: GitSimState = {
+  initialized: false,
+  commits: [],
+  branches: [],
+  currentBranch: 'main',
+  head: '',
+  files: [],
+  stash: null,
+  terminalLines: [{ text: 'Welcome to Git Sandbox. Type "git init" to start, or "git help" for commands.', type: 'output' }],
+  nextCommitNum: 1,
+};
+
+function makeHash(n: number): string {
+  const hex = 'abcdef0123456789';
+  let h = '';
+  let seed = n * 2654435761;
+  for (let i = 0; i < 7; i++) {
+    seed = (seed * 16807 + 7) & 0xfffffff;
+    h += hex[seed % 16];
+  }
+  return h;
+}
+
+function simulateFileChanges(files: SimFile[]): SimFile[] {
+  const updated = files.map(f => ({ ...f, status: 'committed' as FileStatus, diff: undefined }));
+  // After a commit, randomly modify 1-2 files to simulate ongoing work
+  const indices = [Math.floor(Math.random() * updated.length)];
+  if (Math.random() > 0.5 && updated.length > 1) {
+    let second = Math.floor(Math.random() * updated.length);
+    while (second === indices[0]) second = Math.floor(Math.random() * updated.length);
+    indices.push(second);
+  }
+  for (const idx of indices) {
+    const f = updated[idx];
+    const diffs = FILE_DIFFS[f.name];
+    updated[idx] = { ...f, status: 'modified', diff: diffs ? diffs[Math.floor(Math.random() * diffs.length)] : '+ // change' };
+  }
+  return updated;
+}
+
+function assignLanes(branches: BranchInfo[]): BranchInfo[] {
+  return branches.map((b, i) => ({ ...b, lane: i }));
+}
+
+function processCommand(state: GitSimState, raw: string): { state: GitSimState; output: string; error?: boolean } {
+  const trimmed = raw.trim().replace(/\s+/g, ' ');
+  const lower = trimmed.toLowerCase();
+  const parts = trimmed.split(' ');
+
+  // git help
+  if (lower === 'git help' || lower === 'help') {
+    return {
+      state,
+      output: 'Available commands:\n  git init            Initialize repository\n  git status          Show working tree status\n  git add <file|.>    Stage files\n  git commit -m "msg" Create a commit\n  git log [--oneline] Show commit history\n  git branch [name]   List or create branches\n  git checkout <branch|name> Switch branches\n  git checkout -b <name>     Create & switch\n  git merge <branch>  Merge a branch\n  git diff            Show file changes\n  git stash / pop     Save/restore changes\n  git tag <name>      Tag current commit\n  git reset HEAD~1    Undo last commit\n  git rebase <branch> Rebase onto branch',
+    };
+  }
+
+  // Must start with git
+  if (!lower.startsWith('git ') && lower !== 'git') {
+    return { state, output: `Command not found: ${parts[0]}. Try "git help".`, error: true };
+  }
+
+  const subcmd = parts[1]?.toLowerCase();
+
+  // git init
+  if (subcmd === 'init') {
+    if (state.initialized) {
+      return { state, output: 'Reinitialized existing Git repository.', error: false };
+    }
+    const hash = makeHash(1);
+    const newState: GitSimState = {
+      initialized: true,
+      commits: [],
+      branches: [{ name: 'main', color: getBranchColor('main'), lane: 0 }],
+      currentBranch: 'main',
+      head: '',
+      files: DUMMY_FILES.map(f => ({ ...f })),
+      stash: null,
+      terminalLines: state.terminalLines,
+      nextCommitNum: 1,
+    };
+    return { state: newState, output: `Initialized empty Git repository.\n4 untracked files found. Use "git add ." to stage them.` };
+  }
+
+  if (!state.initialized) {
+    return { state, output: 'fatal: not a git repository. Run "git init" first.', error: true };
+  }
+
+  // git status
+  if (subcmd === 'status') {
+    const branch = state.currentBranch;
+    const staged = state.files.filter(f => f.status === 'staged');
+    const modified = state.files.filter(f => f.status === 'modified');
+    const untracked = state.files.filter(f => f.status === 'untracked');
+    let out = `On branch ${branch}\n`;
+    if (staged.length > 0) {
+      out += `Changes to be committed:\n${staged.map(f => `  new file:   ${f.name}`).join('\n')}\n`;
+    }
+    if (modified.length > 0) {
+      out += `Changes not staged for commit:\n${modified.map(f => `  modified:   ${f.name}`).join('\n')}\n`;
+    }
+    if (untracked.length > 0) {
+      out += `Untracked files:\n${untracked.map(f => `  ${f.name}`).join('\n')}\n`;
+    }
+    if (staged.length === 0 && modified.length === 0 && untracked.length === 0) {
+      out += 'nothing to commit, working tree clean';
+    }
+    return { state, output: out.trim() };
+  }
+
+  // git add
+  if (subcmd === 'add') {
+    const target = parts[2];
+    if (!target) return { state, output: 'Nothing specified, nothing added.\nUsage: git add <file> or git add .', error: true };
+    let newFiles: SimFile[];
+    if (target === '.') {
+      newFiles = state.files.map(f => (f.status === 'modified' || f.status === 'untracked') ? { ...f, status: 'staged' as FileStatus } : f);
+    } else {
+      const file = state.files.find(f => f.name === target);
+      if (!file) return { state, output: `fatal: pathspec '${target}' did not match any files`, error: true };
+      if (file.status === 'committed' || file.status === 'staged') return { state, output: `'${target}' already staged or committed.` };
+      newFiles = state.files.map(f => f.name === target ? { ...f, status: 'staged' as FileStatus } : f);
+    }
+    const count = newFiles.filter(f => f.status === 'staged').length;
+    return { state: { ...state, files: newFiles }, output: `${count} file(s) staged for commit.` };
+  }
+
+  // git commit
+  if (subcmd === 'commit') {
+    const msgMatch = trimmed.match(/-m\s+["'](.+?)["']/);
+    if (!msgMatch) return { state, output: 'error: switch `m` requires a value\nUsage: git commit -m "your message"', error: true };
+    const staged = state.files.filter(f => f.status === 'staged');
+    if (staged.length === 0) return { state, output: 'nothing to commit (use "git add" to stage files)', error: true };
+    const msg = msgMatch[1];
+    const num = state.nextCommitNum;
+    const hash = makeHash(num);
+    const cid = `s${num}`;
+    const newCommit: CommitNode = {
+      id: cid,
+      hash,
+      message: msg,
+      branch: state.currentBranch,
+      parents: state.head ? [state.head] : [],
+      author: 'you',
+      timestamp: 'just now',
+    };
+    const newFiles = simulateFileChanges(state.files);
+    return {
+      state: {
+        ...state,
+        commits: [...state.commits, newCommit],
+        head: cid,
+        files: newFiles,
+        nextCommitNum: num + 1,
+      },
+      output: `[${state.currentBranch} ${hash}] ${msg}\n ${staged.length} file(s) changed`,
+    };
+  }
+
+  // git log
+  if (subcmd === 'log') {
+    if (state.commits.length === 0) return { state, output: 'fatal: your current branch does not have any commits yet' };
+    const oneline = lower.includes('--oneline');
+    // Filter commits reachable from HEAD on current branch
+    const relevant = state.commits.filter(c => {
+      // Simple: show all commits on current branch + ancestors
+      return true;
+    });
+    if (oneline) {
+      const lines = relevant.map(c => `${c.hash} ${c.message}`).reverse();
+      return { state, output: lines.join('\n') };
+    }
+    const lines = relevant.map(c =>
+      `commit ${c.hash}\nAuthor: ${c.author || 'you'}\nDate:   ${c.timestamp || 'now'}\n\n    ${c.message}`
+    ).reverse();
+    return { state, output: lines.join('\n\n') };
+  }
+
+  // git branch
+  if (subcmd === 'branch') {
+    const branchName = parts[2];
+    if (parts[2] === '-d' || parts[2] === '-D') {
+      const delName = parts[3];
+      if (!delName) return { state, output: 'error: branch name required', error: true };
+      if (delName === state.currentBranch) return { state, output: `error: Cannot delete branch '${delName}' checked out`, error: true };
+      const exists = state.branches.find(b => b.name === delName);
+      if (!exists) return { state, output: `error: branch '${delName}' not found`, error: true };
+      return {
+        state: { ...state, branches: assignLanes(state.branches.filter(b => b.name !== delName)) },
+        output: `Deleted branch ${delName}.`,
+      };
+    }
+    if (!branchName) {
+      const lines = state.branches.map(b => `${b.name === state.currentBranch ? '* ' : '  '}${b.name}`);
+      return { state, output: lines.join('\n') };
+    }
+    if (state.branches.some(b => b.name === branchName)) {
+      return { state, output: `fatal: branch '${branchName}' already exists`, error: true };
+    }
+    const newBranch: BranchInfo = { name: branchName, color: getBranchColor(branchName), lane: state.branches.length };
+    return {
+      state: { ...state, branches: assignLanes([...state.branches, newBranch]) },
+      output: `Created branch '${branchName}' at ${state.head ? state.commits.find(c => c.id === state.head)?.hash : 'HEAD'}.`,
+    };
+  }
+
+  // git checkout
+  if (subcmd === 'checkout') {
+    const createFlag = parts[2] === '-b';
+    const target = createFlag ? parts[3] : parts[2];
+    if (!target) return { state, output: 'error: specify a branch name', error: true };
+
+    if (createFlag) {
+      if (state.branches.some(b => b.name === target)) {
+        return { state, output: `fatal: branch '${target}' already exists`, error: true };
+      }
+      const newBranch: BranchInfo = { name: target, color: getBranchColor(target), lane: state.branches.length };
+      return {
+        state: { ...state, branches: assignLanes([...state.branches, newBranch]), currentBranch: target },
+        output: `Switched to a new branch '${target}'`,
+      };
+    }
+
+    const branch = state.branches.find(b => b.name === target);
+    if (!branch) return { state, output: `error: pathspec '${target}' did not match any branch`, error: true };
+    // Find latest commit on target branch
+    const branchCommits = state.commits.filter(c => c.branch === target);
+    const latestHead = branchCommits.length > 0 ? branchCommits[branchCommits.length - 1].id : state.head;
+    return {
+      state: { ...state, currentBranch: target, head: latestHead },
+      output: `Switched to branch '${target}'`,
+    };
+  }
+
+  // git merge
+  if (subcmd === 'merge') {
+    const target = parts[2];
+    if (!target) return { state, output: 'error: specify a branch to merge', error: true };
+    if (!state.branches.some(b => b.name === target)) {
+      return { state, output: `fatal: '${target}' - not a valid branch`, error: true };
+    }
+    if (target === state.currentBranch) {
+      return { state, output: 'Already up to date.', error: false };
+    }
+    const targetCommits = state.commits.filter(c => c.branch === target);
+    if (targetCommits.length === 0) return { state, output: `Already up to date (no commits on '${target}').` };
+    const targetHead = targetCommits[targetCommits.length - 1].id;
+    const num = state.nextCommitNum;
+    const hash = makeHash(num);
+    const cid = `s${num}`;
+    const mergeCommit: CommitNode = {
+      id: cid,
+      hash,
+      message: `Merge branch '${target}' into ${state.currentBranch}`,
+      branch: state.currentBranch,
+      parents: [state.head, targetHead].filter(Boolean),
+      author: 'you',
+      timestamp: 'just now',
+    };
+    return {
+      state: {
+        ...state,
+        commits: [...state.commits, mergeCommit],
+        head: cid,
+        nextCommitNum: num + 1,
+      },
+      output: `Merge made by the 'ort' strategy.\n[${state.currentBranch} ${hash}] Merge branch '${target}'`,
+    };
+  }
+
+  // git diff
+  if (subcmd === 'diff') {
+    const modified = state.files.filter(f => f.status === 'modified' && f.diff);
+    if (modified.length === 0) return { state, output: '(no changes)' };
+    const out = modified.map(f => `diff --git a/${f.name} b/${f.name}\n${f.diff}`).join('\n\n');
+    return { state, output: out };
+  }
+
+  // git stash
+  if (subcmd === 'stash') {
+    if (parts[2]?.toLowerCase() === 'pop') {
+      if (!state.stash) return { state, output: 'No stash entries found.', error: true };
+      return {
+        state: { ...state, files: state.stash, stash: null },
+        output: 'Applied stash and dropped stash@{0}.',
+      };
+    }
+    const hasChanges = state.files.some(f => f.status === 'modified' || f.status === 'staged');
+    if (!hasChanges) return { state, output: 'No local changes to save', error: true };
+    return {
+      state: {
+        ...state,
+        stash: state.files.map(f => ({ ...f })),
+        files: state.files.map(f => (f.status === 'modified' || f.status === 'staged') ? { ...f, status: 'committed' as FileStatus, diff: undefined } : f),
+      },
+      output: `Saved working directory and index state WIP on ${state.currentBranch}`,
+    };
+  }
+
+  // git tag
+  if (subcmd === 'tag') {
+    const tagName = parts[2];
+    if (!tagName) {
+      const allTags = state.commits.flatMap(c => c.tags || []);
+      return { state, output: allTags.length > 0 ? allTags.join('\n') : '(no tags)' };
+    }
+    if (!state.head) return { state, output: 'fatal: no commits yet', error: true };
+    const newCommits = state.commits.map(c =>
+      c.id === state.head ? { ...c, tags: [...(c.tags || []), tagName] } : c
+    );
+    return { state: { ...state, commits: newCommits }, output: `Tagged '${tagName}' at ${state.commits.find(c => c.id === state.head)?.hash}` };
+  }
+
+  // git reset
+  if (subcmd === 'reset') {
+    if (lower.includes('head~1') || lower.includes('head~')) {
+      if (state.commits.length === 0) return { state, output: 'fatal: no commits to reset', error: true };
+      const last = state.commits[state.commits.length - 1];
+      const newHead = last.parents[0] || '';
+      return {
+        state: {
+          ...state,
+          commits: state.commits.slice(0, -1),
+          head: newHead,
+          files: state.files.map(f => f.status === 'committed' ? { ...f, status: 'modified' as FileStatus } : f),
+        },
+        output: `Unstaged changes after reset:\nHEAD is now at ${newHead ? state.commits.find(c => c.id === newHead)?.hash : '(none)'}`,
+      };
+    }
+    return { state, output: 'Usage: git reset HEAD~1', error: true };
+  }
+
+  // git rebase
+  if (subcmd === 'rebase') {
+    const target = parts[2];
+    if (!target) return { state, output: 'error: specify a branch to rebase onto', error: true };
+    if (!state.branches.some(b => b.name === target)) {
+      return { state, output: `fatal: '${target}' is not a valid branch`, error: true };
+    }
+    if (target === state.currentBranch) return { state, output: 'Current branch is up to date.' };
+    // Simplified: re-parent current branch commits onto target
+    const targetCommits = state.commits.filter(c => c.branch === target);
+    const currentCommits = state.commits.filter(c => c.branch === state.currentBranch);
+    if (currentCommits.length === 0) return { state, output: 'Current branch is up to date.' };
+    const targetHead = targetCommits.length > 0 ? targetCommits[targetCommits.length - 1].id : '';
+    let prevId = targetHead;
+    let num = state.nextCommitNum;
+    const rebasedCommits: CommitNode[] = currentCommits.map(c => {
+      const newHash = makeHash(num);
+      const newId = `s${num}`;
+      num++;
+      const rebased: CommitNode = { ...c, id: newId, hash: newHash, message: c.message + "'", parents: prevId ? [prevId] : [] };
+      prevId = newId;
+      return rebased;
+    });
+    const otherCommits = state.commits.filter(c => c.branch !== state.currentBranch);
+    return {
+      state: {
+        ...state,
+        commits: [...otherCommits, ...rebasedCommits],
+        head: prevId,
+        nextCommitNum: num,
+      },
+      output: `Successfully rebased ${state.currentBranch} onto ${target}.\n${rebasedCommits.length} commit(s) replayed.`,
+    };
+  }
+
+  return { state, output: `git: '${subcmd}' is not a git command. See 'git help'.`, error: true };
+}
+
 // ─── Graph Layout Engine ────────────────────────────────────────────────────
 
 interface LayoutNode {
@@ -887,6 +1293,100 @@ const CommitRow: React.FC<{
   );
 };
 
+// ─── Files Panel (Sandbox) ──────────────────────────────────────────────────
+
+const FILE_STATUS_CONFIG: Record<FileStatus, { color: string; label: string; letter: string }> = {
+  untracked: { color: '#6b7280', label: 'Untracked', letter: 'U' },
+  modified: { color: '#f59e0b', label: 'Modified', letter: 'M' },
+  staged: { color: '#10b981', label: 'Staged', letter: 'S' },
+  committed: { color: '#3b82f6', label: 'Committed', letter: 'C' },
+};
+
+const FilesPanel: React.FC<{ files: SimFile[]; stash: SimFile[] | null; currentBranch: string }> = ({ files, stash, currentBranch }) => {
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const sel = selectedFile ? files.find(f => f.name === selectedFile) : null;
+
+  return (
+    <div className="w-56 flex-shrink-0 border-l border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-1.5 px-3 py-2 border-b border-slate-200 dark:border-slate-700">
+        <FolderOpen className="h-3 w-3 text-slate-400" />
+        <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Working Directory</span>
+      </div>
+
+      {/* Branch indicator */}
+      <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-slate-100 dark:border-slate-700/50 bg-slate-100/50 dark:bg-slate-800/50">
+        <GitBranch className="h-3 w-3" style={{ color: getBranchColor(currentBranch) }} />
+        <span className="text-[11px] font-mono font-medium" style={{ color: getBranchColor(currentBranch) }}>{currentBranch}</span>
+        {stash && (
+          <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 ml-auto border-amber-300 text-amber-600">stash</Badge>
+        )}
+      </div>
+
+      {/* File list */}
+      <div className="flex-1 overflow-auto">
+        {files.length === 0 ? (
+          <div className="px-3 py-4 text-[10px] text-slate-400 text-center">No files yet. Run "git init".</div>
+        ) : (
+          files.map(f => {
+            const cfg = FILE_STATUS_CONFIG[f.status];
+            return (
+              <button
+                key={f.name}
+                onClick={() => setSelectedFile(selectedFile === f.name ? null : f.name)}
+                className={`w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors ${
+                  selectedFile === f.name ? 'bg-slate-100 dark:bg-slate-700/50' : ''
+                }`}
+              >
+                <FileText className="h-3 w-3 flex-shrink-0" style={{ color: cfg.color }} />
+                <span className="text-[11px] text-slate-700 dark:text-slate-300 truncate flex-1 font-mono">{f.name}</span>
+                <span
+                  className="text-[9px] font-bold w-3.5 h-3.5 rounded flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: cfg.color + '20', color: cfg.color }}
+                >
+                  {cfg.letter}
+                </span>
+              </button>
+            );
+          })
+        )}
+      </div>
+
+      {/* Code preview / diff */}
+      {sel && (
+        <div className="border-t border-slate-200 dark:border-slate-700 max-h-[40%] overflow-auto">
+          <div className="px-3 py-1.5 border-b border-slate-100 dark:border-slate-700/50 bg-slate-100/50 dark:bg-slate-800/50">
+            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              {sel.status === 'modified' ? 'Diff' : 'Content'}
+            </span>
+          </div>
+          <pre className="px-3 py-2 text-[10px] font-mono text-slate-600 dark:text-slate-400 whitespace-pre-wrap leading-relaxed">
+            {sel.status === 'modified' && sel.diff ? (
+              sel.diff.split('\n').map((line, i) => (
+                <div key={i} className={line.startsWith('+') ? 'text-green-600 dark:text-green-400' : line.startsWith('-') ? 'text-red-500 dark:text-red-400' : ''}>
+                  {line}
+                </div>
+              ))
+            ) : (
+              sel.content
+            )}
+          </pre>
+        </div>
+      )}
+
+      {/* Status legend */}
+      <div className="px-3 py-2 border-t border-slate-200 dark:border-slate-700 grid grid-cols-2 gap-1">
+        {Object.entries(FILE_STATUS_CONFIG).map(([key, cfg]) => (
+          <div key={key} className="flex items-center gap-1">
+            <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cfg.color }} />
+            <span className="text-[9px] text-slate-400">{cfg.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // ─── Command Reference Data ─────────────────────────────────────────────────
 
 const COMMAND_GROUPS = [
@@ -977,6 +1477,14 @@ export const GitVisualizer: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
 
+  // Sandbox state
+  const [sandboxState, setSandboxState] = useState<GitSimState>({ ...EMPTY_SIM_STATE });
+  const [sandboxCmd, setSandboxCmd] = useState('');
+  const [sandboxHoveredCommit, setSandboxHoveredCommit] = useState<string | null>(null);
+  const [sandboxSelectedCommit, setSandboxSelectedCommit] = useState<string | null>(null);
+  const sandboxTerminalEndRef = useRef<HTMLDivElement>(null);
+  const sandboxScrollRef = useRef<HTMLDivElement>(null);
+
   const scenarios = useMemo(() => createScenarios(), []);
   const currentScenario = scenarios[scenario];
   const currentStep = currentScenario.steps[step];
@@ -1035,7 +1543,7 @@ export const GitVisualizer: React.FC = () => {
     const fullExpected = normalizeCmd(currentStep.command);
     const expectedParts = currentStep.command.split('&&').map(s => normalizeCmd(s));
 
-    // Check full match
+    // Check exact full match
     if (normalized === fullExpected) {
       const msg = 'Command executed successfully.';
       setCmdFeedback({ status: 'success', message: msg });
@@ -1048,8 +1556,71 @@ export const GitVisualizer: React.FC = () => {
       return;
     }
 
+    // Relaxed matching: accept structural equivalents
+    const matchesStructure = (input: string, expected: string): boolean => {
+      // git commit -m "any message" matches git commit -m "specific message"
+      const commitPattern = /^git commit -m\s+["'].+["']$/;
+      if (commitPattern.test(input) && commitPattern.test(expected)) return true;
+
+      // git checkout -b <any-name> matches git checkout -b <expected-name>
+      const checkoutBPattern = /^git checkout -b\s+\S+$/;
+      if (checkoutBPattern.test(input) && checkoutBPattern.test(expected)) return true;
+
+      // git checkout <any-branch> matches git checkout <expected>
+      const checkoutPattern = /^git checkout\s+(?!-b)\S+$/;
+      if (checkoutPattern.test(input) && checkoutPattern.test(expected)) return true;
+
+      // git merge <any-branch> matches git merge <expected>
+      const mergePattern = /^git merge\s+\S+$/;
+      if (mergePattern.test(input) && mergePattern.test(expected)) return true;
+
+      // git branch <any-name> matches git branch <expected>
+      const branchPattern = /^git branch\s+\S+$/;
+      if (branchPattern.test(input) && branchPattern.test(expected)) return true;
+
+      // git rebase <any-branch> matches git rebase <expected>
+      const rebasePattern = /^git rebase\s+\S+$/;
+      if (rebasePattern.test(input) && rebasePattern.test(expected)) return true;
+
+      return false;
+    };
+
+    // Check full command with relaxed matching
+    if (matchesStructure(normalized, fullExpected)) {
+      const msg = 'Accepted! (exact scenario command: ' + currentStep.command + ')';
+      setCmdFeedback({ status: 'success', message: msg });
+      setCmdHistory(h => [...h, { cmd: val, ok: true, msg }]);
+      setUserCommand('');
+      setShowHint(false);
+      if (step < currentScenario.steps.length - 1) {
+        setTimeout(() => setStep(s => s + 1), 600);
+      }
+      return;
+    }
+
+    // Check compound commands with relaxed matching (e.g. "git checkout main && git merge feature")
+    if (expectedParts.length > 1) {
+      const inputParts = normalized.split('&&').map(s => s.trim()).filter(Boolean);
+      if (inputParts.length === expectedParts.length) {
+        const allMatch = inputParts.every((ip, idx) =>
+          ip === expectedParts[idx] || matchesStructure(ip, expectedParts[idx])
+        );
+        if (allMatch) {
+          const msg = 'Accepted! (exact scenario command: ' + currentStep.command + ')';
+          setCmdFeedback({ status: 'success', message: msg });
+          setCmdHistory(h => [...h, { cmd: val, ok: true, msg }]);
+          setUserCommand('');
+          setShowHint(false);
+          if (step < currentScenario.steps.length - 1) {
+            setTimeout(() => setStep(s => s + 1), 600);
+          }
+          return;
+        }
+      }
+    }
+
     // Check if it matches any individual part of a compound command
-    if (expectedParts.length > 1 && expectedParts.some(e => normalized === e)) {
+    if (expectedParts.length > 1 && expectedParts.some(e => normalized === e || matchesStructure(normalized, e))) {
       const msg = `Partially correct. The full command is: ${currentStep.command}`;
       setCmdFeedback({ status: 'error', message: msg });
       setCmdHistory(h => [...h, { cmd: val, ok: false, msg }]);
@@ -1090,7 +1661,63 @@ export const GitVisualizer: React.FC = () => {
     setTimeout(() => setCopiedCmd(null), 1500);
   }, []);
 
+  // Sandbox graph layout
+  const sandboxLayout = useMemo(
+    () => layoutGraph(sandboxState.commits, sandboxState.branches),
+    [sandboxState.commits, sandboxState.branches]
+  );
+
+  // Scroll sandbox terminal to bottom when lines change
+  useEffect(() => {
+    if (sandboxTerminalEndRef.current) {
+      sandboxTerminalEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [sandboxState.terminalLines.length]);
+
+  // Scroll sandbox graph to bottom on new commits
+  useEffect(() => {
+    if (sandboxScrollRef.current) {
+      sandboxScrollRef.current.scrollTop = sandboxScrollRef.current.scrollHeight;
+    }
+  }, [sandboxState.commits.length]);
+
+  const handleSandboxCmd = useCallback(() => {
+    const raw = sandboxCmd.trim();
+    if (!raw) return;
+
+    const newLines: GitSimState['terminalLines'] = [
+      ...sandboxState.terminalLines,
+      { text: `$ ${raw}`, type: 'input' as const },
+    ];
+
+    // Handle compound commands with &&
+    const parts = raw.split('&&').map(s => s.trim()).filter(Boolean);
+    let currentState = { ...sandboxState, terminalLines: newLines };
+
+    for (const part of parts) {
+      const result = processCommand(currentState, part);
+      currentState = {
+        ...result.state,
+        terminalLines: [
+          ...currentState.terminalLines,
+          { text: result.output, type: result.error ? 'error' as const : 'output' as const },
+        ],
+      };
+    }
+
+    setSandboxState(currentState);
+    setSandboxCmd('');
+  }, [sandboxCmd, sandboxState]);
+
+  const resetSandbox = useCallback(() => {
+    setSandboxState({ ...EMPTY_SIM_STATE });
+    setSandboxCmd('');
+    setSandboxHoveredCommit(null);
+    setSandboxSelectedCommit(null);
+  }, []);
+
   const selectedNode = selectedCommit ? nodes.find(n => n.commit.id === selectedCommit) : null;
+  const sandboxSelectedNode = sandboxSelectedCommit ? sandboxLayout.nodes.find(n => n.commit.id === sandboxSelectedCommit) : null;
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -1100,8 +1727,9 @@ export const GitVisualizer: React.FC = () => {
           <div className="flex items-center gap-1 bg-slate-200/60 dark:bg-slate-700/60 rounded-md p-0.5">
             {([
               { key: 'visualizer' as TabKey, icon: <Zap className="h-3 w-3" />, label: 'Visualizer' },
-              { key: 'commands' as TabKey, icon: <Terminal className="h-3 w-3" />, label: 'Commands' },
-              { key: 'guide' as TabKey, icon: <BookOpen className="h-3 w-3" />, label: 'Guide' },
+              { key: 'sandbox' as TabKey, icon: <Terminal className="h-3 w-3" />, label: 'Sandbox' },
+              { key: 'commands' as TabKey, icon: <BookOpen className="h-3 w-3" />, label: 'Commands' },
+              { key: 'guide' as TabKey, icon: <Info className="h-3 w-3" />, label: 'Guide' },
             ]).map(tab => (
               <button
                 key={tab.key}
@@ -1471,6 +2099,198 @@ export const GitVisualizer: React.FC = () => {
                     Run
                   </Button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Sandbox Tab ──────────────────────────────────────────────── */}
+        {activeTab === 'sandbox' && (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Top area: graph + files */}
+            <div className="flex-1 flex overflow-hidden min-h-0">
+              {/* Graph + commits area */}
+              <div className="flex-1 flex flex-col overflow-hidden">
+                {/* Column headers */}
+                {sandboxState.commits.length > 0 && (
+                  <div className="flex items-center px-4 py-1.5 border-b border-slate-100 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/40 text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider flex-shrink-0">
+                    <div style={{ width: (sandboxLayout.width || 80) + 16 }} className="flex-shrink-0">Graph</div>
+                    <div className="w-16 flex-shrink-0">Hash</div>
+                    <div className="flex-1 ml-3">Message</div>
+                  </div>
+                )}
+
+                {/* Scrollable commit area */}
+                <div ref={sandboxScrollRef} className="flex-1 overflow-auto">
+                  {sandboxState.commits.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-center p-6">
+                      <Terminal className="h-8 w-8 text-slate-300 dark:text-slate-600 mb-3" />
+                      <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Git Sandbox</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 max-w-xs">
+                        Type <code className="text-orange-500 font-mono">git init</code> in the terminal below to create a repository, then use any git command freely.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex">
+                      {/* SVG graph column */}
+                      <div className="flex-shrink-0 border-r border-slate-100 dark:border-slate-700/50" style={{ width: sandboxLayout.width + 16, padding: '0 8px' }}>
+                        <GitGraph
+                          nodes={sandboxLayout.nodes}
+                          edges={sandboxLayout.edges}
+                          width={sandboxLayout.width}
+                          height={sandboxLayout.height}
+                          headId={sandboxState.head}
+                          hoveredCommit={sandboxHoveredCommit}
+                          onHoverCommit={setSandboxHoveredCommit}
+                          onClickCommit={setSandboxSelectedCommit}
+                        />
+                      </div>
+
+                      {/* Commit message rows */}
+                      <div className="flex-1 min-w-0">
+                        {sandboxLayout.nodes.map(node => (
+                          <CommitRow
+                            key={node.commit.id}
+                            node={node}
+                            isHead={node.commit.id === sandboxState.head}
+                            isHovered={node.commit.id === sandboxHoveredCommit}
+                            onHover={setSandboxHoveredCommit}
+                            onClick={setSandboxSelectedCommit}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Branch labels bar */}
+                {sandboxState.branches.length > 0 && (
+                  <div className="flex items-center gap-2 px-4 py-1.5 border-t border-slate-100 dark:border-slate-700/50 bg-slate-50/80 dark:bg-slate-800/40 flex-shrink-0">
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium uppercase tracking-wider mr-1">Branches:</span>
+                    {sandboxState.branches.map(b => (
+                      <div key={b.name} className="flex items-center gap-1">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: b.color }} />
+                        <span className={`text-[11px] font-mono font-medium ${b.name === sandboxState.currentBranch ? 'underline' : ''}`} style={{ color: b.color }}>{b.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Commit detail sidebar (when selected) */}
+              {sandboxSelectedNode && (
+                <div className="w-56 flex-shrink-0 border-l border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 overflow-auto">
+                  <div className="p-3">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Details</span>
+                      <button onClick={() => setSandboxSelectedCommit(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+                        <XCircle className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      <div>
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500 mb-0.5 flex items-center gap-1"><Hash className="h-2.5 w-2.5" />Hash</div>
+                        <code className="text-xs font-mono font-bold" style={{ color: sandboxSelectedNode.color }}>{sandboxSelectedNode.commit.hash}</code>
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500 mb-0.5 flex items-center gap-1"><GitCommit className="h-2.5 w-2.5" />Message</div>
+                        <p className="text-xs text-slate-700 dark:text-slate-300">{sandboxSelectedNode.commit.message}</p>
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500 mb-0.5 flex items-center gap-1"><GitBranch className="h-2.5 w-2.5" />Branch</div>
+                        <Badge variant="outline" className="text-[10px]" style={{ borderColor: sandboxSelectedNode.color, color: sandboxSelectedNode.color }}>{sandboxSelectedNode.commit.branch}</Badge>
+                      </div>
+                      {sandboxSelectedNode.commit.tags && sandboxSelectedNode.commit.tags.length > 0 && (
+                        <div>
+                          <div className="text-[10px] text-slate-400 dark:text-slate-500 mb-0.5 flex items-center gap-1"><Tag className="h-2.5 w-2.5" />Tags</div>
+                          <div className="flex gap-1 flex-wrap">
+                            {sandboxSelectedNode.commit.tags.map(t => (
+                              <Badge key={t} variant="outline" className="text-[10px] border-amber-300 text-amber-700 dark:text-amber-400">{t}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Files panel */}
+              {sandboxState.initialized && (
+                <FilesPanel files={sandboxState.files} stash={sandboxState.stash} currentBranch={sandboxState.currentBranch} />
+              )}
+            </div>
+
+            {/* Terminal area */}
+            <div className="flex-shrink-0 border-t border-slate-200 dark:border-slate-700 bg-slate-900 dark:bg-slate-950 flex flex-col" style={{ height: '40%', minHeight: 160 }}>
+              {/* Terminal header */}
+              <div className="flex items-center gap-2 px-4 py-1.5 border-b border-slate-700/50 flex-shrink-0">
+                <Terminal className="h-3 w-3 text-green-500" />
+                <span className="text-[10px] font-mono text-green-500/80 font-medium uppercase tracking-wider">Terminal</span>
+                <span className="text-[10px] font-mono text-slate-500 ml-auto">
+                  {sandboxState.initialized ? `on ${sandboxState.currentBranch}` : 'not initialized'}
+                </span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button size="sm" variant="ghost" className="h-5 w-5 p-0 text-slate-500 hover:text-slate-300" onClick={resetSandbox}>
+                      <RotateCw className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Reset sandbox</TooltipContent>
+                </Tooltip>
+              </div>
+
+              {/* Terminal output */}
+              <div className="flex-1 overflow-auto px-4 py-2 font-mono text-[11px] space-y-0.5 min-h-0">
+                {sandboxState.terminalLines.map((line, i) => (
+                  <div
+                    key={i}
+                    className={
+                      line.type === 'input'
+                        ? 'text-green-400'
+                        : line.type === 'error'
+                        ? 'text-red-400'
+                        : 'text-slate-400'
+                    }
+                    style={{ whiteSpace: 'pre-wrap' }}
+                  >
+                    {line.text}
+                  </div>
+                ))}
+                <div ref={sandboxTerminalEndRef} />
+              </div>
+
+              {/* Terminal input */}
+              <div className="flex items-center gap-2 px-4 py-2 border-t border-slate-700/50 flex-shrink-0">
+                <span className="text-green-500 text-xs font-mono flex-shrink-0">$</span>
+                <Input
+                  value={sandboxCmd}
+                  onChange={(e) => setSandboxCmd(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleSandboxCmd(); }}
+                  placeholder={sandboxState.initialized ? 'Type a git command...' : 'Type "git init" to start...'}
+                  className="h-6 text-xs font-mono bg-slate-800 dark:bg-slate-800 border-slate-700 text-green-400 placeholder:text-slate-600 flex-1"
+                />
+                <Button
+                  size="sm"
+                  className="h-6 px-2 text-xs bg-green-700 hover:bg-green-600 text-white"
+                  onClick={handleSandboxCmd}
+                >
+                  Run
+                </Button>
+              </div>
+
+              {/* Supported commands bar */}
+              <div className="flex items-center gap-1.5 px-4 py-1 border-t border-slate-700/50 flex-shrink-0 overflow-x-auto">
+                <span className="text-[9px] text-slate-600 flex-shrink-0">Supported:</span>
+                {['init', 'add', 'commit', 'status', 'log', 'branch', 'checkout', 'merge', 'diff', 'stash', 'tag', 'reset', 'rebase', 'help'].map(cmd => (
+                  <button
+                    key={cmd}
+                    onClick={() => setSandboxCmd(cmd === 'help' ? 'git help' : `git ${cmd} `)}
+                    className="text-[9px] font-mono text-slate-500 hover:text-green-400 transition-colors flex-shrink-0"
+                  >
+                    {cmd}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
