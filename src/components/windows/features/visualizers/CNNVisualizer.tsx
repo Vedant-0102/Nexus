@@ -716,12 +716,12 @@ export const CNNVisualizer: React.FC = () => {
               <div className="flex-1 overflow-auto p-4">
                 <div className="grid grid-cols-3 gap-4 h-full">
                   {/* Visualization */}
-                  <div className="col-span-2 flex items-center justify-center bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 min-h-[300px]">
+                  <div className="col-span-2 flex items-center justify-center bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
                     {renderVisualization()}
                   </div>
 
                   {/* Info panel */}
-                  <div className="space-y-3 overflow-y-auto">
+                  <div className="space-y-2 overflow-y-auto">
                     {currentOutput && (
                       <>
                         <Card className="p-3 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">

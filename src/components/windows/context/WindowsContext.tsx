@@ -112,6 +112,7 @@ import { InvoiceGenerator } from '../features/office/InvoiceGenerator';
 import { DVDScreensaver } from '../features/games/DVDScreensaver';
 import { SandFalling } from '../features/games/SandFalling';
 import { Puzzle15 } from '../features/games/Puzzle15';
+import { Minecraft } from '../features/games/Minecraft';
 import { MathFolder } from '../features/math/MathFolder';
 import { QuadraticSolver } from '../features/math/QuadraticSolver';
 import { LinearSystemSolver } from '../features/math/LinearSystemSolver';
@@ -1805,6 +1806,20 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         isResizable: true,
         isMaximizable: true,
         defaultSize: { width: 500, height: 600 },
+      },
+      {
+        id: 'minecraft',
+        title: 'Minecraft',
+        content: <Minecraft />,
+        isOpen: openWindowIds.includes('minecraft'),
+        isMinimized: minimizedWindowIds.includes('minecraft'),
+        icon: <Gamepad className="h-5 w-5 text-green-600" />,
+        zIndex: 100,
+        showInStartMenu: true,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 900, height: 650 },
       },
       {
         id: 'universe',
