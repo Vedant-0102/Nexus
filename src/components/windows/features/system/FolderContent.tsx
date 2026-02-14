@@ -12,7 +12,7 @@ export const FolderContent: React.FC<FolderContentProps> = ({ type }) => {
   // Filter apps based on folder type
   const apps = windows.filter(app => {
     if (type === 'games') {
-      return ['tictactoe', 'snake', 'minesweeper', 'chess', 'checkers', 'flappybird', 'pacman', 'pingpong', 'tetris', 'game2048', 'sudoku', 'breakout', 'memorymatch', 'spaceinvaders', 'maze3d', 'battleship', 'connect4', 'dvdscreensaver', 'sandfalling', 'puzzle15'].includes(app.id);
+      return ['tictactoe', 'snake', 'minesweeper', 'chess', 'checkers', 'flappybird', 'pacman', 'pingpong', 'tetris', 'game2048', 'sudoku', 'breakout', 'memorymatch', 'spaceinvaders', 'maze3d', 'battleship', 'connect4', 'dvdscreensaver', 'sandfalling', 'puzzle15', 'minecraft'].includes(app.id);
     } else if (type === 'office') {
       return ['notepad', 'texteditor', 'spreadsheet', 'presentation', 'formbuilder', 'kanban', 'stickyNotes', 'flashcards', 'paint', 'pixelart', 'invoice'].includes(app.id);
     } else if (type === 'converters') {
