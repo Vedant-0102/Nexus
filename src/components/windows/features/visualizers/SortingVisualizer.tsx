@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Pause, Shuffle, Volume2, VolumeX } from 'lucide-react';
+import { Play, Pause, Shuffle, Volume2, VolumeX, ListOrdered } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 
 type Algorithm = 'bubble' | 'quick' | 'merge' | 'heap' | 'insertion' | 'selection';
@@ -21,6 +22,8 @@ export const SortingVisualizer: React.FC = () => {
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [comparisons, setComparisons] = useState(0);
   const [swaps, setSwaps] = useState(0);
+  const [customInput, setCustomInput] = useState('');
+  const [inputError, setInputError] = useState<string | null>(null);
   
   const audioContextRef = useRef<AudioContext | null>(null);
   const isPlayingRef = useRef(false);
@@ -62,6 +65,46 @@ export const SortingVisualizer: React.FC = () => {
     setIsPlaying(false);
     isPlayingRef.current = false;
   }, [arraySize]);
+
+  const applyCustomArray = useCallback(() => {
+    const trimmed = customInput.trim();
+    if (!trimmed) {
+      setInputError('Enter comma-separated numbers (e.g. 50, 120, 30, 200)');
+      return;
+    }
+
+    const parts = trimmed.split(/[,\s]+/).filter(Boolean);
+    const values: number[] = [];
+
+    for (const part of parts) {
+      const num = Number(part);
+      if (isNaN(num) || !Number.isFinite(num)) {
+        setInputError(`"${part}" is not a valid number`);
+        return;
+      }
+      // Clamp to 1-400 range for visual display
+      values.push(Math.max(1, Math.min(400, Math.round(num))));
+    }
+
+    if (values.length < 2) {
+      setInputError('Enter at least 2 numbers');
+      return;
+    }
+
+    if (values.length > 200) {
+      setInputError('Maximum 200 elements allowed');
+      return;
+    }
+
+    const newArray: ArrayBar[] = values.map(v => ({ value: v, state: 'default' as BarState }));
+    setArray(newArray);
+    setArraySize(values.length);
+    setComparisons(0);
+    setSwaps(0);
+    setIsPlaying(false);
+    isPlayingRef.current = false;
+    setInputError(null);
+  }, [customInput]);
 
   const playSound = useCallback((frequency: number) => {
     if (!soundEnabled || !audioContextRef.current) return;
@@ -536,6 +579,28 @@ export const SortingVisualizer: React.FC = () => {
             <Button onClick={() => setSoundEnabled(!soundEnabled)} variant="outline">
               {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
             </Button>
+          </div>
+
+          <div className="flex gap-2 mt-3 items-start">
+            <div className="flex-1">
+              <div className="flex gap-2">
+                <Input
+                  value={customInput}
+                  onChange={(e) => { setCustomInput(e.target.value); if (inputError) setInputError(null); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') applyCustomArray(); }}
+                  placeholder="Custom array: 50, 120, 30, 200, 90, 150..."
+                  disabled={isPlaying}
+                  className="flex-1 h-9 text-sm"
+                />
+                <Button onClick={applyCustomArray} variant="outline" disabled={isPlaying}>
+                  <ListOrdered className="mr-2 h-4 w-4" />
+                  Apply
+                </Button>
+              </div>
+              {inputError && (
+                <p className="text-xs text-red-500 mt-1">{inputError}</p>
+              )}
+            </div>
           </div>
         </Card>
 
