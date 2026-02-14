@@ -301,10 +301,8 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setWallpaper(savedWallpaper);
       }
 
-      initializeWindows(
-        savedOpenWindows ? JSON.parse(savedOpenWindows) : [],
-        savedMinimizedWindows ? JSON.parse(savedMinimizedWindows) : []
-      );
+      // Always start fresh - no window persistence across refreshes
+      initializeWindows([], []);
     };
 
     loadSavedState();
@@ -2216,14 +2214,8 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
     localStorage.setItem('win11-wallpaper', wallpaper);
   }, [wallpaper]);
 
-  useEffect(() => {
-    const openWindows = windows.filter(w => w.isOpen).map(w => w.id);
-    localStorage.setItem('win11-open-windows', JSON.stringify(openWindows));
-  }, [windows]);
-
-  useEffect(() => {
-    localStorage.setItem('win11-minimized-windows', JSON.stringify(minimizedWindows));
-  }, [minimizedWindows]);
+  // Window state is not persisted - app starts fresh on every refresh
+  // Only settings, theme, and wallpaper are persisted
 
   const toggleWindow = (id: string) => {
     // First, immediately bring to front to ensure highest z-index

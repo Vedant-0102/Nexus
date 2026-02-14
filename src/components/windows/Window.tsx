@@ -1,6 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { WindowType } from './types/WindowTypes';
-import Draggable from 'react-draggable';
 import { useWindowPosition } from './hooks/useWindowPosition';
 import { useWindowResize } from './hooks/useWindowResize';
 import { useWindowSnap } from './hooks/useWindowSnap';
@@ -33,12 +32,11 @@ export const Window = ({ window, onClose, onMinimize, onFocus }: WindowProps) =>
 
   const windowRef = useRef<HTMLDivElement>(null);
   const nodeRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<{ x: number; y: number } | null>(null);
   const isDraggingRef = useRef(false);
-  
+
   // Store window content in a ref to prevent remounting when window state changes
   const contentRef = useRef(window.content);
-  
+
   // Only update content ref if the content prop actually changes (by reference)
   useEffect(() => {
     if (window.content !== contentRef.current) {
@@ -49,9 +47,8 @@ export const Window = ({ window, onClose, onMinimize, onFocus }: WindowProps) =>
   const { position, setPosition, originalPosition, setOriginalPosition } =
     useWindowPosition(window, windowSize);
 
-  const { isResizing, setIsResizing, resizeDirection, setResizeDirection,
-    startResize } = useWindowResize(windowRef, position, windowSize,
-      setWindowSize, setPosition, isMaximized);
+  const { isResizing, startResize } = useWindowResize(windowRef, position, windowSize,
+    setWindowSize, setPosition, isMaximized);
 
   const { snapZone, handleDragMove, handleDragEnd, clearSnap, snapToZone, getSnapPosition } = useWindowSnap();
   const [isFocused, setIsFocused] = useState(false);
@@ -107,16 +104,6 @@ export const Window = ({ window, onClose, onMinimize, onFocus }: WindowProps) =>
       }
 
       snapToZone(zone);
-    }
-  };
-
-  const handleRestore = () => {
-    if (isMaximized || isSnapped) {
-      setPosition(originalPosition);
-      setWindowSize(originalSize);
-      setIsMaximized(false);
-      setIsSnapped(false);
-      clearSnap();
     }
   };
 
@@ -176,29 +163,10 @@ export const Window = ({ window, onClose, onMinimize, onFocus }: WindowProps) =>
     }
   };
 
-  const handleDrag = (e: any, data: { x: number; y: number }) => {
-    const screenWidth = globalThis.window?.innerWidth || 1920;
-    const screenHeight = globalThis.window?.innerHeight || 1080;
-
-    const maxX = screenWidth - 100;
-    const maxY = screenHeight - 60;
-    const minX = -windowSize.width + 100;
-
-    const constrainedX = Math.max(minX, Math.min(maxX, data.x));
-    const constrainedY = Math.max(0, Math.min(maxY, data.y));
-
-    setPosition({ x: constrainedX, y: constrainedY });
-    dragRef.current = { x: constrainedX, y: constrainedY };
-
-    // Show snap preview while dragging
-    if (isDraggingRef.current && e.clientX && e.clientY) {
-      handleDragMove(e.clientX, e.clientY);
-    }
-  };
-
-  const handleDragStart = (e: any) => {
+  // Unified header drag handler — works for normal drag, un-snap from maximized, etc.
+  const handleHeaderMouseDown = useCallback((e: React.MouseEvent) => {
     // Don't start drag if clicking on a button
-    if (e.target.closest('button')) {
+    if (e.target instanceof HTMLElement && e.target.closest('button')) {
       return;
     }
 
@@ -207,33 +175,36 @@ export const Window = ({ window, onClose, onMinimize, onFocus }: WindowProps) =>
     setIsFocused(true);
     isDraggingRef.current = true;
 
-    // If window is maximized or snapped, unsnap it immediately
     if (isMaximized || isSnapped) {
-      const mouseX = e.clientX || e.touches?.[0]?.clientX || 0;
-      const ratio = mouseX / globalThis.window.innerWidth;
+      // Un-snap: restore original size and position under cursor
+      const mouseX = e.clientX || 0;
+      const mouseY = e.clientY || 0;
+      const ratio = mouseX / (globalThis.window?.innerWidth || 1920);
 
       setIsMaximized(false);
       setIsSnapped(false);
       clearSnap();
 
-      // Position window under cursor
-      const newX = Math.max(0, Math.min(mouseX - (originalSize.width * ratio), globalThis.window.innerWidth - originalSize.width));
-      const newY = Math.max(0, (e.clientY || e.touches?.[0]?.clientY || 0) - 20);
+      const newX = Math.max(0, Math.min(mouseX - (originalSize.width * ratio), (globalThis.window?.innerWidth || 1920) - originalSize.width));
+      const newY = Math.max(0, mouseY - 20);
 
       setPosition({ x: newX, y: newY });
       setWindowSize(originalSize);
 
-      // Set up drag handlers for fixed positioned window
       const handleMouseMove = (moveEvent: MouseEvent) => {
-        const deltaX = moveEvent.clientX - mouseX;
-        const deltaY = moveEvent.clientY - (e.clientY || e.touches?.[0]?.clientY || 0);
+        const dx = moveEvent.clientX - mouseX;
+        const dy = moveEvent.clientY - mouseY;
 
-        const newPosX = Math.max(0, Math.min(newX + deltaX, globalThis.window.innerWidth - originalSize.width));
-        const newPosY = Math.max(0, Math.min(newY + deltaY, globalThis.window.innerHeight - 48 - originalSize.height));
+        const screenWidth = globalThis.window?.innerWidth || 1920;
+        const screenHeight = globalThis.window?.innerHeight || 1080;
+        const maxX = screenWidth - 100;
+        const maxY = screenHeight - 60;
+        const minX = -originalSize.width + 100;
+
+        const newPosX = Math.max(minX, Math.min(maxX, newX + dx));
+        const newPosY = Math.max(0, Math.min(maxY, newY + dy));
 
         setPosition({ x: newPosX, y: newPosY });
-
-        // Show snap preview
         handleDragMove(moveEvent.clientX, moveEvent.clientY);
       };
 
@@ -242,15 +213,13 @@ export const Window = ({ window, onClose, onMinimize, onFocus }: WindowProps) =>
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
 
-        // Handle snap on release
-        const snapPosition = handleDragEnd(upEvent.clientX, upEvent.clientY);
-        if (snapPosition) {
+        const snapResult = handleDragEnd(upEvent.clientX, upEvent.clientY);
+        if (snapResult) {
           setOriginalSize(originalSize);
           setOriginalPosition({ x: newX, y: newY });
-          setPosition({ x: snapPosition.x, y: snapPosition.y });
-          setWindowSize({ width: snapPosition.width, height: snapPosition.height });
+          setPosition({ x: snapResult.x, y: snapResult.y });
+          setWindowSize({ width: snapResult.width, height: snapResult.height });
           setIsSnapped(true);
-
           if (snapZone === 'maximized') {
             setIsMaximized(true);
             setIsSnapped(false);
@@ -260,205 +229,137 @@ export const Window = ({ window, onClose, onMinimize, onFocus }: WindowProps) =>
 
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
-    }
-  };
+    } else {
+      // Normal drag
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const startPos = { x: position.x, y: position.y };
 
-  const handleDragStop = (e: any) => {
-    isDraggingRef.current = false;
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        const screenWidth = globalThis.window?.innerWidth || 1920;
+        const screenHeight = globalThis.window?.innerHeight || 1080;
+        const maxX = screenWidth - 100;
+        const maxY = screenHeight - 60;
+        const minX = -windowSize.width + 100;
 
-    if (e.clientX && e.clientY) {
-      const snapPosition = handleDragEnd(e.clientX, e.clientY);
+        const newX = Math.max(minX, Math.min(maxX, startPos.x + (moveEvent.clientX - startX)));
+        const newY = Math.max(0, Math.min(maxY, startPos.y + (moveEvent.clientY - startY)));
 
-      if (snapPosition) {
-        // Save current size before snapping
-        if (!isSnapped && !isMaximized) {
-          setOriginalSize(windowSize);
-          setOriginalPosition(position);
+        setPosition({ x: newX, y: newY });
+        handleDragMove(moveEvent.clientX, moveEvent.clientY);
+      };
+
+      const handleMouseUp = (upEvent: MouseEvent) => {
+        isDraggingRef.current = false;
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+
+        if (upEvent.clientX && upEvent.clientY) {
+          const snapResult = handleDragEnd(upEvent.clientX, upEvent.clientY);
+          if (snapResult) {
+            setOriginalSize(windowSize);
+            setOriginalPosition(startPos);
+            setPosition({ x: snapResult.x, y: snapResult.y });
+            setWindowSize({ width: snapResult.width, height: snapResult.height });
+            if (snapZone === 'maximized') {
+              setIsMaximized(true);
+              setIsSnapped(false);
+            } else {
+              setIsSnapped(true);
+            }
+          }
         }
+      };
 
-        // Apply snap
-        setPosition({ x: snapPosition.x, y: snapPosition.y });
-        setWindowSize({ width: snapPosition.width, height: snapPosition.height });
-        setIsSnapped(true);
-
-        // If snapped to maximized zone
-        if (snapZone === 'maximized') {
-          setIsMaximized(true);
-          setIsSnapped(false);
-        }
-      }
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
     }
-  };
+  }, [isMaximized, isSnapped, position, windowSize, originalSize, originalPosition,
+    onFocus, clearSnap, handleDragMove, handleDragEnd, snapZone, setPosition,
+    setOriginalPosition, setOriginalSize]);
+
+  // Physics drag on entire window
+  const handlePhysicsMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.target instanceof HTMLElement && e.target.closest('button')) {
+      return;
+    }
+
+    onFocus();
+    setIsFocused(true);
+
+    if (engine) {
+      engine.startDrag(`window-${window.id}`, e.clientX, e.clientY);
+
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        engine.updateDrag(`window-${window.id}`, moveEvent.clientX, moveEvent.clientY);
+      };
+
+      const handleMouseUp = () => {
+        engine.endDrag(`window-${window.id}`);
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+  }, [engine, window.id, onFocus]);
+
+  // Focus click handler (skip interactive elements)
+  const handleFocusClick = useCallback((e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('a') || target.closest('input') ||
+      target.closest('select') || target.closest('textarea') ||
+      target.closest('[role="slider"]') || target.closest('[role="button"]')) {
+      return;
+    }
+    onFocus();
+    setIsFocused(true);
+  }, [onFocus]);
 
   if (!window.isOpen) return null;
 
   // Use physics position if physics is active
   const displayPosition = isPhysicsActive && physicsPosition ? physicsPosition : position;
   const displayRotation = isPhysicsActive && physicsPosition ? physicsPosition.rotation : 0;
-
-  // When snapped or maximized, use fixed positioning instead of Draggable
-  if ((isMaximized || isSnapped) && !isPhysicsActive) {
-    return (
-      <div
-        ref={nodeRef}
-        className={`fixed transition-all duration-300 ease-in-out rounded-xl ${window.isMinimized ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-        style={{
-          ...windowStyle,
-          width: windowSize.width,
-          height: windowSize.height,
-          left: displayPosition.x,
-          top: displayPosition.y,
-          zIndex: window.zIndex,
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          transform: `rotate(${displayRotation}rad)`,
-        }}
-        onClick={(e) => {
-          // Don't bring to front if clicking on interactive elements
-          const target = e.target as HTMLElement;
-          if (target.closest('button') || target.closest('a') || target.closest('input') ||
-            target.closest('select') || target.closest('textarea') ||
-            target.closest('[role="slider"]') || target.closest('[role="button"]')) {
-            return;
-          }
-          onFocus();
-          setIsFocused(true);
-        }}
-        onBlur={() => setIsFocused(false)}
-        tabIndex={0}
-      >
-        <div
-          className="window-header cursor-move"
-          onMouseDown={handleDragStart}
-        >
-          <WindowHeader
-            title={window.title}
-            icon={window.icon}
-            isMaximizable={window.isMaximizable}
-            isClosable={window.isClosable}
-            onMinimize={onMinimize}
-            onMaximize={handleMaximize}
-            onClose={onClose}
-            theme={theme}
-          />
-        </div>
-
-        <WindowContent windowRef={windowRef}>
-          {contentRef.current}
-        </WindowContent>
-      </div>
-    );
-  }
-
-  // If physics is active, use absolute positioning instead of Draggable
-  if (isPhysicsActive) {
-    const handlePhysicsMouseDown = (e: React.MouseEvent) => {
-      if (e.target instanceof HTMLElement && e.target.closest('button')) {
-        return; // Don't interfere with buttons
-      }
-
-      onFocus();
-      setIsFocused(true);
-
-      // Start drag in physics engine
-      if (engine) {
-        engine.startDrag(`window-${window.id}`, e.clientX, e.clientY);
-
-        const handleMouseMove = (moveEvent: MouseEvent) => {
-          engine.updateDrag(`window-${window.id}`, moveEvent.clientX, moveEvent.clientY);
-        };
-
-        const handleMouseUp = () => {
-          engine.endDrag(`window-${window.id}`);
-          document.removeEventListener('mousemove', handleMouseMove);
-          document.removeEventListener('mouseup', handleMouseUp);
-        };
-
-        document.addEventListener('mousemove', handleMouseMove);
-        document.addEventListener('mouseup', handleMouseUp);
-      }
-    };
-
-    return (
-      <div
-        ref={nodeRef}
-        className={`win11-glass absolute transition-opacity duration-200 ${window.isMinimized ? 'opacity-0 pointer-events-none' : 'opacity-100'} cursor-move`}
-        style={{
-          width: windowSize.width,
-          height: windowSize.height,
-          left: displayPosition.x,
-          top: displayPosition.y,
-          zIndex: window.zIndex,
-          overflow: 'visible',
-          display: 'flex',
-          flexDirection: 'column',
-          transform: `rotate(${displayRotation}rad)`,
-          pointerEvents: 'auto',
-        }}
-        onMouseDown={handlePhysicsMouseDown}
-        onDoubleClick={() => applyImpulse(0, -400)}
-        onBlur={() => setIsFocused(false)}
-        tabIndex={0}
-      >
-        <WindowHeader
-          title={window.title}
-          icon={window.icon}
-          isMaximizable={window.isMaximizable}
-          isClosable={window.isClosable}
-          onMinimize={onMinimize}
-          onMaximize={handleMaximize}
-          onClose={onClose}
-          theme={theme}
-        />
-
-        <WindowContent windowRef={windowRef}>
-          {contentRef.current}
-        </WindowContent>
-      </div>
-    );
-  }
+  const useFixed = (isMaximized || isSnapped) && !isPhysicsActive;
 
   return (
-    <Draggable
-      handle=".window-header"
-      disabled={isResizing || isPhysicsActive}
-      onStart={handleDragStart}
-      onDrag={handleDrag}
-      onStop={handleDragStop}
-      position={position}
-      bounds="parent"
-      nodeRef={nodeRef}
-    >
-      <div
-        ref={nodeRef}
-        className={`absolute transition-opacity duration-200 rounded-xl ${window.isMinimized ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-        style={{
-          ...windowStyle,
-          width: windowSize.width,
-          height: windowSize.height,
-          zIndex: window.zIndex,
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
+    <div
+      ref={nodeRef}
+      className={`${useFixed ? 'fixed' : 'absolute'} rounded-xl ${
+        useFixed ? 'transition-all duration-300 ease-in-out' : 'transition-opacity duration-200'
+      } ${window.isMinimized ? 'opacity-0 pointer-events-none' : 'opacity-100'} ${
+        isPhysicsActive ? 'cursor-move' : ''
+      }`}
+      style={{
+        ...windowStyle,
+        width: windowSize.width,
+        height: windowSize.height,
+        left: displayPosition.x,
+        top: displayPosition.y,
+        zIndex: window.zIndex,
+        overflow: isPhysicsActive ? 'visible' : 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        transform: displayRotation ? `rotate(${displayRotation}rad)` : undefined,
+        ...(!useFixed && !isPhysicsActive ? {
           maxWidth: '100%',
           maxHeight: 'calc(100% - 48px)',
           minWidth: '300px',
           minHeight: '200px',
-        }}
-        onClick={(e) => {
-          // Don't bring to front if clicking on interactive elements
-          const target = e.target as HTMLElement;
-          if (target.closest('button') || target.closest('a') || target.closest('input') ||
-            target.closest('select') || target.closest('textarea') ||
-            target.closest('[role="slider"]') || target.closest('[role="button"]')) {
-            return;
-          }
-          onFocus();
-          setIsFocused(true);
-        }}
-        onBlur={() => setIsFocused(false)}
-        tabIndex={0}
+        } : {}),
+        pointerEvents: isPhysicsActive ? 'auto' : undefined,
+      }}
+      onClick={handleFocusClick}
+      onMouseDown={isPhysicsActive ? handlePhysicsMouseDown : undefined}
+      onDoubleClick={isPhysicsActive ? () => applyImpulse(0, -400) : undefined}
+      onBlur={() => setIsFocused(false)}
+      tabIndex={0}
+    >
+      <div
+        className="window-header cursor-move"
+        onMouseDown={!isPhysicsActive ? handleHeaderMouseDown : undefined}
       >
         <WindowHeader
           title={window.title}
@@ -470,37 +371,27 @@ export const Window = ({ window, onClose, onMinimize, onFocus }: WindowProps) =>
           onClose={onClose}
           theme={theme}
         />
-
-        <WindowContent windowRef={windowRef}>
-          {contentRef.current}
-        </WindowContent>
-
-        { }
-        {!isMaximized && !isSnapped && window.isResizable !== false && (
-          <WindowResizeHandles startResize={startResize} />
-        )}
       </div>
-    </Draggable>
+
+      <WindowContent windowRef={windowRef}>
+        {contentRef.current}
+      </WindowContent>
+
+      {!isMaximized && !isSnapped && window.isResizable !== false && !isPhysicsActive && (
+        <WindowResizeHandles startResize={startResize} />
+      )}
+    </div>
   );
 };
 
-// Memoize Window component to prevent remounting when only window state changes
+// Memoize Window component to prevent unnecessary re-renders
 export const MemoizedWindow = React.memo(Window, (prevProps, nextProps) => {
-  // Return true if props are equal (skip re-render)
-  // Return false if props changed (do re-render)
-
-  // Don't check content reference - we handle that internally with contentRef
-  // This prevents unnecessary re-renders when window state changes
-
-  // Check if important state changed
   const stateChanged =
     prevProps.window.isMinimized !== nextProps.window.isMinimized ||
     prevProps.window.zIndex !== nextProps.window.zIndex ||
     prevProps.window.isOpen !== nextProps.window.isOpen;
 
-  // Return true (skip render) if state didn't change
   return !stateChanged;
 });
 
 MemoizedWindow.displayName = 'MemoizedWindow';
-

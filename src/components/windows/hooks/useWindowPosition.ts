@@ -44,7 +44,9 @@ export function useWindowPosition(window: WindowType, windowSize: WindowSize) {
       setPosition(centerPos);
       setOriginalPosition(centerPos);
     }
-  }, [windowSize.width, windowSize.height, window.isOpen, window.isMinimized]);
+    // Only re-center when window opens, not on size changes (which happen during maximize/snap)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [window.isOpen]);
 
   useEffect(() => {
     const handleScreenResize = () => {
