@@ -10,23 +10,12 @@ export const UtilitiesFolder: React.FC = () => {
             'calendar',
             'terminal',
             'filemanager',
-            'texteditor',
-            'markdowneditor',
             'wikipedia',
-            'supercalculator',
             'unifiedClock',
             'taskManager',
-            'stickyNotes',
             'battery'
         ].includes(app.id)
     );
-
-    console.log('UtilitiesFolder DEBUG:');
-    console.log('- Total windows:', windows.length);
-    console.log('- All window IDs:', windows.map(w => w.id));
-    console.log('- Browser window exists:', windows.some(w => w.id === 'browser'));
-    console.log('- Filtered utility apps:', utilityApps.length);
-    console.log('- Utility app details:', utilityApps.map(a => ({ id: a.id, title: a.title })));
 
     return (
         <div className="p-6 h-full overflow-auto bg-white dark:bg-gray-900">

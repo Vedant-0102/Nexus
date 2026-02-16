@@ -169,7 +169,7 @@ export const BatteryLevel = () => {
   return (
     <div className="p-4 h-full">
       <h2 className="text-2xl font-semibold mb-4">Battery Status</h2>
-      <div className="bg-white/50 p-6 rounded-lg max-w-md mx-auto flex flex-col items-center">
+      <div className="bg-white/50 dark:bg-gray-800/50 p-6 rounded-lg max-w-md mx-auto flex flex-col items-center">
         {getBatteryIcon()}
         
         <div className="text-3xl font-bold mt-4">
@@ -185,7 +185,7 @@ export const BatteryLevel = () => {
           }
         </div>
         
-        <div className="w-full bg-gray-200 rounded-full h-4 mt-6 overflow-hidden">
+        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4 mt-6 overflow-hidden">
           <div 
             className={`h-4 transition-all duration-500 ${
               level > 60 ? "bg-green-600" : level > 20 ? "bg-yellow-500" : "bg-red-600"
@@ -194,7 +194,7 @@ export const BatteryLevel = () => {
           ></div>
         </div>
         
-        <div className="mt-6 bg-gray-50 p-4 rounded-lg w-full">
+        <div className="mt-6 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg w-full">
           <h3 className="font-medium mb-2">Battery Information</h3>
           <div className="text-sm space-y-1">
             <p><span className="font-medium">Condition:</span> Normal</p>

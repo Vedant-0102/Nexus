@@ -38,13 +38,13 @@ export const UnifiedClock: React.FC = () => {
         </TabsContent>
         
         <TabsContent value="worldclock" className="mt-4">
-          <div className="bg-white/50 p-4 rounded-lg">
+          <div className="bg-white/50 dark:bg-gray-800/50 p-4 rounded-lg">
             <WorldClock />
           </div>
         </TabsContent>
-        
+
         <TabsContent value="timer" className="mt-4">
-          <div className="bg-white/50 p-4 rounded-lg">
+          <div className="bg-white/50 dark:bg-gray-800/50 p-4 rounded-lg">
             <TimerStopwatch />
           </div>
         </TabsContent>

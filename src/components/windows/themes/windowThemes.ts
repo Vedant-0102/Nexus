@@ -183,3 +183,51 @@ export const WINDOW_THEMES = {
 };
 
 export type WindowThemeName = keyof typeof WINDOW_THEMES;
+
+// Dark body overrides for colored themes
+const DARK_BODY: Partial<WindowTheme> = {
+  bodyBg: 'rgba(17, 24, 39, 0.95)',
+  bodyText: '#f9fafb',
+};
+
+export function getTheme(themeName: WindowThemeName, isDark: boolean): WindowTheme {
+  const base = WINDOW_THEMES[themeName];
+  if (!isDark) return base;
+
+  // These themes already handle dark appropriately
+  if (themeName === 'dark' || themeName === 'glass') return base;
+
+  // 'default' in dark mode becomes the dark theme
+  if (themeName === 'default') return WINDOW_THEMES.dark;
+
+  // 'minimal' gets fully dark
+  if (themeName === 'minimal') {
+    return {
+      headerBg: '#1f2937',
+      headerText: '#f9fafb',
+      headerBorder: '#374151',
+      bodyBg: '#111827',
+      bodyText: '#f9fafb',
+      accentColor: '#9ca3af',
+      glassEffect: false,
+      borderColor: '#374151',
+      shadowColor: 'rgba(0, 0, 0, 0.3)',
+    };
+  }
+
+  // Colored themes: keep header, darken body/border/shadow
+  return {
+    ...base,
+    ...DARK_BODY,
+    borderColor: base.borderColor?.replace(/0\.\d+\)$/, '0.4)'),
+    shadowColor: base.shadowColor?.replace(/0\.\d+\)$/, '0.35)'),
+  };
+}
+
+export function resolveThemeName(theme: WindowTheme | undefined): WindowThemeName {
+  if (!theme) return 'default';
+  for (const [name, t] of Object.entries(WINDOW_THEMES)) {
+    if (t === theme) return name as WindowThemeName;
+  }
+  return 'default';
+}

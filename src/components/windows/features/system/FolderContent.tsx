@@ -3,7 +3,7 @@ import React from 'react';
 import { useWindows } from '../../context/WindowsContext';
 
 interface FolderContentProps {
-  type: 'games' | 'utilities' | 'office' | 'converters' | 'simulators' | 'chemistry' | 'physics' | 'engine' | 'colors';
+  type: 'games' | 'utilities' | 'office' | 'converters' | 'simulators' | 'chemistry' | 'physics' | 'engine' | 'colors' | 'crypt';
 }
 
 export const FolderContent: React.FC<FolderContentProps> = ({ type }) => {
@@ -14,24 +14,26 @@ export const FolderContent: React.FC<FolderContentProps> = ({ type }) => {
     if (type === 'games') {
       return ['tictactoe', 'snake', 'minesweeper', 'chess', 'checkers', 'flappybird', 'pacman', 'pingpong', 'tetris', 'game2048', 'sudoku', 'breakout', 'memorymatch', 'spaceinvaders', 'maze3d', 'battleship', 'connect4', 'dvdscreensaver', 'sandfalling', 'puzzle15', 'minecraft'].includes(app.id);
     } else if (type === 'office') {
-      return ['notepad', 'texteditor', 'spreadsheet', 'presentation', 'formbuilder', 'kanban', 'stickyNotes', 'flashcards', 'paint', 'pixelart', 'invoice'].includes(app.id);
+      return ['texteditor', 'spreadsheet', 'presentation', 'formbuilder', 'kanban', 'stickyNotes', 'flashcards', 'paint', 'pixelart', 'invoice', 'chart-builder', 'mindmap'].includes(app.id);
     } else if (type === 'converters') {
-      return ['imageconverter', 'documentconverter', 'texttohtml', 'lengthconverter', 'weightconverter', 'currencyconverter', 'markdowneditor', 'lorem-ipsum', 'chart-builder', 'regex-tester', 'data-formatter', 'base64-converter', 'password-generator', 'temperature-converter', 'speed-converter', 'energy-converter', 'power-converter', 'pressure-converter', 'volume-converter', 'time-converter', 'area-converter'].includes(app.id);
+      return ['imageconverter', 'documentconverter', 'lengthconverter', 'weightconverter', 'currencyconverter', 'temperature-converter', 'speed-converter', 'energy-converter', 'power-converter', 'pressure-converter', 'volume-converter', 'time-converter', 'area-converter'].includes(app.id);
     } else if (type === 'simulators') {
       return ['chemistry-folder-window', 'physics-folder-window', 'universe'].includes(app.id);
     } else if (type === 'engine') {
-      return ['database', 'codeeditor', 'nocode', 'sortingvisualizer', 'pathfinding', 'qrcode', 'cnnvisualizer', 'gitvisualizer', 'api-tester', 'mindmap'].includes(app.id);
+      return ['database', 'codeeditor', 'nocode', 'sortingvisualizer', 'pathfinding', 'qrcode', 'cnnvisualizer', 'gitvisualizer', 'api-tester', 'texttohtml', 'markdowneditor', 'data-formatter'].includes(app.id);
     } else if (type === 'chemistry') {
       return ['periodictable', 'molecularviewer', 'reactionsimulator', 'equation-balancer'].includes(app.id);
     } else if (type === 'physics') {
-      return ['projectilemotion', 'pendulum', 'waves', 'collisions', 'electromagneticlab', 'optics-simulator', 'electric-field', 'magnetic-field', 'rocket-propulsion'].includes(app.id);
+      return ['projectilemotion', 'pendulum', 'spring', 'waves', 'collisions', 'electromagneticlab', 'optics-simulator', 'electric-field', 'magnetic-field', 'rocket-propulsion'].includes(app.id);
     } else if (type === 'utilities') {
       // Include specific utility apps
       return [
         'settings', 'unifiedClock', 'taskManager', 'terminal',
         'battery', 'filemanager', 'wikipedia',
-        'sciencelab', 'supercalculator', 'mathtools', 'calendar'
+        'supercalculator', 'calendar'
       ].includes(app.id);
+    } else if (type === 'crypt') {
+      return ['base64-converter', 'regex-tester', 'password-generator', 'data-formatter', 'lorem-ipsum'].includes(app.id);
     }
     return false;
   });
@@ -47,6 +49,7 @@ export const FolderContent: React.FC<FolderContentProps> = ({ type }) => {
       case 'utilities': return 'Utilities';
       case 'engine': return 'Virtual Engine';
       case 'colors': return 'Colors for Artists';
+      case 'crypt': return 'Crypt';
       default: return 'Folder';
     }
   };
