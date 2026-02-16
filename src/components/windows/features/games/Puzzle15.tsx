@@ -1,32 +1,44 @@
-import React, { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { RotateCcw, Trophy } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { RotateCcw, Trophy, Clock, Hash } from 'lucide-react';
 
 export const Puzzle15 = () => {
+  const containerRef = useRef<HTMLDivElement>(null);
   const [tiles, setTiles] = useState<number[]>([]);
   const [moves, setMoves] = useState(0);
   const [time, setTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [isSolved, setIsSolved] = useState(false);
+  const [tileSize, setTileSize] = useState(80);
 
   useEffect(() => {
     initializeGame();
   }, []);
 
+  // Resize
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    const updateSize = () => {
+      const container = containerRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const available = Math.min(rect.width - 16, rect.height - 16);
+      const newSize = Math.max(40, Math.min(Math.floor((available - 12) / 4), 100));
+      setTileSize(newSize);
+    };
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
     if (isRunning && !isSolved) {
-      interval = setInterval(() => {
-        setTime(prev => prev + 1);
-      }, 1000);
+      interval = setInterval(() => setTime(prev => prev + 1), 1000);
     }
     return () => clearInterval(interval);
   }, [isRunning, isSolved]);
 
   const initializeGame = () => {
     const newTiles = Array.from({ length: 16 }, (_, i) => i);
-    // Shuffle
     for (let i = 0; i < 1000; i++) {
       const emptyIndex = newTiles.indexOf(0);
       const validMoves = getValidMoves(emptyIndex);
@@ -44,18 +56,15 @@ export const Puzzle15 = () => {
     const moves: number[] = [];
     const row = Math.floor(emptyIndex / 4);
     const col = emptyIndex % 4;
-
-    if (row > 0) moves.push(emptyIndex - 4); // Up
-    if (row < 3) moves.push(emptyIndex + 4); // Down
-    if (col > 0) moves.push(emptyIndex - 1); // Left
-    if (col < 3) moves.push(emptyIndex + 1); // Right
-
+    if (row > 0) moves.push(emptyIndex - 4);
+    if (row < 3) moves.push(emptyIndex + 4);
+    if (col > 0) moves.push(emptyIndex - 1);
+    if (col < 3) moves.push(emptyIndex + 1);
     return moves;
   };
 
   const handleTileClick = (index: number) => {
     if (isSolved) return;
-
     if (!isRunning) setIsRunning(true);
 
     const emptyIndex = tiles.indexOf(0);
@@ -67,7 +76,6 @@ export const Puzzle15 = () => {
       setTiles(newTiles);
       setMoves(prev => prev + 1);
 
-      // Check if solved
       const solved = newTiles.every((tile, i) => tile === i);
       if (solved) {
         setIsSolved(true);
@@ -76,79 +84,125 @@ export const Puzzle15 = () => {
     }
   };
 
+  // Keyboard support
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (isSolved) return;
+      const emptyIndex = tiles.indexOf(0);
+      const row = Math.floor(emptyIndex / 4);
+      const col = emptyIndex % 4;
+      let target = -1;
+
+      switch (e.key) {
+        case 'ArrowUp': if (row > 0) target = emptyIndex - 4; break;
+        case 'ArrowDown': if (row < 3) target = emptyIndex + 4; break;
+        case 'ArrowLeft': if (col > 0) target = emptyIndex - 1; break;
+        case 'ArrowRight': if (col < 3) target = emptyIndex + 1; break;
+      }
+
+      if (target >= 0 && target < 16) {
+        e.preventDefault();
+        handleTileClick(target);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [tiles, isSolved]);
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const getTileColor = (tile: number) => {
+    if (tile === 0) return '';
+    const hue = 200 + (tile / 15) * 60;
+    const sat = 55 + (tile % 4) * 5;
+    return `hsl(${hue}, ${sat}%, 48%)`;
+  };
+
+  const GAP = 4;
+  const boardSize = tileSize * 4 + GAP * 3;
+
   return (
-    <div className="h-full w-full bg-gradient-to-br from-purple-900 to-blue-900 p-6 overflow-auto">
-      <div className="max-w-2xl mx-auto space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-white">15 Puzzle</h1>
-            <p className="text-gray-300">Arrange the tiles in order!</p>
+    <div className="h-full w-full flex flex-col overflow-hidden p-4">
+      <h2 className="text-2xl font-semibold mb-3">15 Puzzle</h2>
+
+      <div className="bg-white/50 dark:bg-gray-800/50 p-4 rounded-lg mb-3">
+        {/* Header stats */}
+        <div className="flex justify-between items-center mb-3">
+          <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-1.5">
+              <Hash className="h-3.5 w-3.5" />
+              <span className="font-mono font-bold">{moves}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5" />
+              <span className="font-mono font-bold">{formatTime(time)}</span>
+            </div>
           </div>
-          <Button onClick={initializeGame} variant="outline">
-            <RotateCcw className="h-4 w-4 mr-2" />
+          <button
+            onClick={initializeGame}
+            className="bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded p-1 px-2 flex items-center gap-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
             New Game
-          </Button>
+          </button>
         </div>
 
+        {/* Solved banner */}
         {isSolved && (
-          <Card className="p-4 bg-green-600 border-green-500">
-            <div className="flex items-center gap-3 text-white">
-              <Trophy className="h-8 w-8" />
-              <div>
-                <p className="font-bold text-lg">Congratulations! 🎉</p>
-                <p className="text-sm">Solved in {moves} moves and {formatTime(time)}</p>
-              </div>
-            </div>
-          </Card>
+          <div className="text-center py-2 mb-3 rounded bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 flex items-center justify-center gap-2">
+            <Trophy className="h-4 w-4" />
+            <span className="font-bold">Solved!</span>
+            <span className="text-sm">{moves} moves in {formatTime(time)}</span>
+          </div>
         )}
 
-        <div className="grid grid-cols-2 gap-4">
-          <Card className="p-4 bg-gray-800 border-gray-700 text-center">
-            <p className="text-gray-400 text-sm">Moves</p>
-            <p className="text-3xl font-bold text-white">{moves}</p>
-          </Card>
-          <Card className="p-4 bg-gray-800 border-gray-700 text-center">
-            <p className="text-gray-400 text-sm">Time</p>
-            <p className="text-3xl font-bold text-white">{formatTime(time)}</p>
-          </Card>
-        </div>
-
-        <Card className="p-6 bg-gray-800 border-gray-700">
-          <div className="grid grid-cols-4 gap-2">
-            {tiles.map((tile, index) => (
-              <button
-                key={index}
-                onClick={() => handleTileClick(index)}
-                disabled={tile === 0}
-                className={`
-                  aspect-square rounded-lg text-3xl font-bold transition-all
-                  ${tile === 0 
-                    ? 'bg-gray-900 cursor-default' 
-                    : 'bg-gradient-to-br from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:scale-105 cursor-pointer'
-                  }
-                `}
-              >
-                {tile !== 0 && tile}
-              </button>
-            ))}
+        {/* Board */}
+        <div ref={containerRef} className="flex justify-center">
+          <div
+            className="grid grid-cols-4 bg-gray-400 dark:bg-gray-600 rounded-lg p-1"
+            style={{ gap: GAP, width: boardSize + 8, height: boardSize + 8 }}
+          >
+            {tiles.map((tile, index) => {
+              const isCorrect = tile === index && tile !== 0;
+              return (
+                <button
+                  key={index}
+                  onClick={() => handleTileClick(index)}
+                  disabled={tile === 0}
+                  className={`
+                    font-bold transition-all duration-150 select-none flex items-center justify-center rounded
+                    ${tile === 0
+                      ? 'bg-gray-300/50 dark:bg-gray-700/50 cursor-default'
+                      : `text-white cursor-pointer hover:brightness-110 active:scale-95 shadow-sm
+                         ${isCorrect ? 'ring-2 ring-inset ring-green-400/60' : ''}`
+                    }
+                  `}
+                  style={{
+                    width: tileSize,
+                    height: tileSize,
+                    fontSize: tileSize * 0.35,
+                    backgroundColor: tile ? getTileColor(tile) : undefined,
+                  }}
+                >
+                  {tile !== 0 && tile}
+                </button>
+              );
+            })}
           </div>
-        </Card>
+        </div>
+      </div>
 
-        <Card className="p-4 bg-gray-800 border-gray-700">
-          <h3 className="font-bold text-white mb-2">How to Play</h3>
-          <ul className="text-sm text-gray-400 space-y-1">
-            <li>• Click on tiles adjacent to the empty space to move them</li>
-            <li>• Arrange all tiles in numerical order (1-15)</li>
-            <li>• The empty space should be in the bottom-right corner</li>
-            <li>• Try to solve it in the fewest moves possible!</li>
-          </ul>
-        </Card>
+      <div className="text-sm text-gray-600 dark:text-gray-400">
+        <h3 className="font-semibold mb-1">How to play:</h3>
+        <ul className="list-disc list-inside space-y-1">
+          <li>Click a tile next to the empty space to slide it</li>
+          <li>Use arrow keys to move tiles</li>
+          <li>Arrange tiles from 1-15 in order to win</li>
+        </ul>
       </div>
     </div>
   );

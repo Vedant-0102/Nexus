@@ -169,9 +169,9 @@ export const StickyNotes: React.FC = () => {
       </div>
 
       <Tabs defaultValue="notes" className="flex-1 flex flex-col overflow-hidden">
-        <TabsList className="mx-4 mt-2">
-          <TabsTrigger value="notes">My Notes ({notes.length})</TabsTrigger>
-          <TabsTrigger value="create">Create New</TabsTrigger>
+        <TabsList className="mx-4 mt-3 h-11">
+          <TabsTrigger value="notes" className="text-sm px-5 py-2">My Notes ({notes.length})</TabsTrigger>
+          <TabsTrigger value="create" className="text-sm px-5 py-2">Create New</TabsTrigger>
         </TabsList>
 
         <TabsContent value="notes" className="flex-1 overflow-auto mt-0 data-[state=inactive]:hidden">
@@ -191,7 +191,7 @@ export const StickyNotes: React.FC = () => {
             </div>
 
             {/* Notes Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {filteredNotes.map(note => (
                 <div
                   key={note.id}
@@ -199,75 +199,75 @@ export const StickyNotes: React.FC = () => {
                   onDragStart={(e) => handleDragStart(e, note.id)}
                   onDragOver={(e) => handleDragOver(e, note.id)}
                   onDragEnd={handleDragEnd}
-                  className={`rounded-lg p-4 shadow-md relative cursor-move transition-all ${
+                  className={`rounded-xl p-5 shadow-md relative cursor-move transition-all min-h-[120px] ${
                     draggingId === note.id ? 'opacity-50 scale-95' : 'hover:shadow-lg'
                   }`}
                   style={{ backgroundColor: note.color }}
                 >
                   {/* Drag Handle */}
-                  <div className="absolute top-2 left-2 cursor-grab active:cursor-grabbing">
-                    <GripVertical className="h-4 w-4 text-gray-600" />
+                  <div className="absolute top-3 left-3 cursor-grab active:cursor-grabbing">
+                    <GripVertical className="h-5 w-5 text-gray-600" />
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="absolute top-2 right-2 flex gap-1">
+                  <div className="absolute top-3 right-3 flex gap-1.5">
                     {editingId === note.id ? (
                       <>
                         <button
                           onClick={saveEdit}
-                          className="p-1 rounded-full hover:bg-black/10 text-green-600"
+                          className="p-1.5 rounded-full hover:bg-black/10 text-green-600"
                           title="Save"
                         >
-                          <Check className="h-4 w-4" />
+                          <Check className="h-5 w-5" />
                         </button>
                         <button
                           onClick={cancelEdit}
-                          className="p-1 rounded-full hover:bg-black/10 text-red-600"
+                          className="p-1.5 rounded-full hover:bg-black/10 text-red-600"
                           title="Cancel"
                         >
-                          <X className="h-4 w-4" />
+                          <X className="h-5 w-5" />
                         </button>
                       </>
                     ) : (
                       <>
                         <button
                           onClick={() => startEdit(note)}
-                          className="p-1 rounded-full hover:bg-black/10"
+                          className="p-1.5 rounded-full hover:bg-black/10"
                           title="Edit"
                         >
-                          <Edit2 className="h-4 w-4" />
+                          <Edit2 className="h-5 w-5" />
                         </button>
                         <button
                           onClick={() => handleDeleteNote(note.id)}
-                          className="p-1 rounded-full hover:bg-black/10"
+                          className="p-1.5 rounded-full hover:bg-black/10"
                           title="Delete"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-5 w-5" />
                         </button>
                       </>
                     )}
                   </div>
 
                   {/* Content */}
-                  <div className="mt-6">
+                  <div className="mt-7">
                     {editingId === note.id ? (
                       <textarea
                         value={editContent}
                         onChange={(e) => setEditContent(e.target.value)}
                         onKeyDown={handleEditKeyDown}
-                        className="w-full p-2 rounded border-2 border-gray-400 bg-white/50 text-sm resize-none"
-                        rows={4}
+                        className="w-full p-2 rounded border-2 border-gray-400 bg-white/50 text-base resize-none"
+                        rows={5}
                         autoFocus
                       />
                     ) : (
-                      <p className="text-sm whitespace-pre-wrap break-words">
+                      <p className="text-base whitespace-pre-wrap break-words leading-relaxed">
                         {note.content}
                       </p>
                     )}
                   </div>
 
                   {/* Timestamp */}
-                  <p className="text-xs mt-4 text-gray-600">
+                  <p className="text-sm mt-4 text-gray-600 font-medium">
                     {new Date(note.createdAt).toLocaleString()}
                   </p>
                 </div>

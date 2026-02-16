@@ -292,7 +292,7 @@ export const Checkers: React.FC = () => {
       <div className="flex items-center justify-between mb-2 flex-shrink-0">
         <div className="flex items-center gap-3">
           <h1 className="text-lg font-bold dark:text-white">Checkers</h1>
-          <span className="text-xs text-gray-500 dark:text-gray-400">vs AI</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">vs Computer</span>
         </div>
         <Button onClick={resetGame} variant="outline" size="sm">
           <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
@@ -385,7 +385,7 @@ export const Checkers: React.FC = () => {
               <div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Turn</p>
                 <p className="text-sm font-bold dark:text-white">
-                  {currentPlayer === 'red' ? 'Your Turn' : 'AI Thinking...'}
+                  {currentPlayer === 'red' ? 'Your Turn' : 'Computer Thinking...'}
                 </p>
               </div>
             </div>
@@ -412,7 +412,7 @@ export const Checkers: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <div className="w-4 h-4 rounded-full bg-gradient-to-br from-gray-800 to-black border border-gray-950" />
-                  <span className="text-xs font-semibold dark:text-white">AI</span>
+                  <span className="text-xs font-semibold dark:text-white">Computer</span>
                 </div>
                 <span className="text-lg font-bold text-gray-800 dark:text-gray-300">{score.black}</span>
               </div>

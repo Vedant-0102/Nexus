@@ -267,7 +267,7 @@ export const Minesweeper: React.FC = () => {
     <div className="p-4 h-full overflow-y-auto">
       <h2 className="text-2xl font-semibold mb-4">Minesweeper</h2>
       
-      <div className="bg-white/50 p-4 rounded-lg mb-4">
+      <div className="bg-white/50 dark:bg-gray-800/50 p-4 rounded-lg mb-4">
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-2">
             <Flag size={16} />
@@ -276,7 +276,7 @@ export const Minesweeper: React.FC = () => {
           
           <div className="flex gap-2">
             <select 
-              className="bg-white/80 border border-gray-300 rounded px-2 py-1 text-sm"
+              className="bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm"
               value={difficulty}
               onChange={(e) => setDifficulty(e.target.value as 'easy' | 'medium' | 'hard')}
             >
@@ -286,7 +286,7 @@ export const Minesweeper: React.FC = () => {
             </select>
             
             <button 
-              className="bg-white/80 border border-gray-300 rounded p-1"
+              className="bg-white/80 dark:bg-gray-700/80 border border-gray-300 dark:border-gray-600 rounded p-1"
               onClick={initializeBoard}
             >
               <RefreshCw size={16} />
@@ -300,14 +300,14 @@ export const Minesweeper: React.FC = () => {
         
         {/* Game Status */}
         {(gameOver || gameWon) && (
-          <div className={`text-center py-2 mb-4 rounded ${gameWon ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+          <div className={`text-center py-2 mb-4 rounded ${gameWon ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'}`}>
             {gameWon ? 'You Win! 🎉' : 'Game Over! 💣'}
           </div>
         )}
         
         {/* Game Board */}
         <div 
-          className={`grid gap-px bg-gray-300 border-2 ${gameOver ? 'border-red-500' : gameWon ? 'border-green-500' : 'border-gray-400'}`}
+          className={`grid gap-px bg-gray-300 dark:bg-gray-600 border-2 ${gameOver ? 'border-red-500' : gameWon ? 'border-green-500' : 'border-gray-400 dark:border-gray-500'}`}
           style={{ 
             gridTemplateColumns: `repeat(${difficulties[difficulty].cols}, 1fr)`,
             width: 'fit-content',
@@ -319,11 +319,11 @@ export const Minesweeper: React.FC = () => {
               <button
                 key={`${rowIndex}-${colIndex}`}
                 className={`w-7 h-7 flex items-center justify-center text-xs font-medium ${
-                  cell.revealed 
-                    ? cell.hasMine 
-                      ? 'bg-red-200' 
-                      : 'bg-gray-100'
-                    : 'bg-gray-200 hover:bg-gray-300'
+                  cell.revealed
+                    ? cell.hasMine
+                      ? 'bg-red-200 dark:bg-red-900/50'
+                      : 'bg-gray-100 dark:bg-gray-800'
+                    : 'bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600'
                 }`}
                 onClick={() => handleClick(rowIndex, colIndex)}
                 onContextMenu={(e) => handleRightClick(e, rowIndex, colIndex)}
@@ -336,7 +336,7 @@ export const Minesweeper: React.FC = () => {
         </div>
       </div>
       
-      <div className="text-sm text-gray-600">
+      <div className="text-sm text-gray-600 dark:text-gray-400">
         <h3 className="font-semibold mb-1">How to play:</h3>
         <ul className="list-disc list-inside space-y-1">
           <li>Left-click to reveal a cell</li>

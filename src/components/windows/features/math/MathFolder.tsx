@@ -5,7 +5,7 @@ export const MathFolder = () => {
   const { windows, toggleWindow } = useWindows();
 
   const mathApps = windows.filter(app => 
-    ['quadratic-solver', 'linear-system-solver', 'matrix-calculator', 'graph-plotter', 'statistics-calculator', 'derivative-calculator', 'integral-calculator', 'trig-calculator', 'number-theory', 'percentage-calculator', 'geometry-calculator', 'super-calculator'].includes(app.id)
+    ['quadratic-solver', 'linear-system-solver', 'matrix-calculator', 'graph-plotter', 'statistics-calculator', 'derivative-calculator', 'integral-calculator', 'trig-calculator', 'number-theory', 'percentage-calculator', 'geometry-calculator', 'supercalculator'].includes(app.id)
   );
 
   return (

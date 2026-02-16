@@ -12,6 +12,8 @@ export const SandFalling = () => {
   const animationRef = useRef<number>();
   const isDrawingRef = useRef(false);
   const mousePositionRef = useRef({ x: 0, y: 0 });
+  const hueRef = useRef(200);
+  const brushSizeRef = useRef(3);
 
   const CELL_SIZE = 5;
   const WIDTH = 600;
@@ -33,6 +35,11 @@ export const SandFalling = () => {
     velocityGridRef.current = make2DArray(COLS, ROWS, 1);
 
     const animate = () => {
+      // Continuously add sand while mouse is held down
+      if (isDrawingRef.current) {
+        const pos = mousePositionRef.current;
+        addSand(pos.x, pos.y);
+      }
       updateAndDraw();
       animationRef.current = requestAnimationFrame(animate);
     };
@@ -161,7 +168,7 @@ export const SandFalling = () => {
     const grid = gridRef.current;
     const velocityGrid = velocityGridRef.current;
 
-    const radius = brushSize;
+    const radius = brushSizeRef.current;
     for (let i = -radius; i <= radius; i++) {
       for (let j = -radius; j <= radius; j++) {
         const col = mouseCol + i;
@@ -170,14 +177,15 @@ export const SandFalling = () => {
         const distance = Math.sqrt(i * i + j * j);
         if (distance <= radius && withinBounds(col, row) && grid[col][row] === 0) {
           if (Math.random() < 0.75) {
-            grid[col][row] = hueValue;
+            grid[col][row] = hueRef.current;
             velocityGrid[col][row] = 1;
           }
         }
       }
     }
 
-    setHueValue((prev) => (prev + 0.5) % 360);
+    hueRef.current = (hueRef.current + 0.5) % 360;
+    setHueValue(hueRef.current);
   };
 
   const clearGrid = () => {
@@ -219,7 +227,11 @@ export const SandFalling = () => {
                 min="1"
                 max="10"
                 value={brushSize}
-                onChange={(e) => setBrushSize(parseInt(e.target.value))}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value);
+                  setBrushSize(val);
+                  brushSizeRef.current = val;
+                }}
                 className="w-full"
               />
               <div className="flex justify-between text-sm text-gray-400 mt-2">

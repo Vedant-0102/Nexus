@@ -12,8 +12,9 @@ export const GeometryCalculator: React.FC = () => {
   const [rectangleLength, setRectangleLength] = useState<number>(8);
   const [rectangleWidth, setRectangleWidth] = useState<number>(5);
   const [circleRadius, setCircleRadius] = useState<number>(4);
-  const [triangleBase, setTriangleBase] = useState<number>(6);
-  const [triangleHeight, setTriangleHeight] = useState<number>(4);
+  const [triangleSideA, setTriangleSideA] = useState<number>(3);
+  const [triangleSideB, setTriangleSideB] = useState<number>(4);
+  const [triangleSideC, setTriangleSideC] = useState<number>(5);
   const [trapezoidBase1, setTrapezoidBase1] = useState<number>(5);
   const [trapezoidBase2, setTrapezoidBase2] = useState<number>(8);
   const [trapezoidHeight, setTrapezoidHeight] = useState<number>(4);
@@ -45,8 +46,16 @@ export const GeometryCalculator: React.FC = () => {
   const circleArea = PI * circleRadius * circleRadius;
   const circleCircumference = 2 * PI * circleRadius;
 
-  const triangleArea = 0.5 * triangleBase * triangleHeight;
-  const trianglePerimeter = triangleBase + 2 * Math.sqrt(Math.pow(triangleBase / 2, 2) + Math.pow(triangleHeight, 2));
+  // Triangle (Heron's formula for area from 3 sides)
+  const trianglePerimeter = triangleSideA + triangleSideB + triangleSideC;
+  const triangleS = trianglePerimeter / 2;
+  const triangleValid = triangleSideA > 0 && triangleSideB > 0 && triangleSideC > 0 &&
+    triangleSideA + triangleSideB > triangleSideC &&
+    triangleSideA + triangleSideC > triangleSideB &&
+    triangleSideB + triangleSideC > triangleSideA;
+  const triangleAreaVal = triangleValid
+    ? Math.sqrt(triangleS * (triangleS - triangleSideA) * (triangleS - triangleSideB) * (triangleS - triangleSideC))
+    : 0;
 
   const trapezoidArea = 0.5 * (trapezoidBase1 + trapezoidBase2) * trapezoidHeight;
 
@@ -207,37 +216,61 @@ export const GeometryCalculator: React.FC = () => {
             <div className="flex items-center gap-2 mb-4">
               <Triangle className="h-5 w-5 text-pink-600" />
               <h3 className="text-xl font-bold dark:text-white">Triangle</h3>
+              <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">(Heron's formula)</span>
             </div>
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div>
-                  <Label>Base</Label>
+                  <Label>Side A</Label>
                   <Input
                     type="number"
-                    value={triangleBase}
-                    onChange={(e) => setTriangleBase(parseFloat(e.target.value) || 0)}
+                    min="0.01"
+                    value={triangleSideA}
+                    onChange={(e) => setTriangleSideA(parseFloat(e.target.value) || 0)}
                     className="mt-2"
                   />
                 </div>
                 <div>
-                  <Label>Height</Label>
+                  <Label>Side B</Label>
                   <Input
                     type="number"
-                    value={triangleHeight}
-                    onChange={(e) => setTriangleHeight(parseFloat(e.target.value) || 0)}
+                    min="0.01"
+                    value={triangleSideB}
+                    onChange={(e) => setTriangleSideB(parseFloat(e.target.value) || 0)}
+                    className="mt-2"
+                  />
+                </div>
+                <div>
+                  <Label>Side C</Label>
+                  <Input
+                    type="number"
+                    min="0.01"
+                    value={triangleSideC}
+                    onChange={(e) => setTriangleSideC(parseFloat(e.target.value) || 0)}
                     className="mt-2"
                   />
                 </div>
               </div>
               <div className="space-y-2">
+                {!triangleValid && (triangleSideA > 0 || triangleSideB > 0 || triangleSideC > 0) && (
+                  <div className="p-3 bg-red-50 dark:bg-red-900/30 rounded">
+                    <p className="text-sm text-red-600 dark:text-red-400">Invalid triangle: the sum of any two sides must exceed the third.</p>
+                  </div>
+                )}
                 <div className="p-3 bg-pink-50 dark:bg-pink-900/30 rounded">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Area</p>
-                  <p className="text-lg font-bold dark:text-white">{triangleArea.toFixed(2)} units²</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Area (Heron's)</p>
+                  <p className="text-lg font-bold dark:text-white">{triangleValid ? triangleAreaVal.toFixed(2) : '—'} units²</p>
                 </div>
                 <div className="p-3 bg-purple-50 dark:bg-purple-900/30 rounded">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Perimeter (approx)</p>
-                  <p className="text-lg font-bold dark:text-white">{trianglePerimeter.toFixed(2)} units</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Perimeter</p>
+                  <p className="text-lg font-bold dark:text-white">{triangleValid ? trianglePerimeter.toFixed(2) : '—'} units</p>
                 </div>
+                {triangleValid && (
+                  <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded text-xs text-gray-600 dark:text-gray-400">
+                    <p>s = P/2 = {triangleS.toFixed(2)}</p>
+                    <p>A = sqrt(s(s-a)(s-b)(s-c))</p>
+                  </div>
+                )}
               </div>
             </div>
           </Card>

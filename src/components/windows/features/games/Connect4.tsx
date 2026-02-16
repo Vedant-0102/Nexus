@@ -131,7 +131,7 @@ export const Connect4: React.FC = () => {
       return currentPlayer === 'red' ? 'bg-red-300' : 'bg-yellow-200';
     }
     
-    return 'bg-white';
+    return 'bg-white dark:bg-gray-700';
   };
 
   return (

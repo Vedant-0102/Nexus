@@ -65,9 +65,9 @@ export const TicTacToe = () => {
   // Render square
   const Square = ({ value, onClick }: { value: string | null; onClick: () => void }) => (
     <button 
-      className={`w-16 h-16 text-2xl font-bold border border-gray-300 flex items-center justify-center ${
+      className={`w-16 h-16 text-2xl font-bold border border-gray-300 dark:border-gray-600 flex items-center justify-center ${
         value === 'X' ? 'text-blue-600' : 'text-red-600'
-      } hover:bg-gray-100`}
+      } hover:bg-gray-100 dark:hover:bg-gray-800`}
       onClick={onClick}
     >
       {value}
@@ -89,12 +89,12 @@ export const TicTacToe = () => {
     <div className="p-6 h-full flex flex-col">
       <h2 className="text-2xl font-semibold mb-4">Tic Tac Toe</h2>
       
-      <div className="bg-white/50 p-4 rounded-lg flex-1 flex flex-col items-center justify-center">
+      <div className="bg-white/50 dark:bg-gray-800/50 p-4 rounded-lg flex-1 flex flex-col items-center justify-center">
         <div className="flex mb-4">
-          <div className="px-4 py-2 bg-blue-100 rounded-l-lg">
+          <div className="px-4 py-2 bg-blue-100 dark:bg-blue-900/30 rounded-l-lg">
             X: {wins.X}
           </div>
-          <div className="px-4 py-2 bg-red-100 rounded-r-lg">
+          <div className="px-4 py-2 bg-red-100 dark:bg-red-900/30 rounded-r-lg">
             O: {wins.O}
           </div>
         </div>

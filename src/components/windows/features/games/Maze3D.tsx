@@ -1,12 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Play, RotateCcw, Trophy, Clock, Map } from 'lucide-react';
+import { Play, RotateCcw, Trophy, Clock, Eye } from 'lucide-react';
 
 interface Cell {
   x: number;
   y: number;
-  walls: boolean[]; // [top, right, bottom, left]
+  walls: boolean[];
   visited: boolean;
   type: 'default' | 'start' | 'end';
 }
@@ -14,87 +13,68 @@ interface Cell {
 export const Maze3D: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mapCanvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [gameStarted, setGameStarted] = useState(false);
   const [gameWon, setGameWon] = useState(false);
   const [time, setTime] = useState(0);
-  const [showMinimap, setShowMinimap] = useState(true);
-  
+
   const mazeRef = useRef<Cell[]>([]);
   const playerRef = useRef({ x: 0.5, y: 0.5, dir: 0 });
   const keysRef = useRef<Set<string>>(new Set());
   const animationRef = useRef<number>();
-  
-  const COLS = 12;
+  const gameStartedRef = useRef(false);
+  const gameWonRef = useRef(false);
+  const targetDirRef = useRef(0);
+
+  const COLS = 10;
   const ROWS = 8;
-  const CELL_SIZE = 64;
   const FOV = Math.PI / 3;
-  const NUM_RAYS = 120;
+  const NUM_RAYS = 200;
 
-  useEffect(() => {
-    generateMaze();
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, []);
+  const getIndex = useCallback((x: number, y: number): number => x + y * COLS, []);
 
-  useEffect(() => {
-    if (gameStarted && !gameWon) {
-      const interval = setInterval(() => {
-        setTime(prev => prev + 1);
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [gameStarted, gameWon]);
-
-  useEffect(() => {
-    if (gameStarted) {
-      const handleKeyDown = (e: KeyboardEvent) => keysRef.current.add(e.key.toLowerCase());
-      const handleKeyUp = (e: KeyboardEvent) => keysRef.current.delete(e.key.toLowerCase());
-      
-      window.addEventListener('keydown', handleKeyDown);
-      window.addEventListener('keyup', handleKeyUp);
-      
-      return () => {
-        window.removeEventListener('keydown', handleKeyDown);
-        window.removeEventListener('keyup', handleKeyUp);
-      };
-    }
-  }, [gameStarted]);
-
-  const generateMaze = () => {
+  const generateMaze = useCallback(() => {
     const cells: Cell[] = [];
-    
-    // Initialize cells
+
     for (let y = 0; y < ROWS; y++) {
       for (let x = 0; x < COLS; x++) {
         let type: 'default' | 'start' | 'end' = 'default';
         if (x === 0 && y === 0) type = 'start';
         if (x === COLS - 1 && y === ROWS - 1) type = 'end';
-        
-        cells.push({
-          x,
-          y,
-          walls: [true, true, true, true],
-          visited: false,
-          type
-        });
+
+        cells.push({ x, y, walls: [true, true, true, true], visited: false, type });
       }
     }
 
-    // Generate maze using recursive backtracking
     const stack: number[] = [];
     let current = 0;
     cells[current].visited = true;
 
+    const getNeighbors = (idx: number): number[] => {
+      const cell = cells[idx];
+      const n: number[] = [];
+      if (cell.y > 0) { const i = getIndex(cell.x, cell.y - 1); if (!cells[i].visited) n.push(i); }
+      if (cell.x < COLS - 1) { const i = getIndex(cell.x + 1, cell.y); if (!cells[i].visited) n.push(i); }
+      if (cell.y < ROWS - 1) { const i = getIndex(cell.x, cell.y + 1); if (!cells[i].visited) n.push(i); }
+      if (cell.x > 0) { const i = getIndex(cell.x - 1, cell.y); if (!cells[i].visited) n.push(i); }
+      return n;
+    };
+
+    const removeWall = (curr: number, next: number) => {
+      const dx = cells[curr].x - cells[next].x;
+      const dy = cells[curr].y - cells[next].y;
+      if (dx === 1) { cells[curr].walls[3] = false; cells[next].walls[1] = false; }
+      else if (dx === -1) { cells[curr].walls[1] = false; cells[next].walls[3] = false; }
+      if (dy === 1) { cells[curr].walls[0] = false; cells[next].walls[2] = false; }
+      else if (dy === -1) { cells[curr].walls[2] = false; cells[next].walls[0] = false; }
+    };
+
     while (true) {
-      const neighbors = getUnvisitedNeighbors(current, cells);
-      
+      const neighbors = getNeighbors(current);
       if (neighbors.length > 0) {
         const next = neighbors[Math.floor(Math.random() * neighbors.length)];
         stack.push(current);
-        removeWall(current, next, cells);
+        removeWall(current, next);
         cells[next].visited = true;
         current = next;
       } else if (stack.length > 0) {
@@ -106,390 +86,419 @@ export const Maze3D: React.FC = () => {
 
     mazeRef.current = cells;
     playerRef.current = { x: 0.5, y: 0.5, dir: 0 };
-    
-    if (gameStarted) {
-      animate();
-    }
-  };
+    targetDirRef.current = 0;
+  }, [getIndex]);
 
-  const getUnvisitedNeighbors = (index: number, cells: Cell[]): number[] => {
-    const cell = cells[index];
-    const neighbors: number[] = [];
-    
-    // Top
-    if (cell.y > 0) {
-      const idx = getIndex(cell.x, cell.y - 1);
-      if (!cells[idx].visited) neighbors.push(idx);
-    }
-    // Right
-    if (cell.x < COLS - 1) {
-      const idx = getIndex(cell.x + 1, cell.y);
-      if (!cells[idx].visited) neighbors.push(idx);
-    }
-    // Bottom
-    if (cell.y < ROWS - 1) {
-      const idx = getIndex(cell.x, cell.y + 1);
-      if (!cells[idx].visited) neighbors.push(idx);
-    }
-    // Left
-    if (cell.x > 0) {
-      const idx = getIndex(cell.x - 1, cell.y);
-      if (!cells[idx].visited) neighbors.push(idx);
-    }
-    
-    return neighbors;
-  };
-
-  const removeWall = (current: number, next: number, cells: Cell[]) => {
-    const curr = cells[current];
-    const nxt = cells[next];
-    const dx = curr.x - nxt.x;
-    const dy = curr.y - nxt.y;
-
-    if (dx === 1) { // Left
-      curr.walls[3] = false;
-      nxt.walls[1] = false;
-    } else if (dx === -1) { // Right
-      curr.walls[1] = false;
-      nxt.walls[3] = false;
-    } else if (dy === 1) { // Top
-      curr.walls[0] = false;
-      nxt.walls[2] = false;
-    } else if (dy === -1) { // Bottom
-      curr.walls[2] = false;
-      nxt.walls[0] = false;
-    }
-  };
-
-  const getIndex = (x: number, y: number): number => {
-    return x + y * COLS;
-  };
-
-  const animate = () => {
-    updatePlayer();
-    render();
-    renderMinimap();
-    animationRef.current = requestAnimationFrame(animate);
-  };
-
-  const updatePlayer = () => {
-    if (!gameStarted || gameWon) return;
-
-    const player = playerRef.current;
-    const moveSpeed = 0.05;
-    const rotSpeed = 0.05;
-
-    // Rotation
-    if (keysRef.current.has('arrowleft') || keysRef.current.has('a')) {
-      player.dir -= rotSpeed;
-    }
-    if (keysRef.current.has('arrowright') || keysRef.current.has('d')) {
-      player.dir += rotSpeed;
-    }
-
-    // Movement
-    let newX = player.x;
-    let newY = player.y;
-
-    if (keysRef.current.has('arrowup') || keysRef.current.has('w')) {
-      newX += Math.cos(player.dir) * moveSpeed;
-      newY += Math.sin(player.dir) * moveSpeed;
-    }
-    if (keysRef.current.has('arrowdown') || keysRef.current.has('s')) {
-      newX -= Math.cos(player.dir) * moveSpeed;
-      newY -= Math.sin(player.dir) * moveSpeed;
-    }
-
-    // Collision detection
-    if (!checkCollision(newX, newY)) {
-      player.x = newX;
-      player.y = newY;
-
-      // Check win condition
-      const cellX = Math.floor(player.x);
-      const cellY = Math.floor(player.y);
-      const cellIndex = getIndex(cellX, cellY);
-      if (mazeRef.current[cellIndex]?.type === 'end') {
-        setGameWon(true);
-      }
-    }
-  };
-
-  const checkCollision = (x: number, y: number): boolean => {
+  const checkCollision = useCallback((x: number, y: number): boolean => {
     const cellX = Math.floor(x);
     const cellY = Math.floor(y);
-    
+
     if (cellX < 0 || cellX >= COLS || cellY < 0 || cellY >= ROWS) return true;
 
     const cell = mazeRef.current[getIndex(cellX, cellY)];
     if (!cell) return true;
 
-    const margin = 0.2;
+    const margin = 0.15;
     const localX = x - cellX;
     const localY = y - cellY;
 
-    if (cell.walls[0] && localY < margin) return true; // Top
-    if (cell.walls[1] && localX > 1 - margin) return true; // Right
-    if (cell.walls[2] && localY > 1 - margin) return true; // Bottom
-    if (cell.walls[3] && localX < margin) return true; // Left
+    if (cell.walls[0] && localY < margin) return true;
+    if (cell.walls[1] && localX > 1 - margin) return true;
+    if (cell.walls[2] && localY > 1 - margin) return true;
+    if (cell.walls[3] && localX < margin) return true;
 
     return false;
-  };
+  }, [getIndex]);
 
-  const castRay = (angle: number): { dist: number; isEnd: boolean } => {
+  const castRay = useCallback((angle: number): { dist: number; isEnd: boolean; side: boolean } => {
     const player = playerRef.current;
-    const rayDirX = Math.cos(angle);
-    const rayDirY = Math.sin(angle);
-    
+    const dirX = Math.cos(angle);
+    const dirY = Math.sin(angle);
+
     let dist = 0;
-    const step = 0.01;
+    const step = 0.02;
     const maxDist = 20;
+    let lastSide = false;
 
     while (dist < maxDist) {
-      const x = player.x + rayDirX * dist;
-      const y = player.y + rayDirY * dist;
-      
+      const x = player.x + dirX * dist;
+      const y = player.y + dirY * dist;
+
       const cellX = Math.floor(x);
       const cellY = Math.floor(y);
-      
+
       if (cellX < 0 || cellX >= COLS || cellY < 0 || cellY >= ROWS) {
-        return { dist, isEnd: false };
+        return { dist, isEnd: false, side: lastSide };
       }
 
       const cell = mazeRef.current[getIndex(cellX, cellY)];
-      const localX = x - cellX;
-      const localY = y - cellY;
+      const lx = x - cellX;
+      const ly = y - cellY;
 
-      if (cell.walls[0] && localY < 0.05) return { dist, isEnd: cell.type === 'end' };
-      if (cell.walls[1] && localX > 0.95) return { dist, isEnd: cell.type === 'end' };
-      if (cell.walls[2] && localY > 0.95) return { dist, isEnd: cell.type === 'end' };
-      if (cell.walls[3] && localX < 0.05) return { dist, isEnd: cell.type === 'end' };
+      if (cell.walls[0] && ly < 0.05) return { dist, isEnd: cell.type === 'end', side: true };
+      if (cell.walls[1] && lx > 0.95) return { dist, isEnd: cell.type === 'end', side: false };
+      if (cell.walls[2] && ly > 0.95) return { dist, isEnd: cell.type === 'end', side: true };
+      if (cell.walls[3] && lx < 0.05) return { dist, isEnd: cell.type === 'end', side: false };
 
       dist += step;
     }
 
-    return { dist: maxDist, isEnd: false };
-  };
+    return { dist: maxDist, isEnd: false, side: false };
+  }, [getIndex]);
 
-  const render = () => {
+  const render = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const width = canvas.width;
-    const height = canvas.height;
-
-    // Clear canvas
-    ctx.fillStyle = '#87CEEB';
-    ctx.fillRect(0, 0, width, height / 2);
-    ctx.fillStyle = '#5a5a5a';
-    ctx.fillRect(0, height / 2, width, height / 2);
-
+    const W = canvas.width;
+    const H = canvas.height;
     const player = playerRef.current;
-    const rayAngleStep = FOV / NUM_RAYS;
-    const stripWidth = width / NUM_RAYS;
 
+    // Ceiling
+    const ceilGrad = ctx.createLinearGradient(0, 0, 0, H / 2);
+    ceilGrad.addColorStop(0, '#1a1a2e');
+    ceilGrad.addColorStop(1, '#16213e');
+    ctx.fillStyle = ceilGrad;
+    ctx.fillRect(0, 0, W, H / 2);
+
+    // Floor
+    const floorGrad = ctx.createLinearGradient(0, H / 2, 0, H);
+    floorGrad.addColorStop(0, '#2d3436');
+    floorGrad.addColorStop(1, '#636e72');
+    ctx.fillStyle = floorGrad;
+    ctx.fillRect(0, H / 2, W, H / 2);
+
+    // Raycast
+    const stripW = W / NUM_RAYS;
     for (let i = 0; i < NUM_RAYS; i++) {
-      const rayAngle = player.dir - FOV / 2 + rayAngleStep * i;
-      const { dist, isEnd } = castRay(rayAngle);
-      
-      const correctedDist = dist * Math.cos(rayAngle - player.dir);
-      const wallHeight = (height / correctedDist) * 0.5;
-      
-      const brightness = Math.max(50, 255 - dist * 30);
-      ctx.fillStyle = isEnd ? `rgb(255, 215, 0)` : `rgb(${brightness}, ${brightness * 0.7}, ${brightness * 0.5})`;
-      
-      const wallTop = (height - wallHeight) / 2;
-      ctx.fillRect(i * stripWidth, wallTop, stripWidth + 1, wallHeight);
-    }
-  };
+      const angle = player.dir - FOV / 2 + (FOV / NUM_RAYS) * i;
+      const { dist, isEnd, side } = castRay(angle);
 
-  const renderMinimap = () => {
-    if (!showMinimap) return;
-    
+      const corrDist = dist * Math.cos(angle - player.dir);
+      const wallH = Math.min(H, (H / corrDist) * 0.6);
+
+      const brightness = Math.max(40, 255 - dist * 25);
+      const darkFactor = side ? 0.7 : 1;
+
+      if (isEnd) {
+        const r = Math.floor(255 * darkFactor);
+        const g = Math.floor(200 * darkFactor);
+        const b = 0;
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+      } else {
+        const r = Math.floor(brightness * darkFactor);
+        const g = Math.floor(brightness * 0.6 * darkFactor);
+        const b = Math.floor(brightness * 0.4 * darkFactor);
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+      }
+
+      ctx.fillRect(i * stripW, (H - wallH) / 2, stripW + 1, wallH);
+    }
+  }, [castRay]);
+
+  const renderMinimap = useCallback(() => {
     const canvas = mapCanvasRef.current;
     if (!canvas) return;
-
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const scale = 8;
-    ctx.fillStyle = '#000';
+    const scale = 12;
+    canvas.width = COLS * scale;
+    canvas.height = ROWS * scale;
+
+    ctx.fillStyle = 'rgba(0,0,0,0.8)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw maze
     mazeRef.current.forEach(cell => {
       const x = cell.x * scale;
       const y = cell.y * scale;
 
       if (cell.type === 'end') {
-        ctx.fillStyle = '#FFD700';
-        ctx.fillRect(x, y, scale, scale);
+        ctx.fillStyle = 'rgba(255,215,0,0.5)';
+        ctx.fillRect(x + 1, y + 1, scale - 2, scale - 2);
+      }
+      if (cell.type === 'start') {
+        ctx.fillStyle = 'rgba(0,255,0,0.3)';
+        ctx.fillRect(x + 1, y + 1, scale - 2, scale - 2);
       }
 
-      ctx.strokeStyle = '#666';
-      ctx.lineWidth = 2;
-
-      if (cell.walls[0]) ctx.strokeRect(x, y, scale, 1);
-      if (cell.walls[1]) ctx.strokeRect(x + scale - 1, y, 1, scale);
-      if (cell.walls[2]) ctx.strokeRect(x, y + scale - 1, scale, 1);
-      if (cell.walls[3]) ctx.strokeRect(x, y, 1, scale);
+      ctx.strokeStyle = '#4a5568';
+      ctx.lineWidth = 1.5;
+      if (cell.walls[0]) { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + scale, y); ctx.stroke(); }
+      if (cell.walls[1]) { ctx.beginPath(); ctx.moveTo(x + scale, y); ctx.lineTo(x + scale, y + scale); ctx.stroke(); }
+      if (cell.walls[2]) { ctx.beginPath(); ctx.moveTo(x, y + scale); ctx.lineTo(x + scale, y + scale); ctx.stroke(); }
+      if (cell.walls[3]) { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + scale); ctx.stroke(); }
     });
 
-    // Draw player
     const player = playerRef.current;
-    ctx.fillStyle = '#00FF00';
+    ctx.fillStyle = '#00ff88';
     ctx.beginPath();
     ctx.arc(player.x * scale, player.y * scale, 3, 0, Math.PI * 2);
     ctx.fill();
 
-    // Draw direction
-    ctx.strokeStyle = '#00FF00';
+    ctx.strokeStyle = '#00ff88';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(player.x * scale, player.y * scale);
-    ctx.lineTo(
-      player.x * scale + Math.cos(player.dir) * 10,
-      player.y * scale + Math.sin(player.dir) * 10
-    );
+    ctx.lineTo(player.x * scale + Math.cos(player.dir) * 10, player.y * scale + Math.sin(player.dir) * 10);
     ctx.stroke();
-  };
+  }, []);
 
-  const handleStart = () => {
+  const updatePlayer = useCallback(() => {
+    if (!gameStartedRef.current || gameWonRef.current) return;
+
+    const player = playerRef.current;
+
+    // Smooth turn toward target direction at constant angular speed
+    const TURN_SPEED = 0.2; // radians per frame, ~150ms for 90°
+    const diff = targetDirRef.current - player.dir;
+    if (Math.abs(diff) > TURN_SPEED) {
+      player.dir += Math.sign(diff) * TURN_SPEED;
+    } else {
+      player.dir = targetDirRef.current;
+    }
+
+    // Use target direction for movement so walking is always grid-aligned
+    const moveDir = targetDirRef.current;
+    const moveSpeed = 0.04;
+
+    let nx = player.x;
+    let ny = player.y;
+
+    if (keysRef.current.has('arrowup') || keysRef.current.has('w')) {
+      nx += Math.cos(moveDir) * moveSpeed;
+      ny += Math.sin(moveDir) * moveSpeed;
+    }
+    if (keysRef.current.has('arrowdown') || keysRef.current.has('s')) {
+      nx -= Math.cos(moveDir) * moveSpeed;
+      ny -= Math.sin(moveDir) * moveSpeed;
+    }
+    // Strafe
+    if (keysRef.current.has('q')) {
+      nx += Math.cos(moveDir - Math.PI / 2) * moveSpeed;
+      ny += Math.sin(moveDir - Math.PI / 2) * moveSpeed;
+    }
+    if (keysRef.current.has('e')) {
+      nx += Math.cos(moveDir + Math.PI / 2) * moveSpeed;
+      ny += Math.sin(moveDir + Math.PI / 2) * moveSpeed;
+    }
+
+    // Slide along walls - try x and y separately
+    if (!checkCollision(nx, ny)) {
+      player.x = nx;
+      player.y = ny;
+    } else if (!checkCollision(nx, player.y)) {
+      player.x = nx;
+    } else if (!checkCollision(player.x, ny)) {
+      player.y = ny;
+    }
+
+    // Win check
+    const cx = Math.floor(player.x);
+    const cy = Math.floor(player.y);
+    const idx = getIndex(cx, cy);
+    if (mazeRef.current[idx]?.type === 'end') {
+      gameWonRef.current = true;
+      setGameWon(true);
+    }
+  }, [checkCollision, getIndex]);
+
+  const animate = useCallback(() => {
+    updatePlayer();
+    render();
+    renderMinimap();
+    animationRef.current = requestAnimationFrame(animate);
+  }, [updatePlayer, render, renderMinimap]);
+
+  // Resize
+  useEffect(() => {
+    const updateSize = () => {
+      const container = containerRef.current;
+      const canvas = canvasRef.current;
+      if (!container || !canvas) return;
+
+      const rect = container.getBoundingClientRect();
+      const aspect = 4 / 3;
+      let w = rect.width;
+      let h = w / aspect;
+      if (h > rect.height) {
+        h = rect.height;
+        w = h * aspect;
+      }
+      canvas.width = Math.floor(w);
+      canvas.height = Math.floor(h);
+    };
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
+
+  // Generate maze on mount
+  useEffect(() => {
+    generateMaze();
+    // Draw initial frame
+    setTimeout(() => {
+      render();
+      renderMinimap();
+    }, 100);
+  }, [generateMaze, render, renderMinimap]);
+
+  // Timer
+  useEffect(() => {
+    if (gameStarted && !gameWon) {
+      const interval = setInterval(() => setTime(prev => prev + 1), 1000);
+      return () => clearInterval(interval);
+    }
+  }, [gameStarted, gameWon]);
+
+  // Key events - snap 90-degree turns for A/D/Left/Right, continuous for movement
+  useEffect(() => {
+    const onDown = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd', 'q', 'e'].includes(key)) {
+        e.preventDefault();
+      }
+      // Queue smooth 90-degree turns on key press (not hold)
+      if ((key === 'arrowleft' || key === 'a') && !keysRef.current.has(key)) {
+        targetDirRef.current -= Math.PI / 2;
+      }
+      if ((key === 'arrowright' || key === 'd') && !keysRef.current.has(key)) {
+        targetDirRef.current += Math.PI / 2;
+      }
+      keysRef.current.add(key);
+    };
+    const onUp = (e: KeyboardEvent) => keysRef.current.delete(e.key.toLowerCase());
+
+    window.addEventListener('keydown', onDown);
+    window.addEventListener('keyup', onUp);
+    return () => {
+      window.removeEventListener('keydown', onDown);
+      window.removeEventListener('keyup', onUp);
+    };
+  }, []);
+
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    };
+  }, []);
+
+  const handleStart = useCallback(() => {
+    gameStartedRef.current = true;
+    gameWonRef.current = false;
     setGameStarted(true);
     setGameWon(false);
     setTime(0);
-    animate();
-  };
+    if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    animationRef.current = requestAnimationFrame(animate);
+  }, [animate]);
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
+    if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    gameStartedRef.current = false;
+    gameWonRef.current = false;
     setGameStarted(false);
     setGameWon(false);
     setTime(0);
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current);
-    }
     generateMaze();
-  };
+    setTimeout(() => {
+      render();
+      renderMinimap();
+    }, 50);
+  }, [generateMaze, render, renderMinimap]);
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    return `${m}:${(s % 60).toString().padStart(2, '0')}`;
   };
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-slate-50 to-green-50 dark:from-slate-900 dark:to-slate-800 p-3 overflow-hidden">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <Map className="h-5 w-5 text-green-600" />
-          <h2 className="text-lg font-bold text-slate-800 dark:text-white">3D Maze</h2>
+    <div className="h-full w-full flex flex-col bg-gray-950 overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-2 shrink-0 border-b border-gray-800">
+        <div className="flex items-center gap-3">
+          <Eye className="h-4 w-4 text-green-400" />
+          <h1 className="text-lg font-bold text-green-400">3D Maze</h1>
+          {gameStarted && (
+            <div className="flex items-center gap-1.5 text-sm text-gray-400">
+              <Clock className="h-3.5 w-3.5" />
+              <span className="font-mono tabular-nums">{formatTime(time)}</span>
+            </div>
+          )}
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleStart}
-            disabled={gameStarted && !gameWon}
-            className="gap-1 text-xs"
-          >
-            <Play className="h-3 w-3" />
-            {gameStarted ? 'Playing' : 'Start'}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleReset}
-            className="gap-1 text-xs"
-          >
-            <RotateCcw className="h-3 w-3" />
-            New
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowMinimap(!showMinimap)}
-            className="gap-1 text-xs"
-          >
-            <Map className="h-3 w-3" />
-            {showMinimap ? 'Hide' : 'Show'}
-          </Button>
+          {!gameStarted || gameWon ? (
+            <Button variant="outline" size="sm" onClick={handleStart} className="border-green-800 text-green-400 gap-1.5">
+              <Play className="h-3.5 w-3.5" />
+              {gameWon ? 'New Game' : 'Start'}
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" onClick={handleReset} className="border-gray-700 text-gray-300 gap-1.5">
+              <RotateCcw className="h-3.5 w-3.5" />
+              Reset
+            </Button>
+          )}
         </div>
       </div>
 
-      <div className="flex-1 relative min-h-0">
+      {/* Game */}
+      <div ref={containerRef} className="flex-1 flex items-center justify-center min-h-0 p-2 relative">
         <canvas
           ref={canvasRef}
-          width={800}
-          height={600}
-          className="w-full h-full rounded-lg border-2 border-slate-200 dark:border-slate-700 bg-black object-contain"
+          className="rounded-lg border border-gray-800 max-w-full max-h-full"
         />
 
-        {/* HUD */}
-        <div className="absolute top-2 left-2 space-y-1">
-          <Card className="p-2 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm">
-            <div className="flex items-center gap-1 text-xs">
-              <Clock className="h-3 w-3" />
-              <span className="font-semibold">{formatTime(time)}</span>
-            </div>
-          </Card>
-        </div>
-
-        {/* Minimap */}
-        {showMinimap && gameStarted && (
-          <div className="absolute top-2 right-2">
-            <Card className="p-1 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm">
-              <div className="text-[10px] font-semibold mb-1">Map</div>
-              <canvas
-                ref={mapCanvasRef}
-                width={COLS * 8}
-                height={ROWS * 8}
-                className="border border-slate-300 dark:border-slate-600"
-              />
-            </Card>
+        {/* Minimap overlay - always visible during gameplay */}
+        {gameStarted && !gameWon && (
+          <div className="absolute top-4 right-4 bg-black/70 rounded-lg p-2 border border-gray-700 backdrop-blur-sm">
+            <canvas ref={mapCanvasRef} className="block" />
           </div>
         )}
 
-        {/* Win screen */}
+        {/* Win overlay */}
         {gameWon && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <Card className="p-6 text-center">
-              <Trophy className="h-12 w-12 text-yellow-500 mx-auto mb-3" />
-              <h3 className="text-xl font-bold mb-2">You Won!</h3>
-              <p className="text-slate-600 dark:text-slate-400 mb-3 text-sm">
-                Time: {formatTime(time)}
-              </p>
-              <Button onClick={handleReset} className="gap-2" size="sm">
-                <RotateCcw className="h-3 w-3" />
-                Play Again
+          <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+            <div className="text-center p-6 bg-gray-900/95 rounded-2xl border border-yellow-600/30 max-w-xs">
+              <Trophy className="h-12 w-12 text-yellow-400 mx-auto mb-3" />
+              <h3 className="text-2xl font-bold text-white mb-1">Maze Complete!</h3>
+              <p className="text-lg text-yellow-400 font-mono mb-4">{formatTime(time)}</p>
+              <Button onClick={handleReset} size="sm" className="w-full gap-2">
+                <RotateCcw className="h-3.5 w-3.5" />
+                New Maze
               </Button>
-            </Card>
+            </div>
           </div>
         )}
 
-        {/* Instructions */}
-        {!gameStarted && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <Card className="p-6 text-center max-w-sm">
-              <Map className="h-12 w-12 text-green-500 mx-auto mb-3" />
-              <h3 className="text-xl font-bold mb-3">3D Maze Game</h3>
-              <div className="text-left space-y-1 mb-4">
-                <p className="text-xs"><strong>Goal:</strong> Find the golden exit</p>
-                <p className="text-xs"><strong>Controls:</strong></p>
-                <ul className="text-xs space-y-0.5 ml-4">
-                  <li>↑ / W - Move forward</li>
-                  <li>↓ / S - Move backward</li>
-                  <li>← / A - Turn left</li>
-                  <li>→ / D - Turn right</li>
-                </ul>
+        {/* Instructions overlay */}
+        {!gameStarted && !gameWon && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+            <div className="text-center p-6 bg-gray-900/95 rounded-2xl border border-green-900/30 max-w-sm">
+              <Eye className="h-10 w-10 text-green-400 mx-auto mb-3" />
+              <h3 className="text-xl font-bold text-white mb-3">3D Maze</h3>
+              <p className="text-sm text-gray-400 mb-4">Navigate to the golden exit!</p>
+              <div className="grid grid-cols-2 gap-2 text-xs text-gray-400 mb-4">
+                <div className="bg-gray-800/50 rounded p-2">
+                  <span className="text-green-400 font-semibold">W/S</span> Forward/Back
+                </div>
+                <div className="bg-gray-800/50 rounded p-2">
+                  <span className="text-green-400 font-semibold">A/D</span> Turn 90°
+                </div>
+                <div className="bg-gray-800/50 rounded p-2">
+                  <span className="text-green-400 font-semibold">Q/E</span> Strafe L/R
+                </div>
+                <div className="bg-gray-800/50 rounded p-2">
+                  <span className="text-green-400 font-semibold">Arrows</span> Also work
+                </div>
               </div>
-              <Button onClick={handleStart} className="gap-2" size="sm">
-                <Play className="h-3 w-3" />
+              <Button onClick={handleStart} size="sm" className="w-full gap-2">
+                <Play className="h-4 w-4" />
                 Start Game
               </Button>
-            </Card>
+            </div>
           </div>
         )}
       </div>

@@ -68,7 +68,6 @@
 - [ ] **Tower Defense** - Strategy tower defense game
 - [ ] **Flappy Bird Clone** - Simple arcade game
 - [ ] **Pac-Man Clone** - Classic maze game
-- [ ] **Pong** - Two-player paddle game
 - [ ] **Hangman** - Word guessing game
 - [ ] **Trivia Quiz** - Multiple choice quiz game
 
@@ -80,23 +79,6 @@
 - [ ] **Audio Visualizer** - Animated music visualization
 - [ ] **Webcam App** - Take photos and videos
 - [ ] **GIF Creator** - Create animated GIFs from images
-
-## 🌐 Internet & Communication
-
-### Web Tools
-- [ ] **Web Browser** - Simple iframe-based browser
-- [ ] **RSS Reader** - Subscribe to news feeds
-- [ ] **Twitter/X Client** - View tweets and timelines
-- [ ] **Reddit Browser** - Browse subreddits
-- [ ] **YouTube Player** - Embedded YouTube viewer
-- [ ] **Bookmark Manager** - Organize web bookmarks
-- [ ] **URL Shortener** - Create short links
-
-### Communication
-- [ ] **Chat Application** - Real-time messaging (WebSocket)
-- [ ] **Video Call** - WebRTC video conferencing
-- [ ] **Contact Manager** - Store and organize contacts
-- [ ] **QR Code Scanner** - Scan QR codes from camera
 
 ## 📊 Data & Visualization
 
