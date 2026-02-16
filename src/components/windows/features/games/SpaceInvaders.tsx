@@ -377,13 +377,13 @@ export const SpaceInvaders: React.FC = () => {
       s.frameCount++;
 
       // Player movement
-      const speed = 4;
+      const speed = 5;
       if (s.keys.has('arrowleft') || s.keys.has('a')) s.player.x = Math.max(8, s.player.x - speed);
       if (s.keys.has('arrowright') || s.keys.has('d')) s.player.x = Math.min(W - PLAYER_W - 8, s.player.x + speed);
 
       // Player shooting
-      if (s.keys.has(' ') && s.bullets.length < 2 && s.frameCount - s.lastShot > 15) {
-        s.bullets.push({ x: s.player.x + PLAYER_W / 2, y: s.player.y - 4, vy: -7 });
+      if (s.keys.has(' ') && s.bullets.length < 3 && s.frameCount - s.lastShot > 10) {
+        s.bullets.push({ x: s.player.x + PLAYER_W / 2, y: s.player.y - 4, vy: -8 });
         s.lastShot = s.frameCount;
       }
 
@@ -436,7 +436,7 @@ export const SpaceInvaders: React.FC = () => {
       }
 
       // Enemy shooting
-      if (s.frameCount - s.lastEnemyShot > Math.max(20, 60 - s.wave * 5)) {
+      if (s.frameCount - s.lastEnemyShot > Math.max(25, 80 - s.wave * 7)) {
         const alive = s.enemies.filter(e => e.alive);
         if (alive.length > 0) {
           // Pick from bottom-most enemies per column
@@ -452,7 +452,7 @@ export const SpaceInvaders: React.FC = () => {
           s.enemyBullets.push({
             x: shooter.x + ENEMY_W / 2,
             y: shooter.y + ENEMY_H,
-            vy: 3 + s.wave * 0.3,
+            vy: 2.5 + s.wave * 0.4,
           });
           s.lastEnemyShot = s.frameCount;
         }
