@@ -1,61 +1,55 @@
 import React, { useState, useEffect } from 'react';
 import { useWindows } from './context/WindowsContext';
-import { Search, Power, Settings } from 'lucide-react';
+import {
+  Search, Power, Settings,
+  Gamepad, Briefcase, Newspaper, Sparkles, Repeat,
+  Folder, Cpu, Sigma, FlaskConical, Shield
+} from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { toast } from 'sonner';
 
 interface StartMenuProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+const PINNED_APP_IDS = ['settings', 'browser', 'calendar', 'terminal', 'weather', 'filemanager'];
+
+const FOLDER_ITEMS = [
+  { windowId: 'games-folder-window', label: 'Games', icon: <Gamepad className="h-5 w-5" /> },
+  { windowId: 'office-folder-window', label: 'Office Suite', icon: <Briefcase className="h-5 w-5" /> },
+  { windowId: 'news-folder-window', label: 'News & Data', icon: <Newspaper className="h-5 w-5" /> },
+  { windowId: 'colors-folder-window', label: 'Colors', icon: <Sparkles className="h-5 w-5" /> },
+  { windowId: 'converters-folder-window', label: 'Converters', icon: <Repeat className="h-5 w-5" /> },
+  { windowId: 'utilities-folder-window', label: 'Utilities', icon: <Folder className="h-5 w-5" /> },
+  { windowId: 'virtual-engine-folder-window', label: 'Virtual Engine', icon: <Cpu className="h-5 w-5" /> },
+  { windowId: 'math-folder-window', label: 'Math Tools', icon: <Sigma className="h-5 w-5" /> },
+  { windowId: 'simulators-folder-window', label: 'Simulators', icon: <FlaskConical className="h-5 w-5" /> },
+  { windowId: 'crypt-folder-window', label: 'Crypt', icon: <Shield className="h-5 w-5" /> },
+];
+
 export const StartMenu: React.FC<StartMenuProps> = ({ isOpen, onClose }) => {
   const { windows, toggleWindow } = useWindows();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredApps, setFilteredApps] = useState<any[]>([]);
-  const [showPowerOptions, setShowPowerOptions] = useState(false);
   const [isShuttingDown, setIsShuttingDown] = useState(false);
 
-  const utilityApps = windows.filter(w => 
-    w.id !== 'about' && 
-    w.id !== 'projects' && 
-    w.id !== 'skills' && 
-    w.id !== 'experience' && 
-    w.id !== 'contact' &&
-    w.showInStartMenu !== false
-  );
-
-  const gameApps = utilityApps.filter(app => 
-    app.id === 'tictactoe' || 
-    app.id === 'snake' || 
-    app.id === 'minesweeper' ||
-    app.id === 'chess' ||
-    app.id === 'pingpong'
-  );
-
-  const actualUtilityApps = utilityApps.filter(app => 
-    app.id !== 'tictactoe' && 
-    app.id !== 'snake' && 
-    app.id !== 'minesweeper' &&
-    app.id !== 'chess' &&
-    app.id !== 'pingpong'
-  );
+  const pinnedApps = windows.filter(w => PINNED_APP_IDS.includes(w.id));
 
   useEffect(() => {
     if (!searchQuery) {
       setFilteredApps([]);
       return;
     }
-    
+
     const query = searchQuery.toLowerCase();
-    const results = windows.filter(app => 
+    const results = windows.filter(app =>
       app.title.toLowerCase().includes(query) && app.showInStartMenu !== false
     );
-    
+
     setFilteredApps(results);
   }, [searchQuery, windows]);
-  
+
   const handleAppClick = (id: string) => {
     toggleWindow(id);
     onClose();
@@ -63,9 +57,9 @@ export const StartMenu: React.FC<StartMenuProps> = ({ isOpen, onClose }) => {
 
   const handlePowerOff = () => {
     setIsShuttingDown(true);
-    
+
     sessionStorage.setItem('win11-shutdown-action', 'true');
-    
+
     setTimeout(() => {
       document.body.style.backgroundColor = '#000';
       document.body.innerHTML = `
@@ -75,12 +69,12 @@ export const StartMenu: React.FC<StartMenuProps> = ({ isOpen, onClose }) => {
           <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
         </div>
       `;
-      
+
       setTimeout(() => {
         document.body.innerHTML = '';
         document.body.style.backgroundColor = '#000';
       }, 5000);
-    }, );
+    }, 1000);
   };
 
   if (!isOpen) return null;
@@ -97,9 +91,9 @@ export const StartMenu: React.FC<StartMenuProps> = ({ isOpen, onClose }) => {
   }
 
   return (
-    <div 
-      className="fixed bottom-12 left-0 w-96 max-w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-tr-lg rounded-tl-lg shadow-2xl z-50 border border-gray-200/50 dark:border-gray-700/50 animate-slide-up overflow-hidden transition-colors duration-300"
-      style={{ maxHeight: "calc(100vh - 100px)" }} 
+    <div
+      className="fixed bottom-12 left-0 w-[420px] max-w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-tr-lg rounded-tl-lg shadow-2xl z-50 border border-gray-200/50 dark:border-gray-700/50 animate-slide-up overflow-hidden transition-colors duration-300"
+      style={{ maxHeight: "calc(100vh - 100px)" }}
       onClick={(e) => e.stopPropagation()}
     >
       <div className="p-4 overflow-y-auto" style={{ maxHeight: "calc(100vh - 180px)" }}>
@@ -113,8 +107,7 @@ export const StartMenu: React.FC<StartMenuProps> = ({ isOpen, onClose }) => {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        
-        {}
+
         {searchQuery && (
           <div className="mb-4">
             <h3 className="text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Search Results</h3>
@@ -138,13 +131,12 @@ export const StartMenu: React.FC<StartMenuProps> = ({ isOpen, onClose }) => {
             )}
           </div>
         )}
-        
-        {}
+
         {!searchQuery && (
           <>
-            <h3 className="text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Games</h3>
+            <h3 className="text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Pinned</h3>
             <div className="grid grid-cols-3 gap-2 mb-4">
-              {gameApps.map(app => (
+              {pinnedApps.map(app => (
                 <button
                   key={app.id}
                   className="flex flex-col items-center justify-center p-2 rounded-lg hover:bg-gray-200/70 dark:hover:bg-gray-700/70 transition-all duration-200 text-gray-900 dark:text-gray-100"
@@ -157,31 +149,32 @@ export const StartMenu: React.FC<StartMenuProps> = ({ isOpen, onClose }) => {
                 </button>
               ))}
             </div>
-            
-            {}
-            <h3 className="text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Utilities</h3>
-            <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
-              {actualUtilityApps.map(app => (
+
+            <h3 className="text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Folders</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {FOLDER_ITEMS.map(folder => (
                 <button
-                  key={app.id}
-                  className="flex flex-col items-center justify-center p-2 rounded-lg hover:bg-gray-200/70 dark:hover:bg-gray-700/70 transition-all duration-200 text-gray-900 dark:text-gray-100"
-                  onClick={() => handleAppClick(app.id)}
+                  key={folder.windowId}
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-200/70 dark:hover:bg-gray-700/70 transition-all duration-200 text-gray-900 dark:text-gray-100 text-left"
+                  onClick={() => handleAppClick(folder.windowId)}
                 >
-                  <div className="h-10 w-10 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-full mb-1">
-                    {React.cloneElement(app.icon as React.ReactElement, { size: 20 })}
+                  <div className="h-10 w-10 flex-shrink-0 flex items-center justify-center bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
+                    {React.cloneElement(folder.icon as React.ReactElement, {
+                      size: 20,
+                      className: "text-yellow-700 dark:text-yellow-400"
+                    })}
                   </div>
-                  <span className="text-xs text-center">{app.title}</span>
+                  <span className="text-sm font-medium">{folder.label}</span>
                 </button>
               ))}
             </div>
           </>
         )}
       </div>
-      
-      {}
+
       <div className="border-t border-gray-200 dark:border-gray-700 flex justify-between items-center p-2 bg-gray-50/50 dark:bg-gray-800/50">
         <div className="flex items-center">
-          <button 
+          <button
             className="flex items-center gap-2 px-3 py-1.5 rounded-md hover:bg-gray-200/70 dark:hover:bg-gray-700/70 transition-all duration-200 text-gray-900 dark:text-gray-100"
             onClick={() => handleAppClick('settings')}
           >
@@ -196,7 +189,7 @@ export const StartMenu: React.FC<StartMenuProps> = ({ isOpen, onClose }) => {
             </button>
           </PopoverTrigger>
           <PopoverContent className="w-48 p-2">
-            <button 
+            <button
               onClick={handlePowerOff}
               className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-red-500/10 transition-colors"
             >

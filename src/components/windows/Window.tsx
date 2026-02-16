@@ -9,7 +9,8 @@ import { usePhysics } from './context/PhysicsContext';
 import { WindowHeader } from './window/WindowHeader';
 import { WindowContent } from './window/WindowContent';
 import { WindowResizeHandles } from './window/WindowResizeHandles';
-import { WINDOW_THEMES } from './themes/windowThemes';
+import { getTheme, resolveThemeName, WindowThemeName } from './themes/windowThemes';
+import { useWindows } from './context/WindowsContext';
 
 interface WindowProps {
   window: WindowType;
@@ -55,7 +56,7 @@ export const Window = ({ window, onClose, onMinimize, onFocus }: WindowProps) =>
 
   // Physics integration
   const { engine } = usePhysics();
-  const { isPhysicsActive, physicsPosition, applyImpulse } = usePhysicsBody({
+  const { isPhysicsActive, physicsPosition, applyImpulse, speed } = usePhysicsBody({
     id: `window-${window.id}`,
     initialX: position.x,
     initialY: position.y,
@@ -78,7 +79,7 @@ export const Window = ({ window, onClose, onMinimize, onFocus }: WindowProps) =>
       handleSnapToZone('maximized');
     },
     onMinimize: () => {
-      onMinimize();
+      handleMinimize();
     },
     isActive: isFocused && window.isOpen && !window.isMinimized,
   });
@@ -107,8 +108,11 @@ export const Window = ({ window, onClose, onMinimize, onFocus }: WindowProps) =>
     }
   };
 
-  // Get theme styles
-  const theme = window.theme || WINDOW_THEMES.default;
+  // Get theme styles (dark-mode-aware, with user overrides)
+  const { isDarkMode, windowThemeOverrides, setWindowTheme } = useWindows();
+  const overrideName = windowThemeOverrides[window.id] as WindowThemeName | undefined;
+  const themeName = overrideName || resolveThemeName(window.theme);
+  const theme = getTheme(themeName, isDarkMode);
   const windowStyle: React.CSSProperties = {
     background: theme.glassEffect
       ? theme.bodyBg
@@ -136,6 +140,19 @@ export const Window = ({ window, onClose, onMinimize, onFocus }: WindowProps) =>
       }
     }
   }, [window.isOpen]);
+
+  const handleMinimize = useCallback(() => {
+    // If maximized or snapped, restore to original position/size before minimizing
+    // so that when the window is unminimized, it appears at its pre-maximize position
+    if (isMaximized || isSnapped) {
+      setPosition(originalPosition);
+      setWindowSize(originalSize);
+      setIsMaximized(false);
+      setIsSnapped(false);
+      clearSnap();
+    }
+    onMinimize();
+  }, [isMaximized, isSnapped, originalPosition, originalSize, onMinimize, setPosition, clearSnap]);
 
   const handleMaximize = () => {
     if (!isMaximized && !isSnapped) {
@@ -324,6 +341,12 @@ export const Window = ({ window, onClose, onMinimize, onFocus }: WindowProps) =>
   const displayRotation = isPhysicsActive && physicsPosition ? physicsPosition.rotation : 0;
   const useFixed = (isMaximized || isSnapped) && !isPhysicsActive;
 
+  // Speed-based visual effects for physics mode
+  const speedIntensity = isPhysicsActive ? Math.min(1, speed / 600) : 0;
+  const physicsGlow = speedIntensity > 0.1
+    ? `0 0 ${Math.round(6 + speedIntensity * 20)}px rgba(139, 92, 246, ${speedIntensity * 0.4}), 0 0 ${Math.round(12 + speedIntensity * 40)}px rgba(139, 92, 246, ${speedIntensity * 0.15})`
+    : '';
+
   return (
     <div
       ref={nodeRef}
@@ -350,26 +373,31 @@ export const Window = ({ window, onClose, onMinimize, onFocus }: WindowProps) =>
           minHeight: '200px',
         } : {}),
         pointerEvents: isPhysicsActive ? 'auto' : undefined,
+        boxShadow: physicsGlow
+          ? `${windowStyle.boxShadow}, ${physicsGlow}`
+          : windowStyle.boxShadow,
       }}
       onClick={handleFocusClick}
-      onMouseDown={isPhysicsActive ? handlePhysicsMouseDown : undefined}
-      onDoubleClick={isPhysicsActive ? () => applyImpulse(0, -400) : undefined}
       onBlur={() => setIsFocused(false)}
       tabIndex={0}
     >
       <div
         className="window-header cursor-move"
-        onMouseDown={!isPhysicsActive ? handleHeaderMouseDown : undefined}
+        onMouseDown={isPhysicsActive ? handlePhysicsMouseDown : handleHeaderMouseDown}
+        onDoubleClick={isPhysicsActive ? () => applyImpulse(0, -400) : undefined}
       >
         <WindowHeader
           title={window.title}
           icon={window.icon}
           isMaximizable={window.isMaximizable}
           isClosable={window.isClosable}
-          onMinimize={onMinimize}
+          onMinimize={handleMinimize}
           onMaximize={handleMaximize}
           onClose={onClose}
           theme={theme}
+          windowId={window.id}
+          currentThemeName={overrideName || themeName}
+          onThemeChange={(name: string) => setWindowTheme(window.id, name)}
         />
       </div>
 
@@ -389,7 +417,8 @@ export const MemoizedWindow = React.memo(Window, (prevProps, nextProps) => {
   const stateChanged =
     prevProps.window.isMinimized !== nextProps.window.isMinimized ||
     prevProps.window.zIndex !== nextProps.window.zIndex ||
-    prevProps.window.isOpen !== nextProps.window.isOpen;
+    prevProps.window.isOpen !== nextProps.window.isOpen ||
+    prevProps.window.theme !== nextProps.window.theme;
 
   return !stateChanged;
 });

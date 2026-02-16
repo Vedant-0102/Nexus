@@ -15,7 +15,7 @@ interface UsePhysicsBodyOptions {
 }
 
 export const usePhysicsBody = (options: UsePhysicsBodyOptions) => {
-  const { isPhysicsEnabled, registerBody, unregisterBody, getBodyPosition, engine } = usePhysics();
+  const { isPhysicsEnabled, registerBody, unregisterBody, getBodyPosition, getBodySpeed, engine } = usePhysics();
   const isRegisteredRef = useRef(false);
 
   useEffect(() => {
@@ -50,7 +50,7 @@ export const usePhysicsBody = (options: UsePhysicsBodyOptions) => {
         isRegisteredRef.current = false;
       }
     };
-  }, [isPhysicsEnabled, options.id, options.initialX, options.initialY]);
+  }, [isPhysicsEnabled, options.id]);
 
   // Update body dimensions if they change
   useEffect(() => {
@@ -63,10 +63,12 @@ export const usePhysicsBody = (options: UsePhysicsBodyOptions) => {
   }, [options.width, options.height, isPhysicsEnabled, engine, options.id]);
 
   const position = isPhysicsEnabled ? getBodyPosition(options.id) : null;
+  const speed = isPhysicsEnabled ? getBodySpeed(options.id) : 0;
 
   return {
     isPhysicsActive: isPhysicsEnabled,
     physicsPosition: position,
+    speed,
     applyImpulse: (vx: number, vy: number) => {
       if (engine && isPhysicsEnabled) {
         engine.applyImpulse(options.id, vx, vy);

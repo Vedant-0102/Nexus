@@ -1,7 +1,7 @@
-import React, { createContext, useState, useContext, useEffect, useRef, useMemo } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef, useMemo, useCallback } from 'react';
 import { WindowType } from '../types/WindowTypes';
 import { WINDOW_THEMES } from '../themes/windowThemes';
-import { Settings as SettingsIcon, Clock, FileText, Battery, Timer, Terminal as TerminalIcon, StickyNote, Gamepad, PaintBucket, Folder, Crown, Globe, RefreshCcw, Code, Layers, Flag, Cloud, Image, Table, Presentation, TrendingUp, Bitcoin, Trophy, Rocket, Briefcase, Repeat, FlaskConical, BarChart3, Beaker, Zap, Atom, QrCode, Plane, Ship, Palette, Sparkles, CheckCircle2, Eye, Newspaper, Cpu, Waves, Brain, ClipboardList, CheckSquare, Ruler, Weight, DollarSign, Sigma, Calculator, Grid3x3, PieChart, Calendar as CalendarIcon, GitBranch, Gauge, Thermometer, Droplet } from 'lucide-react';
+import { Settings as SettingsIcon, Clock, FileText, Battery, Timer, Terminal as TerminalIcon, StickyNote, Gamepad, PaintBucket, Folder, Crown, Globe, RefreshCcw, Code, Layers, Flag, Cloud, Image, Table, Presentation, TrendingUp, Bitcoin, Trophy, Rocket, Briefcase, Repeat, FlaskConical, BarChart3, Beaker, Zap, Atom, QrCode, Plane, Ship, Palette, Sparkles, CheckCircle2, Eye, Newspaper, Cpu, Waves, Brain, ClipboardList, CheckSquare, Ruler, Weight, DollarSign, Sigma, Calculator, Grid3x3, PieChart, Calendar as CalendarIcon, GitBranch, Gauge, Thermometer, Droplet, Shield } from 'lucide-react';
 import { Notepad } from '../features/office/Notepad';
 import { TextEditor } from '../features/office/TextEditor';
 import { FormBuilder } from '../features/office/FormBuilder';
@@ -162,6 +162,9 @@ interface WindowsContextType {
   wallpaper: string;
   isShuttingDown: boolean;
   handleShutdown: () => void;
+  isDarkMode: boolean;
+  windowThemeOverrides: Record<string, string>;
+  setWindowTheme: (windowId: string, themeName: string) => void;
 }
 
 const WindowsContext = createContext<WindowsContextType>({
@@ -183,6 +186,9 @@ const WindowsContext = createContext<WindowsContextType>({
   wallpaper: '',
   isShuttingDown: false,
   handleShutdown: () => { },
+  isDarkMode: false,
+  windowThemeOverrides: {},
+  setWindowTheme: () => { },
 });
 
 export const useWindows = () => useContext(WindowsContext);
@@ -200,6 +206,23 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
     showNotepad: true,
     showBattery: true,
   });
+
+  const isDarkMode = settings.theme === 'dark';
+
+  const [windowThemeOverrides, setWindowThemeOverridesState] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem('win11-window-themes');
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+
+  const setWindowTheme = useCallback((windowId: string, themeName: string) => {
+    setWindowThemeOverridesState(prev => {
+      const next = { ...prev, [windowId]: themeName };
+      localStorage.setItem('win11-window-themes', JSON.stringify(next));
+      return next;
+    });
+  }, []);
 
   // Store window content to prevent remounting on state changes
   const windowContentRef = useRef<Map<string, React.ReactNode>>(new Map());
@@ -385,7 +408,7 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         showInTaskbar: false,
         isResizable: true,
         isMaximizable: true,
-        defaultSize: { width: 400, height: 400 },
+        defaultSize: { width: 620, height: 550 },
       },
       {
         id: 'calendar',
@@ -2051,7 +2074,7 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
       isMinimized: minimizedWindowIds.includes('office-folder-window'),
       icon: <Briefcase className="h-5 w-5 text-blue-600" />,
       zIndex: 100,
-      defaultSize: { width: 700, height: 500 },
+      defaultSize: { width: 800, height: 600 },
       showInStartMenu: false,
       showInTaskbar: true,
       isResizable: true,
@@ -2066,7 +2089,7 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
       isMinimized: minimizedWindowIds.includes('converters-folder-window'),
       icon: <Repeat className="h-5 w-5 text-purple-500" />,
       zIndex: 100,
-      defaultSize: { width: 700, height: 500 },
+      defaultSize: { width: 800, height: 600 },
       showInStartMenu: false,
       showInTaskbar: true,
       isResizable: true,
@@ -2081,7 +2104,7 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
       isMinimized: minimizedWindowIds.includes('simulators-folder-window'),
       icon: <FlaskConical className="h-5 w-5 text-purple-500" />,
       zIndex: 100,
-      defaultSize: { width: 700, height: 500 },
+      defaultSize: { width: 800, height: 600 },
       showInStartMenu: false,
       showInTaskbar: true,
       isResizable: true,
@@ -2096,7 +2119,7 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
       isMinimized: minimizedWindowIds.includes('chemistry-folder-window'),
       icon: <Beaker className="h-5 w-5 text-green-500" />,
       zIndex: 100,
-      defaultSize: { width: 700, height: 500 },
+      defaultSize: { width: 800, height: 600 },
       showInStartMenu: false,
       showInTaskbar: true,
       isResizable: true,
@@ -2111,7 +2134,7 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
       isMinimized: minimizedWindowIds.includes('physics-folder-window'),
       icon: <Zap className="h-5 w-5 text-blue-500" />,
       zIndex: 100,
-      defaultSize: { width: 700, height: 500 },
+      defaultSize: { width: 800, height: 600 },
       showInStartMenu: false,
       showInTaskbar: true,
       isResizable: true,
@@ -2141,7 +2164,7 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
       isMinimized: minimizedWindowIds.includes('colors-folder-window'),
       icon: <Sparkles className="h-5 w-5 text-purple-500" />,
       zIndex: FOLDER_ZINDEX,
-      defaultSize: { width: 900, height: 700 },
+      defaultSize: { width: 800, height: 600 },
       showInStartMenu: true,
       showInTaskbar: true,
       isResizable: true,
@@ -2156,7 +2179,7 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
       isMinimized: minimizedWindowIds.includes('news-folder-window'),
       icon: <Newspaper className="h-5 w-5 text-blue-500" />,
       zIndex: FOLDER_ZINDEX,
-      defaultSize: { width: 900, height: 700 },
+      defaultSize: { width: 800, height: 600 },
       showInStartMenu: true,
       showInTaskbar: true,
       isResizable: true,
@@ -2171,7 +2194,7 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
       isMinimized: minimizedWindowIds.includes('virtual-engine-folder-window'),
       icon: <Cpu className="h-5 w-5 text-indigo-500" />,
       zIndex: FOLDER_ZINDEX,
-      defaultSize: { width: 900, height: 700 },
+      defaultSize: { width: 800, height: 600 },
       showInStartMenu: true,
       showInTaskbar: true,
       isResizable: true,
@@ -2186,7 +2209,22 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
       isMinimized: minimizedWindowIds.includes('math-folder-window'),
       icon: <Sigma className="h-5 w-5 text-purple-600" />,
       zIndex: FOLDER_ZINDEX,
-      defaultSize: { width: 900, height: 700 },
+      defaultSize: { width: 800, height: 600 },
+      showInStartMenu: true,
+      showInTaskbar: true,
+      isResizable: true,
+      isMaximizable: true,
+    };
+
+    const cryptFolderWindow: WindowType = {
+      id: 'crypt-folder-window',
+      title: 'Crypt',
+      content: <FolderContent type="crypt" />,
+      isOpen: openWindowIds.includes('crypt-folder-window'),
+      isMinimized: minimizedWindowIds.includes('crypt-folder-window'),
+      icon: <Shield className="h-5 w-5 text-green-500" />,
+      zIndex: FOLDER_ZINDEX,
+      defaultSize: { width: 800, height: 600 },
       showInStartMenu: true,
       showInTaskbar: true,
       isResizable: true,
@@ -2206,7 +2244,8 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
       colorsFolderWindow,
       newsFolderWindow,
       virtualEngineFolderWindow,
-      mathFolderWindow
+      mathFolderWindow,
+      cryptFolderWindow
     ]);
   };
 
@@ -2434,7 +2473,10 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setWallpaper,
         wallpaper,
         isShuttingDown,
-        handleShutdown
+        handleShutdown,
+        isDarkMode,
+        windowThemeOverrides,
+        setWindowTheme,
       }}
     >
       {children}

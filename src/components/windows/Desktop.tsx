@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { WindowsProvider } from './context/WindowsContext';
+import { WindowsProvider, useWindows } from './context/WindowsContext';
 import { PhysicsProvider } from './context/PhysicsContext';
 import { DesktopIcons } from './components/DesktopIcons';
 import { WindowsDisplay } from './components/WindowsDisplay';
@@ -17,7 +17,6 @@ export const Desktop = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [isBootAnimationPlaying, setIsBootAnimationPlaying] = useState(true);
-  const [wallpaper, setWallpaper] = useState('');
   const [bootProgress, setBootProgress] = useState(0);
   const [isShuttingDown, setIsShuttingDown] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -65,13 +64,6 @@ export const Desktop = () => {
       }, 80);
 
       return () => clearInterval(progressInterval);
-    }
-  }, []);
-
-  useEffect(() => {
-    const savedWallpaper = localStorage.getItem('win11-wallpaper');
-    if (savedWallpaper) {
-      setWallpaper(savedWallpaper);
     }
   }, []);
 
@@ -184,46 +176,95 @@ export const Desktop = () => {
   return (
     <WindowsProvider>
       <PhysicsProvider>
-        <div
-          className="h-screen w-screen relative overflow-hidden"
-          style={wallpaper ? { 
-            backgroundImage: `url(${wallpaper})`, 
-            backgroundSize: 'cover', 
-            backgroundPosition: 'center' 
-          } : { 
-            backgroundColor: '#0078D4' 
-          }}
+        <DesktopContent
+          isStartMenuOpen={isStartMenuOpen}
+          setIsStartMenuOpen={setIsStartMenuOpen}
+          isSearchOpen={isSearchOpen}
+          setIsSearchOpen={setIsSearchOpen}
+          contextMenuPos={contextMenuPos}
+          setContextMenuPos={setContextMenuPos}
+          isBallPitMode={isBallPitMode}
+          setIsBallPitMode={setIsBallPitMode}
           onContextMenu={handleContextMenu}
-          onClick={handleDesktopClick}
-        >
-          {!isBallPitMode && <DesktopIcons />}
-          {isBallPitMode && <BallPitDesktop />}
-          <WindowsDisplay />
-          <SnapPreviewGlobal />
-          <KeyboardShortcutsHelp />
-          <PhysicsToggle onBallPitToggle={() => setIsBallPitMode(!isBallPitMode)} isBallPitMode={isBallPitMode} />
-          <DesktopMenus
-            isStartMenuOpen={isStartMenuOpen}
-            setIsStartMenuOpen={setIsStartMenuOpen}
-            contextMenuPos={contextMenuPos}
-            setContextMenuPos={setContextMenuPos}
-            onShutdown={handleShutdown}
-            onRefresh={handleRefresh}
-          />
-          <SpotlightSearch
-            isOpen={isSearchOpen}
-            onClose={() => setIsSearchOpen(false)}
-          />
-          <TaskbarContainer
-            isStartMenuOpen={isStartMenuOpen}
-            isSearchOpen={isSearchOpen}
-            onStartClick={toggleStartMenu}
-            onSearchClick={toggleSearchPanel}
-            onRefreshClick={handleRefresh}
-          />
-        </div>
+          onDesktopClick={handleDesktopClick}
+          onShutdown={handleShutdown}
+          onRefresh={handleRefresh}
+          toggleStartMenu={toggleStartMenu}
+          toggleSearchPanel={toggleSearchPanel}
+        />
       </PhysicsProvider>
     </WindowsProvider>
+  );
+};
+
+const DesktopContent: React.FC<{
+  isStartMenuOpen: boolean;
+  setIsStartMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  isSearchOpen: boolean;
+  setIsSearchOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  contextMenuPos: { x: number; y: number } | null;
+  setContextMenuPos: React.Dispatch<React.SetStateAction<{ x: number; y: number } | null>>;
+  isBallPitMode: boolean;
+  setIsBallPitMode: React.Dispatch<React.SetStateAction<boolean>>;
+  onContextMenu: (e: React.MouseEvent) => void;
+  onDesktopClick: () => void;
+  onShutdown: () => void;
+  onRefresh: () => void;
+  toggleStartMenu: () => void;
+  toggleSearchPanel: () => void;
+}> = ({
+  isStartMenuOpen, setIsStartMenuOpen,
+  isSearchOpen, setIsSearchOpen,
+  contextMenuPos, setContextMenuPos,
+  isBallPitMode, setIsBallPitMode,
+  onContextMenu, onDesktopClick,
+  onShutdown, onRefresh,
+  toggleStartMenu, toggleSearchPanel,
+}) => {
+  const { wallpaper } = useWindows();
+
+  return (
+    <div
+      className="h-screen w-screen relative overflow-hidden"
+      style={(() => {
+        if (!wallpaper) return { backgroundColor: '#0078D4' };
+        if (wallpaper.startsWith('linear-gradient(') || wallpaper.startsWith('radial-gradient(')) {
+          return { background: wallpaper };
+        }
+        if (wallpaper.startsWith('#') || wallpaper.startsWith('rgb')) {
+          return { backgroundColor: wallpaper };
+        }
+        return { backgroundImage: `url(${wallpaper})`, backgroundSize: 'cover' as const, backgroundPosition: 'center' };
+      })()}
+      onContextMenu={onContextMenu}
+      onClick={onDesktopClick}
+    >
+      {!isBallPitMode && <DesktopIcons />}
+      {isBallPitMode && <div className="absolute inset-0 bottom-12"><BallPitDesktop /></div>}
+      <WindowsDisplay />
+      <SnapPreviewGlobal />
+      <KeyboardShortcutsHelp />
+      <PhysicsToggle onBallPitToggle={() => setIsBallPitMode(!isBallPitMode)} isBallPitMode={isBallPitMode} />
+      <DesktopMenus
+        isStartMenuOpen={isStartMenuOpen}
+        setIsStartMenuOpen={setIsStartMenuOpen}
+        contextMenuPos={contextMenuPos}
+        setContextMenuPos={setContextMenuPos}
+        onShutdown={onShutdown}
+        onRefresh={onRefresh}
+      />
+      <SpotlightSearch
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+      />
+      <TaskbarContainer
+        isStartMenuOpen={isStartMenuOpen}
+        isSearchOpen={isSearchOpen}
+        onStartClick={toggleStartMenu}
+        onSearchClick={toggleSearchPanel}
+        onRefreshClick={onRefresh}
+      />
+    </div>
   );
 };
 

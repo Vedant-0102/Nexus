@@ -10,7 +10,8 @@ import {
   Sparkles,
   Newspaper,
   Cpu,
-  Sigma
+  Sigma,
+  Shield
 } from 'lucide-react';
 
 export const DesktopIcons: React.FC = () => {
@@ -34,6 +35,7 @@ export const DesktopIcons: React.FC = () => {
       'news-folder': 'news-folder-window',
       'virtual-engine-folder': 'virtual-engine-folder-window',
       'math-folder': 'math-folder-window',
+      'crypt-folder': 'crypt-folder-window',
     };
 
     const windowId = folderMap[folderId];
@@ -50,6 +52,7 @@ export const DesktopIcons: React.FC = () => {
     { id: 'virtual-engine-folder', label: 'Engine', icon: <Cpu />, row: 1, col: 2 },
     { id: 'math-folder', label: 'Math', icon: <Sigma />, row: 1, col: 3 },
     { id: 'simulators-folder', label: 'Simulators', icon: <FlaskConical />, row: 2, col: 0 },
+    { id: 'crypt-folder', label: 'Crypt', icon: <Shield />, row: 2, col: 1 },
   ];
 
   return (
@@ -58,24 +61,16 @@ export const DesktopIcons: React.FC = () => {
         const pos = getPosition(folder.row, folder.col);
 
         return (
-          <div
+          <DesktopIcon
             key={folder.id}
-            style={{
-              position: 'absolute',
-              left: `${pos.x}px`,
-              top: `${pos.y}px`,
-              zIndex: 1,
-            }}
-            className="desktop-icon"
-          >
-            <DesktopIcon
-              id={folder.id}
-              label={folder.label}
-              icon={folder.icon}
-              onClick={() => openFolderAsWindow(folder.id)}
-              onDoubleClick={() => openFolderAsWindow(folder.id)}
-            />
-          </div>
+            id={folder.id}
+            label={folder.label}
+            icon={folder.icon}
+            defaultX={pos.x}
+            defaultY={pos.y}
+            onClick={() => openFolderAsWindow(folder.id)}
+            onDoubleClick={() => openFolderAsWindow(folder.id)}
+          />
         );
       })}
     </div>
