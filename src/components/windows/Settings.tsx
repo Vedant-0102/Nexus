@@ -5,6 +5,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Moon, Sun, Clock, Battery, Palette, Settings as SettingsIcon, Monitor } from 'lucide-react';
+import { WALLPAPER_TO_THEME, WINDOW_THEMES, WindowThemeName } from './themes/windowThemes';
 
 export type SettingsType = {
   theme: 'light' | 'dark';
@@ -43,7 +44,7 @@ const WALLPAPER_PRESETS = [
 
 export const SettingsApp: React.FC<SettingsAppProps> = ({ initialSettings, onApply }) => {
   const [settings, setSettings] = useState<SettingsType>(initialSettings);
-  const { setWallpaper, wallpaper } = useWindows();
+  const { setWallpaper, wallpaper, globalWindowTheme } = useWindows();
 
   const handleThemeChange = (theme: 'light' | 'dark') => {
     const newSettings = { ...settings, theme };
@@ -188,6 +189,21 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({ initialSettings, onApp
                 return { backgroundImage: `url(${wp})`, backgroundSize: 'cover' as const, backgroundPosition: 'center' };
               })()}
             />
+          </div>
+
+          <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg p-6 backdrop-blur-sm">
+            <h3 className="text-lg font-medium mb-2 text-gray-900 dark:text-gray-100">Window Accent</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Windows automatically match your wallpaper</p>
+            <div className="flex items-center gap-3">
+              <div
+                className="w-10 h-10 rounded-lg border-2 border-white dark:border-gray-600 shadow-md"
+                style={{ background: WINDOW_THEMES[globalWindowTheme]?.headerBg || '#0078D4' }}
+              />
+              <div>
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">{globalWindowTheme}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Applied to all windows</p>
+              </div>
+            </div>
           </div>
         </TabsContent>
 

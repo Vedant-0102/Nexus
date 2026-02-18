@@ -109,17 +109,22 @@ export const Window = ({ window, onClose, onMinimize, onFocus }: WindowProps) =>
   };
 
   // Get theme styles (dark-mode-aware, with user overrides)
-  const { isDarkMode, windowThemeOverrides, setWindowTheme } = useWindows();
+  const { isDarkMode, windowThemeOverrides, setWindowTheme, globalWindowTheme } = useWindows();
   const overrideName = windowThemeOverrides[window.id] as WindowThemeName | undefined;
-  const themeName = overrideName || resolveThemeName(window.theme);
+  const resolvedDefault = resolveThemeName(window.theme);
+  // Use per-window override first, then pre-set theme if not 'default', then global theme
+  const themeName = overrideName || (resolvedDefault !== 'default' ? resolvedDefault : globalWindowTheme);
   const theme = getTheme(themeName, isDarkMode);
   const windowStyle: React.CSSProperties = {
-    background: theme.glassEffect
-      ? theme.bodyBg
-      : theme.bodyBg,
+    background: theme.bodyBg,
     backdropFilter: theme.glassEffect ? 'blur(20px)' : 'none',
     border: `1px solid ${theme.borderColor}`,
     boxShadow: `0 8px 32px ${theme.shadowColor}`,
+    // Set CSS custom properties for inner content to use
+    ['--win-accent' as string]: theme.accentColor,
+    ['--win-body-bg' as string]: theme.bodyBg,
+    ['--win-body-text' as string]: theme.bodyText,
+    color: theme.bodyText,
   };
 
   useEffect(() => {

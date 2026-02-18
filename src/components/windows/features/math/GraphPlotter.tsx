@@ -19,26 +19,30 @@ export const GraphPlotter = () => {
   const evaluateExpression = useCallback((expr: string, x: number): number => {
     try {
       let processedExpr = expr.toLowerCase().replace(/\s/g, '');
-      
+
       // Handle implicit multiplication
       processedExpr = processedExpr.replace(/(\d)([a-z])/g, '$1*$2');
       processedExpr = processedExpr.replace(/\)(\d)/g, ')*$1');
       processedExpr = processedExpr.replace(/\)([a-z])/g, ')*$1');
-      
-      // Replace operators and functions
+
+      // Replace operators
       processedExpr = processedExpr.replace(/\^/g, '**');
-      processedExpr = processedExpr.replace(/x/g, `(${x})`);
+
+      // Replace function names BEFORE replacing x to avoid mangling 'exp' etc.
+      processedExpr = processedExpr.replace(/sqrt/g, 'Math.sqrt');
       processedExpr = processedExpr.replace(/sin/g, 'Math.sin');
       processedExpr = processedExpr.replace(/cos/g, 'Math.cos');
       processedExpr = processedExpr.replace(/tan/g, 'Math.tan');
-      processedExpr = processedExpr.replace(/sqrt/g, 'Math.sqrt');
       processedExpr = processedExpr.replace(/abs/g, 'Math.abs');
       processedExpr = processedExpr.replace(/log/g, 'Math.log');
       processedExpr = processedExpr.replace(/ln/g, 'Math.log');
       processedExpr = processedExpr.replace(/exp/g, 'Math.exp');
       processedExpr = processedExpr.replace(/pi/g, 'Math.PI');
       processedExpr = processedExpr.replace(/e(?![a-z])/g, 'Math.E');
-      
+
+      // NOW replace x with its value (function names are already safe)
+      processedExpr = processedExpr.replace(/x/g, `(${x})`);
+
       return eval(processedExpr);
     } catch (err) {
       throw new Error('Invalid expression');

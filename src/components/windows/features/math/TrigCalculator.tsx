@@ -47,8 +47,9 @@ export const TrigCalculator = () => {
     return rounded.toString();
   };
 
-  const calculate = () => {
-    const rad = angleMode === 'degrees' ? (angle * Math.PI) / 180 : angle;
+  const calculate = (angleOverride?: number) => {
+    const angleVal = angleOverride !== undefined ? angleOverride : angle;
+    const rad = angleMode === 'degrees' ? (angleVal * Math.PI) / 180 : angleVal;
     
     const sinVal = Math.sin(rad);
     const cosVal = Math.cos(rad);
@@ -67,7 +68,7 @@ export const TrigCalculator = () => {
       sec: formatValue(secVal),
       cot: formatValue(cotVal),
       radians: formatValue(rad),
-      degrees: angleMode === 'radians' ? formatValue((angle * 180) / Math.PI) : formatValue(angle),
+      degrees: angleMode === 'radians' ? formatValue((angleVal * 180) / Math.PI) : formatValue(angleVal),
       sinh: formatValue(Math.sinh(rad)),
       cosh: formatValue(Math.cosh(rad)),
       tanh: formatValue(Math.tanh(rad)),
@@ -172,8 +173,9 @@ export const TrigCalculator = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        setAngle(angleMode === 'degrees' ? a.deg : a.rad);
-                        calculate();
+                        const newAngle = angleMode === 'degrees' ? a.deg : a.rad;
+                        setAngle(newAngle);
+                        calculate(newAngle);
                       }}
                     >
                       {angleMode === 'degrees' ? `${a.deg}°` : `${(a.rad / Math.PI).toFixed(2)}π`}

@@ -74,6 +74,13 @@ export const PhysicsProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setIsPhysicsEnabled(prev => {
       const newState = !prev;
 
+      // Store physics state so other components can check it
+      if (newState) {
+        sessionStorage.setItem('win11-physics-active', 'true');
+      } else {
+        sessionStorage.removeItem('win11-physics-active');
+      }
+
       if (newState && engineRef.current) {
         // Start physics
         engineRef.current.start();

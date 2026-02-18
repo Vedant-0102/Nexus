@@ -62,9 +62,7 @@ export const IntegralCalculator = () => {
       let parsedExpr = addImplicitMultiplication(expression)
         .replace(/ln/gi, 'log')
         .replace(/sqrt/gi, 'sqrt')
-        .replace(/exp/gi, 'exp')
-        .replace(/e\^/gi, 'exp(')
-        .replace(/\)$/g, '');
+        .replace(/exp/gi, 'exp');
 
       const steps: Array<{ description: string; latex: string }> = [];
 
@@ -347,7 +345,7 @@ export const IntegralCalculator = () => {
     { expr: '3x^4 + 2x - 5', desc: 'Polynomial' },
     { expr: 'sin(x)', desc: 'Basic trig' },
     { expr: 'cos(3x)', desc: 'Trig with substitution' },
-    { expr: 'e^x', desc: 'Exponential' },
+    { expr: 'exp(x)', desc: 'Exponential' },
     { expr: '1/x', desc: 'Natural log' },
     { expr: 'ln(x)', desc: 'Integration by parts' },
     { expr: 'sqrt(x)', desc: 'Square root' },

@@ -29,7 +29,7 @@ export const WINDOW_THEMES = {
     headerBg: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     headerText: '#ffffff',
     headerBorder: 'rgba(102, 126, 234, 0.5)',
-    bodyBg: 'rgba(255, 255, 255, 0.95)',
+    bodyBg: 'rgba(245, 243, 255, 0.95)',
     bodyText: '#1f2937',
     accentColor: '#667eea',
     glassEffect: true,
@@ -41,7 +41,7 @@ export const WINDOW_THEMES = {
     headerBg: 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)',
     headerText: '#ffffff',
     headerBorder: 'rgba(168, 85, 247, 0.5)',
-    bodyBg: 'rgba(255, 255, 255, 0.95)',
+    bodyBg: 'rgba(250, 245, 255, 0.95)',
     bodyText: '#1f2937',
     accentColor: '#a855f7',
     glassEffect: true,
@@ -53,7 +53,7 @@ export const WINDOW_THEMES = {
     headerBg: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
     headerText: '#ffffff',
     headerBorder: 'rgba(16, 185, 129, 0.5)',
-    bodyBg: 'rgba(255, 255, 255, 0.95)',
+    bodyBg: 'rgba(243, 255, 249, 0.95)',
     bodyText: '#1f2937',
     accentColor: '#10b981',
     glassEffect: true,
@@ -65,7 +65,7 @@ export const WINDOW_THEMES = {
     headerBg: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
     headerText: '#ffffff',
     headerBorder: 'rgba(249, 115, 22, 0.5)',
-    bodyBg: 'rgba(255, 255, 255, 0.95)',
+    bodyBg: 'rgba(255, 249, 243, 0.95)',
     bodyText: '#1f2937',
     accentColor: '#f97316',
     glassEffect: true,
@@ -77,7 +77,7 @@ export const WINDOW_THEMES = {
     headerBg: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
     headerText: '#ffffff',
     headerBorder: 'rgba(239, 68, 68, 0.5)',
-    bodyBg: 'rgba(255, 255, 255, 0.95)',
+    bodyBg: 'rgba(255, 245, 245, 0.95)',
     bodyText: '#1f2937',
     accentColor: '#ef4444',
     glassEffect: true,
@@ -89,7 +89,7 @@ export const WINDOW_THEMES = {
     headerBg: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
     headerText: '#ffffff',
     headerBorder: 'rgba(6, 182, 212, 0.5)',
-    bodyBg: 'rgba(255, 255, 255, 0.95)',
+    bodyBg: 'rgba(243, 253, 255, 0.95)',
     bodyText: '#1f2937',
     accentColor: '#06b6d4',
     glassEffect: true,
@@ -101,7 +101,7 @@ export const WINDOW_THEMES = {
     headerBg: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
     headerText: '#ffffff',
     headerBorder: 'rgba(236, 72, 153, 0.5)',
-    bodyBg: 'rgba(255, 255, 255, 0.95)',
+    bodyBg: 'rgba(255, 245, 251, 0.95)',
     bodyText: '#1f2937',
     accentColor: '#ec4899',
     glassEffect: true,
@@ -113,7 +113,7 @@ export const WINDOW_THEMES = {
     headerBg: 'linear-gradient(135deg, #eab308 0%, #ca8a04 100%)',
     headerText: '#ffffff',
     headerBorder: 'rgba(234, 179, 8, 0.5)',
-    bodyBg: 'rgba(255, 255, 255, 0.95)',
+    bodyBg: 'rgba(255, 253, 243, 0.95)',
     bodyText: '#1f2937',
     accentColor: '#eab308',
     glassEffect: true,
@@ -125,7 +125,7 @@ export const WINDOW_THEMES = {
     headerBg: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
     headerText: '#ffffff',
     headerBorder: 'rgba(99, 102, 241, 0.5)',
-    bodyBg: 'rgba(255, 255, 255, 0.95)',
+    bodyBg: 'rgba(245, 243, 255, 0.95)',
     bodyText: '#1f2937',
     accentColor: '#6366f1',
     glassEffect: true,
@@ -137,7 +137,7 @@ export const WINDOW_THEMES = {
     headerBg: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
     headerText: '#ffffff',
     headerBorder: 'rgba(20, 184, 166, 0.5)',
-    bodyBg: 'rgba(255, 255, 255, 0.95)',
+    bodyBg: 'rgba(243, 255, 253, 0.95)',
     bodyText: '#1f2937',
     accentColor: '#14b8a6',
     glassEffect: true,
@@ -149,7 +149,7 @@ export const WINDOW_THEMES = {
     headerBg: 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
     headerText: '#ffffff',
     headerBorder: 'rgba(100, 116, 139, 0.5)',
-    bodyBg: 'rgba(255, 255, 255, 0.95)',
+    bodyBg: 'rgba(248, 250, 252, 0.95)',
     bodyText: '#1f2937',
     accentColor: '#64748b',
     glassEffect: true,
@@ -184,10 +184,19 @@ export const WINDOW_THEMES = {
 
 export type WindowThemeName = keyof typeof WINDOW_THEMES;
 
-// Dark body overrides for colored themes
-const DARK_BODY: Partial<WindowTheme> = {
-  bodyBg: 'rgba(17, 24, 39, 0.95)',
-  bodyText: '#f9fafb',
+// Accent RGB values for dark mode tinted bodies
+const ACCENT_RGB: Partial<Record<WindowThemeName, string>> = {
+  blue: '102, 126, 234',
+  purple: '168, 85, 247',
+  green: '16, 185, 129',
+  orange: '249, 115, 22',
+  red: '239, 68, 68',
+  cyan: '6, 182, 212',
+  pink: '236, 72, 153',
+  yellow: '234, 179, 8',
+  indigo: '99, 102, 241',
+  teal: '20, 184, 166',
+  slate: '100, 116, 139',
 };
 
 export function getTheme(themeName: WindowThemeName, isDark: boolean): WindowTheme {
@@ -215,10 +224,16 @@ export function getTheme(themeName: WindowThemeName, isDark: boolean): WindowThe
     };
   }
 
-  // Colored themes: keep header, darken body/border/shadow
+  // Colored themes: keep header, darken body with accent tint
+  const rgb = ACCENT_RGB[themeName];
+  const tintedDarkBody = rgb
+    ? `rgba(${rgb}, 0.08)`
+    : 'rgba(17, 24, 39, 0.95)';
+
   return {
     ...base,
-    ...DARK_BODY,
+    bodyBg: tintedDarkBody,
+    bodyText: '#f9fafb',
     borderColor: base.borderColor?.replace(/0\.\d+\)$/, '0.4)'),
     shadowColor: base.shadowColor?.replace(/0\.\d+\)$/, '0.35)'),
   };
@@ -231,3 +246,23 @@ export function resolveThemeName(theme: WindowTheme | undefined): WindowThemeNam
   }
   return 'default';
 }
+
+// Map wallpaper preset values to matching window theme names
+export const WALLPAPER_TO_THEME: Record<string, WindowThemeName> = {
+  '#0078D4': 'default',
+  '#1a1a2e': 'dark',
+  '#0f0c29': 'dark',
+  '#2d3436': 'slate',
+  'linear-gradient(135deg, #667eea 0%, #764ba2 100%)': 'purple',
+  'linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%)': 'cyan',
+  'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)': 'indigo',
+  'linear-gradient(135deg, #134e5e 0%, #71b280 100%)': 'green',
+  'linear-gradient(135deg, #ee9ca7 0%, #ffdde1 100%)': 'pink',
+  'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)': 'purple',
+  'linear-gradient(135deg, #f12711 0%, #f5af19 100%)': 'orange',
+  'linear-gradient(135deg, #43cea2 0%, #185a9d 100%)': 'teal',
+  'linear-gradient(135deg, #000428 0%, #004e92 100%)': 'blue',
+  'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)': 'green',
+  'linear-gradient(135deg, #8E2DE2 0%, #4A00E0 100%)': 'indigo',
+  'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)': 'pink',
+};

@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, useRef, useMemo, useCallback } from 'react';
 import { WindowType } from '../types/WindowTypes';
-import { WINDOW_THEMES } from '../themes/windowThemes';
-import { Settings as SettingsIcon, Clock, FileText, Battery, Timer, Terminal as TerminalIcon, StickyNote, Gamepad, PaintBucket, Folder, Crown, Globe, RefreshCcw, Code, Layers, Flag, Cloud, Image, Table, Presentation, TrendingUp, Bitcoin, Trophy, Rocket, Briefcase, Repeat, FlaskConical, BarChart3, Beaker, Zap, Atom, QrCode, Plane, Ship, Palette, Sparkles, CheckCircle2, Eye, Newspaper, Cpu, Waves, Brain, ClipboardList, CheckSquare, Ruler, Weight, DollarSign, Sigma, Calculator, Grid3x3, PieChart, Calendar as CalendarIcon, GitBranch, Gauge, Thermometer, Droplet, Shield } from 'lucide-react';
+import { WINDOW_THEMES, WALLPAPER_TO_THEME, WindowThemeName } from '../themes/windowThemes';
+import { Settings as SettingsIcon, Clock, FileText, Battery, Timer, Terminal as TerminalIcon, StickyNote, Gamepad, PaintBucket, Folder, Crown, Globe, RefreshCcw, Code, Layers, Flag, Cloud, Image, Table, Presentation, TrendingUp, Bitcoin, Trophy, Rocket, Briefcase, Repeat, FlaskConical, BarChart3, Beaker, Zap, Atom, QrCode, Plane, Ship, Palette, Sparkles, CheckCircle2, Eye, Newspaper, Cpu, Waves, Brain, ClipboardList, CheckSquare, Ruler, Weight, DollarSign, Sigma, Calculator, Grid3x3, PieChart, Calendar as CalendarIcon, GitBranch, Gauge, Thermometer, Droplet, Shield, Wind, Microscope, Dna, Heart } from 'lucide-react';
 import { Notepad } from '../features/office/Notepad';
 import { TextEditor } from '../features/office/TextEditor';
 import { FormBuilder } from '../features/office/FormBuilder';
@@ -131,6 +131,27 @@ import { MockDashboard } from '../features/colors/visualizer/MockDashboard';
 import { MockSocialMediaPage } from '../features/colors/visualizer/MockSocialMediaPage';
 import { MockBlogPage } from '../features/colors/visualizer/MockBlogPage';
 
+// Science Module Imports
+import { MathVisualizerFolder } from '../features/science/MathVisualizerFolder';
+import { BiologyLabFolder } from '../features/science/BiologyLabFolder';
+import { ScienceLabsFolder } from '../features/science/ScienceLabsFolder';
+import { TitrationSimulator } from '../features/science/chemistry/TitrationSimulator';
+import { GasLawsSimulator } from '../features/science/chemistry/GasLawsSimulator';
+import { CellDivision } from '../features/science/biology/CellDivision';
+import { DNAReplication } from '../features/science/biology/DNAReplication';
+import { NeuronSignal } from '../features/science/biology/NeuronSignal';
+import { HeartCirculation } from '../features/science/biology/HeartCirculation';
+import { FunctionGrapher3D } from '../features/science/math/FunctionGrapher3D';
+import { FractalGenerator } from '../features/science/math/FractalGenerator';
+import { FourierTransform } from '../features/science/math/FourierTransform';
+import { CalculusVisualizer } from '../features/science/math/CalculusVisualizer';
+import { LinearAlgebra } from '../features/science/math/LinearAlgebra';
+import { PrimeSieve } from '../features/science/math/PrimeSieve';
+import { ProbabilityDistributions } from '../features/science/math/ProbabilityDistributions';
+import { GraphTheory } from '../features/science/math/GraphTheory';
+import { DopplerEffect } from '../features/science/physics/DopplerEffect';
+import { QuantumTunneling } from '../features/science/physics/QuantumTunneling';
+
 const BASE_ZINDEX = 100000;
 const FOLDER_ZINDEX = BASE_ZINDEX;
 const APP_ZINDEX = BASE_ZINDEX + 100;
@@ -165,6 +186,8 @@ interface WindowsContextType {
   isDarkMode: boolean;
   windowThemeOverrides: Record<string, string>;
   setWindowTheme: (windowId: string, themeName: string) => void;
+  globalWindowTheme: WindowThemeName;
+  setGlobalWindowTheme: (themeName: WindowThemeName) => void;
 }
 
 const WindowsContext = createContext<WindowsContextType>({
@@ -189,6 +212,8 @@ const WindowsContext = createContext<WindowsContextType>({
   isDarkMode: false,
   windowThemeOverrides: {},
   setWindowTheme: () => { },
+  globalWindowTheme: 'default',
+  setGlobalWindowTheme: () => { },
 });
 
 export const useWindows = () => useContext(WindowsContext);
@@ -223,6 +248,28 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return next;
     });
   }, []);
+
+  // Global window theme derived from wallpaper
+  const [globalWindowTheme, setGlobalWindowThemeState] = useState<WindowThemeName>(() => {
+    try {
+      const saved = localStorage.getItem('win11-global-window-theme');
+      return (saved as WindowThemeName) || 'default';
+    } catch { return 'default'; }
+  });
+
+  const setGlobalWindowTheme = useCallback((themeName: WindowThemeName) => {
+    setGlobalWindowThemeState(themeName);
+    localStorage.setItem('win11-global-window-theme', themeName);
+  }, []);
+
+  // Auto-derive global window theme when wallpaper changes
+  useEffect(() => {
+    const wp = wallpaper || '#0078D4';
+    const matched = WALLPAPER_TO_THEME[wp];
+    if (matched) {
+      setGlobalWindowTheme(matched);
+    }
+  }, [wallpaper, setGlobalWindowTheme]);
 
   // Store window content to prevent remounting on state changes
   const windowContentRef = useRef<Map<string, React.ReactNode>>(new Map());
@@ -1452,6 +1499,272 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         defaultSize: { width: 900, height: 700 },
       },
       {
+        id: 'science-labs-folder',
+        title: 'Science Labs',
+        content: <ScienceLabsFolder />,
+        isOpen: openWindowIds.includes('science-labs-folder'),
+        isMinimized: minimizedWindowIds.includes('science-labs-folder'),
+        icon: <FlaskConical className="h-5 w-5 text-blue-600" />,
+        zIndex: 100,
+        showInStartMenu: true,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1200, height: 800 },
+      },
+      {
+        id: 'biology-lab-folder',
+        title: 'Biology Lab',
+        content: <BiologyLabFolder />,
+        isOpen: openWindowIds.includes('biology-lab-folder'),
+        isMinimized: minimizedWindowIds.includes('biology-lab-folder'),
+        icon: <Beaker className="h-5 w-5 text-green-600" />,
+        zIndex: 100,
+        showInStartMenu: true,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1200, height: 800 },
+      },
+      {
+        id: 'math-visualizer-folder',
+        title: 'Math Visualizer',
+        content: <MathVisualizerFolder />,
+        isOpen: openWindowIds.includes('math-visualizer-folder'),
+        isMinimized: minimizedWindowIds.includes('math-visualizer-folder'),
+        icon: <Calculator className="h-5 w-5 text-purple-600" />,
+        zIndex: 100,
+        showInStartMenu: true,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1200, height: 800 },
+      },
+      {
+        id: 'titration-simulator',
+        title: 'Titration Simulator',
+        content: <TitrationSimulator />,
+        isOpen: openWindowIds.includes('titration-simulator'),
+        isMinimized: minimizedWindowIds.includes('titration-simulator'),
+        icon: <Beaker className="h-5 w-5 text-blue-500" />,
+        zIndex: 100,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1200, height: 800 },
+      },
+      {
+        id: 'gas-laws',
+        title: 'Gas Laws Simulator',
+        content: <GasLawsSimulator />,
+        isOpen: openWindowIds.includes('gas-laws'),
+        isMinimized: minimizedWindowIds.includes('gas-laws'),
+        icon: <Wind className="h-5 w-5 text-cyan-500" />,
+        zIndex: 100,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1200, height: 800 },
+      },
+      {
+        id: 'cell-division',
+        title: 'Cell Division',
+        content: <CellDivision />,
+        isOpen: openWindowIds.includes('cell-division'),
+        isMinimized: minimizedWindowIds.includes('cell-division'),
+        icon: <Microscope className="h-5 w-5 text-green-500" />,
+        zIndex: 100,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1200, height: 800 },
+      },
+      {
+        id: 'dna-replication',
+        title: 'DNA Replication',
+        content: <DNAReplication />,
+        isOpen: openWindowIds.includes('dna-replication'),
+        isMinimized: minimizedWindowIds.includes('dna-replication'),
+        icon: <Dna className="h-5 w-5 text-blue-500" />,
+        zIndex: 100,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1200, height: 800 },
+      },
+      {
+        id: '3d-function-grapher',
+        title: '3D Function Grapher',
+        content: <FunctionGrapher3D />,
+        isOpen: openWindowIds.includes('3d-function-grapher'),
+        isMinimized: minimizedWindowIds.includes('3d-function-grapher'),
+        icon: <TrendingUp className="h-5 w-5 text-purple-500" />,
+        zIndex: 100,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1000, height: 800 },
+      },
+      {
+        id: 'fractal-generator',
+        title: 'Fractal Generator',
+        content: <FractalGenerator />,
+        isOpen: openWindowIds.includes('fractal-generator'),
+        isMinimized: minimizedWindowIds.includes('fractal-generator'),
+        icon: <Sparkles className="h-5 w-5 text-pink-500" />,
+        zIndex: 100,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1000, height: 800 },
+      },
+      {
+        id: 'fourier-transform',
+        title: 'Fourier Transform',
+        content: <FourierTransform />,
+        isOpen: openWindowIds.includes('fourier-transform'),
+        isMinimized: minimizedWindowIds.includes('fourier-transform'),
+        icon: <Waves className="h-5 w-5 text-blue-500" />,
+        zIndex: 100,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1000, height: 800 },
+      },
+      {
+        id: 'calculus-visualizer',
+        title: 'Calculus Visualizer',
+        content: <CalculusVisualizer />,
+        isOpen: openWindowIds.includes('calculus-visualizer'),
+        isMinimized: minimizedWindowIds.includes('calculus-visualizer'),
+        icon: <Calculator className="h-5 w-5 text-green-500" />,
+        zIndex: 100,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1000, height: 800 },
+      },
+      {
+        id: 'linear-algebra',
+        title: 'Linear Algebra',
+        content: <LinearAlgebra />,
+        isOpen: openWindowIds.includes('linear-algebra'),
+        isMinimized: minimizedWindowIds.includes('linear-algebra'),
+        icon: <Grid3x3 className="h-5 w-5 text-indigo-500" />,
+        zIndex: 100,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1000, height: 800 },
+      },
+      {
+        id: 'prime-sieve',
+        title: 'Prime Number Sieve',
+        content: <PrimeSieve />,
+        isOpen: openWindowIds.includes('prime-sieve'),
+        isMinimized: minimizedWindowIds.includes('prime-sieve'),
+        icon: <Sigma className="h-5 w-5 text-amber-500" />,
+        zIndex: 100,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1000, height: 800 },
+      },
+      {
+        id: 'graph-theory',
+        title: 'Graph Theory',
+        content: <GraphTheory />,
+        isOpen: openWindowIds.includes('graph-theory'),
+        isMinimized: minimizedWindowIds.includes('graph-theory'),
+        icon: <GitBranch className="h-5 w-5 text-cyan-500" />,
+        zIndex: 100,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1000, height: 800 },
+      },
+      {
+        id: 'probability-dist',
+        title: 'Probability Distributions',
+        content: <ProbabilityDistributions />,
+        isOpen: openWindowIds.includes('probability-dist'),
+        isMinimized: minimizedWindowIds.includes('probability-dist'),
+        icon: <PieChart className="h-5 w-5 text-pink-500" />,
+        zIndex: 100,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1000, height: 800 },
+      },
+      {
+        id: 'neuron-signal',
+        title: 'Neuron Signal',
+        content: <NeuronSignal />,
+        isOpen: openWindowIds.includes('neuron-signal'),
+        isMinimized: minimizedWindowIds.includes('neuron-signal'),
+        icon: <Brain className="h-5 w-5 text-purple-500" />,
+        zIndex: 100,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1200, height: 800 },
+      },
+      {
+        id: 'heart-circulation',
+        title: 'Heart & Circulation',
+        content: <HeartCirculation />,
+        isOpen: openWindowIds.includes('heart-circulation'),
+        isMinimized: minimizedWindowIds.includes('heart-circulation'),
+        icon: <Heart className="h-5 w-5 text-red-500" />,
+        zIndex: 100,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1200, height: 800 },
+      },
+      {
+        id: 'doppler-effect',
+        title: 'Doppler Effect',
+        content: <DopplerEffect />,
+        isOpen: openWindowIds.includes('doppler-effect'),
+        isMinimized: minimizedWindowIds.includes('doppler-effect'),
+        icon: <Waves className="h-5 w-5 text-indigo-500" />,
+        zIndex: 100,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1000, height: 700 },
+      },
+      {
+        id: 'quantum-tunneling',
+        title: 'Quantum Tunneling',
+        content: <QuantumTunneling />,
+        isOpen: openWindowIds.includes('quantum-tunneling'),
+        isMinimized: minimizedWindowIds.includes('quantum-tunneling'),
+        icon: <Atom className="h-5 w-5 text-purple-600" />,
+        zIndex: 100,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1000, height: 700 },
+      },
+      {
         id: 'tetris',
         title: 'Tetris',
         content: <Tetris />,
@@ -2141,6 +2454,21 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
       isMaximizable: true,
     };
 
+    const biologyFolderWindow: WindowType = {
+      id: 'biology-folder-window',
+      title: 'Biology Lab',
+      content: <FolderContent type="biology" />,
+      isOpen: openWindowIds.includes('biology-folder-window'),
+      isMinimized: minimizedWindowIds.includes('biology-folder-window'),
+      icon: <Dna className="h-5 w-5 text-green-600" />,
+      zIndex: 100,
+      defaultSize: { width: 800, height: 600 },
+      showInStartMenu: false,
+      showInTaskbar: true,
+      isResizable: true,
+      isMaximizable: true,
+    };
+
     const utilitiesFolderWindow: WindowType = {
       id: 'utilities-folder-window',
       title: 'Utilities',
@@ -2240,6 +2568,7 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
       simulatorsFolderWindow,
       chemistryFolderWindow,
       physicsFolderWindow,
+      biologyFolderWindow,
       utilitiesFolderWindow,
       colorsFolderWindow,
       newsFolderWindow,
@@ -2272,6 +2601,13 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Only settings, theme, and wallpaper are persisted
 
   const toggleWindow = (id: string) => {
+    // Check if physics mode is active - prevent opening windows during physics mode
+    const isPhysicsActive = sessionStorage.getItem('win11-physics-active') === 'true';
+    if (isPhysicsActive) {
+      alert('⚠️ Cannot open applications while Physics Mode is active.\n\nPlease disable Physics Mode first to open applications.');
+      return;
+    }
+
     // First, immediately bring to front to ensure highest z-index
     setWindows(prevWindows => {
       const existingWindow = prevWindows.find(w => w.id === id);
@@ -2477,6 +2813,8 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         isDarkMode,
         windowThemeOverrides,
         setWindowTheme,
+        globalWindowTheme,
+        setGlobalWindowTheme,
       }}
     >
       {children}

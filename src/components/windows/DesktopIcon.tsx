@@ -90,12 +90,22 @@ export const DesktopIcon = ({ label, icon, onClick, onDoubleClick, id, defaultX 
 
   const handleClick = () => {
     if (!isDraggingRef.current) {
+      if (isPhysicsActive) {
+        // Prevent opening apps during physics mode
+        alert('⚠️ Cannot open applications while Physics Mode is active.\n\nPlease disable Physics Mode first to open applications.');
+        return;
+      }
       onClick();
     }
   };
 
   const handleDoubleClick = () => {
     if (!isDraggingRef.current) {
+      if (isPhysicsActive) {
+        // Prevent opening apps during physics mode
+        alert('⚠️ Cannot open applications while Physics Mode is active.\n\nPlease disable Physics Mode first to open applications.');
+        return;
+      }
       onDoubleClick();
     }
   };
@@ -133,14 +143,16 @@ export const DesktopIcon = ({ label, icon, onClick, onDoubleClick, id, defaultX 
     const handlePhysicsClick = (e: React.MouseEvent) => {
       e.stopPropagation();
       if (!physicsIsDragging.current) {
-        onClick();
+        // Prevent opening apps during physics mode
+        alert('⚠️ Cannot open applications while Physics Mode is active.\n\nPlease disable Physics Mode first to open applications.');
       }
     };
 
     const handlePhysicsDoubleClick = (e: React.MouseEvent) => {
       e.stopPropagation();
       if (!physicsIsDragging.current) {
-        onDoubleClick();
+        // Prevent opening apps during physics mode
+        alert('⚠️ Cannot open applications while Physics Mode is active.\n\nPlease disable Physics Mode first to open applications.');
         applyImpulse(0, -300);
       }
     };
