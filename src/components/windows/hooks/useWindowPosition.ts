@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { WindowType } from '../types/WindowTypes';
 
 interface WindowSize {
@@ -38,13 +38,18 @@ export function useWindowPosition(window: WindowType, windowSize: WindowSize) {
   const [position, setPosition] = useState<Position>(getCenterPosition);
   const [originalPosition, setOriginalPosition] = useState<Position>(position);
 
+  const openCountRef = useRef(0);
+
   useEffect(() => {
+    // Only center on the very first open, not on subsequent re-opens from minimize
     if (window.isOpen && !window.isMinimized) {
-      const centerPos = getCenterPosition();
-      setPosition(centerPos);
-      setOriginalPosition(centerPos);
+      openCountRef.current += 1;
+      if (openCountRef.current === 1) {
+        const centerPos = getCenterPosition();
+        setPosition(centerPos);
+        setOriginalPosition(centerPos);
+      }
     }
-    // Only re-center when window opens, not on size changes (which happen during maximize/snap)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [window.isOpen]);
 

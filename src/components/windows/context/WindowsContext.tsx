@@ -137,6 +137,12 @@ import { BiologyLabFolder } from '../features/science/BiologyLabFolder';
 import { ScienceLabsFolder } from '../features/science/ScienceLabsFolder';
 import { TitrationSimulator } from '../features/science/chemistry/TitrationSimulator';
 import { GasLawsSimulator } from '../features/science/chemistry/GasLawsSimulator';
+import { Electrochemistry } from '../features/science/chemistry/Electrochemistry';
+import { SpectroscopySimulator } from '../features/science/chemistry/SpectroscopySimulator';
+import { NuclearDecay } from '../features/science/chemistry/NuclearDecay';
+import { PHScale } from '../features/science/chemistry/PHScale';
+import { OrganicChemistry } from '../features/science/chemistry/OrganicChemistry';
+import { PolymerBuilder } from '../features/science/chemistry/PolymerBuilder';
 import { CellDivision } from '../features/science/biology/CellDivision';
 import { DNAReplication } from '../features/science/biology/DNAReplication';
 import { NeuronSignal } from '../features/science/biology/NeuronSignal';
@@ -1561,6 +1567,90 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         isOpen: openWindowIds.includes('gas-laws'),
         isMinimized: minimizedWindowIds.includes('gas-laws'),
         icon: <Wind className="h-5 w-5 text-cyan-500" />,
+        zIndex: 100,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1200, height: 800 },
+      },
+      {
+        id: 'electrochemistry',
+        title: 'Electrochemistry',
+        content: <Electrochemistry />,
+        isOpen: openWindowIds.includes('electrochemistry'),
+        isMinimized: minimizedWindowIds.includes('electrochemistry'),
+        icon: <Zap className="h-5 w-5 text-yellow-500" />,
+        zIndex: 100,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1200, height: 800 },
+      },
+      {
+        id: 'spectroscopy',
+        title: 'Spectroscopy Simulator',
+        content: <SpectroscopySimulator />,
+        isOpen: openWindowIds.includes('spectroscopy'),
+        isMinimized: minimizedWindowIds.includes('spectroscopy'),
+        icon: <Eye className="h-5 w-5 text-purple-500" />,
+        zIndex: 100,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1200, height: 800 },
+      },
+      {
+        id: 'nuclear-decay',
+        title: 'Nuclear Decay',
+        content: <NuclearDecay />,
+        isOpen: openWindowIds.includes('nuclear-decay'),
+        isMinimized: minimizedWindowIds.includes('nuclear-decay'),
+        icon: <Atom className="h-5 w-5 text-red-500" />,
+        zIndex: 100,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1200, height: 800 },
+      },
+      {
+        id: 'ph-scale',
+        title: 'pH Scale & Buffers',
+        content: <PHScale />,
+        isOpen: openWindowIds.includes('ph-scale'),
+        isMinimized: minimizedWindowIds.includes('ph-scale'),
+        icon: <Droplet className="h-5 w-5 text-blue-400" />,
+        zIndex: 100,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1200, height: 800 },
+      },
+      {
+        id: 'organic-chemistry',
+        title: 'Organic Chemistry',
+        content: <OrganicChemistry />,
+        isOpen: openWindowIds.includes('organic-chemistry'),
+        isMinimized: minimizedWindowIds.includes('organic-chemistry'),
+        icon: <Atom className="h-5 w-5 text-green-500" />,
+        zIndex: 100,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1200, height: 800 },
+      },
+      {
+        id: 'polymer-builder',
+        title: 'Polymer Builder',
+        content: <PolymerBuilder />,
+        isOpen: openWindowIds.includes('polymer-builder'),
+        isMinimized: minimizedWindowIds.includes('polymer-builder'),
+        icon: <Beaker className="h-5 w-5 text-pink-500" />,
         zIndex: 100,
         showInStartMenu: false,
         showInTaskbar: false,

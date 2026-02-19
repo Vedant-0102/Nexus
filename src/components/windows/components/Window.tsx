@@ -28,6 +28,7 @@ export const Window: React.FC<WindowProps> = ({ window, onClose, onMinimize, onF
   const windowRef = useRef<HTMLDivElement>(null);
   const nodeRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ x: number; y: number } | null>(null);
+  const hasCenteredRef = useRef(false);
 
   const { position, setPosition, originalPosition, setOriginalPosition } = useWindowPosition(window, windowSize);
   const { isResizing, startResize } = useWindowResize(
@@ -59,25 +60,23 @@ export const Window: React.FC<WindowProps> = ({ window, onClose, onMinimize, onF
     };
   };
 
-  const centerWindow = useCallback(() => {
-    const { screenWidth, screenHeight } = getScreenDimensions();
-
-    const centerX = Math.max(0, Math.min(
-      (screenWidth - windowSize.width) / 2,
-      screenWidth - windowSize.width
-    ));
-    const centerY = Math.max(0, Math.min(
-      (screenHeight - windowSize.height - 60) / 2,
-      screenHeight - windowSize.height - 60
-    ));
-
-    setPosition({ x: centerX, y: centerY });
-    setOriginalPosition({ x: centerX, y: centerY });
-  }, [windowSize, setPosition, setOriginalPosition]);
-
+  // Center only on initial open, not on subsequent size changes (like maximize/restore)
   useEffect(() => {
-    if (window.isOpen && !window.isMinimized) {
-      centerWindow();
+    if (window.isOpen && !window.isMinimized && !hasCenteredRef.current) {
+      hasCenteredRef.current = true;
+      const { screenWidth, screenHeight } = getScreenDimensions();
+
+      const centerX = Math.max(0, Math.min(
+        (screenWidth - windowSize.width) / 2,
+        screenWidth - windowSize.width
+      ));
+      const centerY = Math.max(0, Math.min(
+        (screenHeight - windowSize.height - 60) / 2,
+        screenHeight - windowSize.height - 60
+      ));
+
+      setPosition({ x: centerX, y: centerY });
+      setOriginalPosition({ x: centerX, y: centerY });
 
       setTimeout(() => {
         if (windowRef.current) {
@@ -87,7 +86,10 @@ export const Window: React.FC<WindowProps> = ({ window, onClose, onMinimize, onF
         onFocus();
       }, 10);
     }
-  }, [window.isOpen, window.isMinimized, centerWindow, onFocus]);
+    if (!window.isOpen) {
+      hasCenteredRef.current = false;
+    }
+  }, [window.isOpen, window.isMinimized]);
 
   const handleMaximize = useCallback(() => {
     if (!isMaximized) {
@@ -152,8 +154,7 @@ export const Window: React.FC<WindowProps> = ({ window, onClose, onMinimize, onF
         style={{
           ...windowSize,
           position: 'absolute',
-          zIndex: window.zIndex || 1000,  // Ensure high base z-index
-          transform: `translate(${position.x}px, ${position.y}px)`,
+          zIndex: window.zIndex || 1000,
         }}
         onClick={() => {
           onFocus();
