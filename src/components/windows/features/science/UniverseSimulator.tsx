@@ -1,9 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
-import { Play, Pause, RotateCcw, Zap, Sun, Moon, Camera, Thermometer, Scale, Globe2, Wind, Clock, Orbit, MoonStar, Maximize2, Eye, EyeOff, Ruler, Info, Sparkles, Target } from 'lucide-react';
+import { Play, Pause, RotateCcw, Zap, Sun, Camera, Thermometer, Scale, Globe2, Wind, Clock, Orbit, MoonStar, Ruler, Info, Sparkles, Target } from 'lucide-react';
 
 interface PlanetData {
   name: string;
@@ -70,23 +68,27 @@ interface CelestialBody {
 function migrateToVelocityModel(planet: PlanetData, currentAngle: number): Omit<CelestialBody, 'mesh' | 'orbitLine'> {
   const angle = currentAngle;
   const distance = planet.distance;
-  const angularVelocity = planet.speed * 0.001;
-  
+
   // Calculate position from polar coordinates
   const position: Vector3D = {
     x: Math.cos(angle) * distance,
     y: 0,
     z: Math.sin(angle) * distance
   };
-  
-  // Calculate velocity vector for circular orbit
-  // Velocity is perpendicular to position vector, with magnitude = distance * angularVelocity
+
+  // Calculate velocity for a stable circular orbit: v = sqrt(G * M_sun / r)
+  // G_SIM = 500, sun mass = 3^3 = 27
+  const G_SIM = 500;
+  const sunMass = 27; // Sun radius (3) cubed
+  const orbitalSpeed = distance > 0 ? Math.sqrt(G_SIM * sunMass / distance) : 0;
+
+  // Velocity is perpendicular to position vector for circular orbit
   const velocity: Vector3D = {
-    x: -Math.sin(angle) * distance * angularVelocity,
+    x: -Math.sin(angle) * orbitalSpeed,
     y: 0,
-    z: Math.cos(angle) * distance * angularVelocity
+    z: Math.cos(angle) * orbitalSpeed
   };
-  
+
   // Calculate mass from radius (mass = radius³ for approximation)
   const mass = planet.radius * planet.radius * planet.radius;
   
@@ -257,14 +259,18 @@ export const UniverseSimulator: React.FC = () => {
   const raycasterRef = useRef<THREE.Raycaster>(new THREE.Raycaster());
   const mouseRef = useRef<THREE.Vector2>(new THREE.Vector2());
   const highlightedMeshRef = useRef<THREE.Mesh | null>(null);
+  const isPlayingRef = useRef(true);
+  const timeSpeedRef = useRef(1);
+  const autoRotateRef = useRef(false);
+  const cameraModeRef = useRef<'free' | 'follow'>('free');
+  const selectedBodyRef = useRef<string>('Earth');
+  const cameraAnimRef = useRef<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(true);
   const [timeSpeed, setTimeSpeed] = useState(1);
   const [selectedBody, setSelectedBody] = useState<string>('Earth');
   const [showOrbits, setShowOrbits] = useState(true);
   const [autoRotate, setAutoRotate] = useState(false);
-  const [showLabels, setShowLabels] = useState(true);
   const [showDistances, setShowDistances] = useState(false);
-  const [viewMode, setViewMode] = useState<'realistic' | 'scaled'>('scaled');
   const [cameraMode, setCameraMode] = useState<'free' | 'follow'>('free');
 
   const planets: PlanetData[] = [
@@ -278,6 +284,13 @@ export const UniverseSimulator: React.FC = () => {
     { name: 'Uranus', radius: 1.5, distance: 50, color: 0x4FD0E7, speed: 0.01 },
     { name: 'Neptune', radius: 1.4, distance: 60, color: 0x4166F5, speed: 0.006 },
   ];
+
+  // Keep refs in sync with state
+  useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
+  useEffect(() => { timeSpeedRef.current = timeSpeed; }, [timeSpeed]);
+  useEffect(() => { autoRotateRef.current = autoRotate; }, [autoRotate]);
+  useEffect(() => { cameraModeRef.current = cameraMode; }, [cameraMode]);
+  useEffect(() => { selectedBodyRef.current = selectedBody; }, [selectedBody]);
 
   const focusPlanet = (name: string) => {
     setSelectedBody(name);
@@ -312,17 +325,24 @@ export const UniverseSimulator: React.FC = () => {
     const startTarget = controlsRef.current.target.clone();
     let progress = 0;
     
+    // Cancel any ongoing camera animation
+    if (cameraAnimRef.current) {
+      cancelAnimationFrame(cameraAnimRef.current);
+      cameraAnimRef.current = null;
+    }
+    
     const animateCamera = () => {
       progress += 0.05;
       if (progress >= 1) {
         cameraRef.current!.position.copy(newCameraPos);
         controlsRef.current!.target.copy(targetPos);
+        cameraAnimRef.current = null;
         return;
       }
       
       cameraRef.current!.position.lerpVectors(startPos, newCameraPos, progress);
       controlsRef.current!.target.lerpVectors(startTarget, targetPos, progress);
-      requestAnimationFrame(animateCamera);
+      cameraAnimRef.current = requestAnimationFrame(animateCamera);
     };
     
     animateCamera();
@@ -437,7 +457,7 @@ export const UniverseSimulator: React.FC = () => {
           orbitPoints.push(Math.cos(angle) * planet.distance, 0, Math.sin(angle) * planet.distance);
         }
         orbitGeometry.setAttribute('position', new THREE.Float32BufferAttribute(orbitPoints, 3));
-        orbitLine = new THREE.Line(orbitGeometry, new THREE.LineBasicMaterial({ color: 0x334155, transparent: true, opacity: 0.4 }));
+        orbitLine = new THREE.Line(orbitGeometry, new THREE.LineBasicMaterial({ color: 0x374151, transparent: true, opacity: 0.4 }));
         scene.add(orbitLine);
       }
 
@@ -476,30 +496,46 @@ export const UniverseSimulator: React.FC = () => {
     let animationId: number;
     let lastTime = Date.now();
     
+    // Gravitational constant for simulation (tuned for visual appearance)
+    const G_SIM = 500;
+    
     const animate = () => {
       animationId = requestAnimationFrame(animate);
       
       // Calculate delta time in seconds
       const currentTime = Date.now();
-      const deltaTime = (currentTime - lastTime) / 1000; // Convert to seconds
+      const deltaTime = Math.min((currentTime - lastTime) / 1000, 0.05); // Cap at 50ms
       lastTime = currentTime;
       
-      if (isPlaying) {
+      if (isPlayingRef.current) {
+        const speed = timeSpeedRef.current;
+        
         bodies.forEach(body => {
           if (body.distance > 0 && body.mesh) {
-            // Velocity-based physics: Update position using velocity
-            body.position.x += body.velocity.x * deltaTime * timeSpeed;
-            body.position.y += body.velocity.y * deltaTime * timeSpeed;
-            body.position.z += body.velocity.z * deltaTime * timeSpeed;
+            // Apply gravitational force from the Sun (bodies[0])
+            const sun = bodies[0];
+            const dx = sun.position.x - body.position.x;
+            const dy = sun.position.y - body.position.y;
+            const dz = sun.position.z - body.position.z;
+            const distSq = dx * dx + dy * dy + dz * dz;
+            const dist = Math.sqrt(distSq);
+            
+            if (dist > 0.1) {
+              const forceMag = G_SIM * sun.mass / distSq;
+              body.velocity.x += (dx / dist) * forceMag * deltaTime * speed;
+              body.velocity.y += (dy / dist) * forceMag * deltaTime * speed;
+              body.velocity.z += (dz / dist) * forceMag * deltaTime * speed;
+            }
+            
+            // Update position using velocity
+            body.position.x += body.velocity.x * deltaTime * speed;
+            body.position.y += body.velocity.y * deltaTime * speed;
+            body.position.z += body.velocity.z * deltaTime * speed;
             
             // Update mesh position from physics position
             body.mesh.position.x = body.position.x;
             body.mesh.position.y = body.position.y;
             body.mesh.position.z = body.position.z;
-            
-            // TODO: Add velocity updates based on gravitational forces
-            // This will be implemented in task 2.1 (PhysicsEngine)
-            // For now, velocity remains constant (simulating inertia)
             
             // Maintain backward compatibility: Update angle for any legacy code
             body.angle = Math.atan2(body.position.z, body.position.x);
@@ -508,9 +544,9 @@ export const UniverseSimulator: React.FC = () => {
         });
       }
       
-      // Follow camera mode
-      if (cameraMode === 'follow' && cameraRef.current && controlsRef.current) {
-        const followBody = bodies.find(b => b.name === selectedBody);
+      // Follow camera mode (using refs to avoid stale closures)
+      if (cameraModeRef.current === 'follow' && cameraRef.current && controlsRef.current) {
+        const followBody = bodies.find(b => b.name === selectedBodyRef.current);
         if (followBody?.mesh) {
           const offset = new THREE.Vector3(
             followBody.radius * 4,
@@ -521,7 +557,7 @@ export const UniverseSimulator: React.FC = () => {
           cameraRef.current.position.lerp(targetPos, 0.05);
           controlsRef.current.target.lerp(followBody.mesh.position, 0.05);
         }
-      } else if (autoRotate && cameraRef.current && controlsRef.current) {
+      } else if (autoRotateRef.current && cameraRef.current && controlsRef.current) {
         const time = Date.now() * 0.0001;
         const radius = Math.sqrt(cameraRef.current.position.x ** 2 + cameraRef.current.position.z ** 2);
         cameraRef.current.position.x = Math.cos(time) * radius;
@@ -538,13 +574,34 @@ export const UniverseSimulator: React.FC = () => {
       renderer.domElement.removeEventListener('click', handleClick);
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animationId);
+      if (cameraAnimRef.current) cancelAnimationFrame(cameraAnimRef.current);
       controlsRef.current?.dispose();
+      // Dispose GPU resources
+      scene.traverse((obj) => {
+        if (obj instanceof THREE.Mesh) {
+          obj.geometry.dispose();
+          if (Array.isArray(obj.material)) {
+            obj.material.forEach(m => m.dispose());
+          } else {
+            (obj.material as THREE.Material).dispose();
+          }
+        } else if (obj instanceof THREE.Line) {
+          obj.geometry.dispose();
+          (obj.material as THREE.Material).dispose();
+        } else if (obj instanceof THREE.Points) {
+          obj.geometry.dispose();
+          (obj.material as THREE.Material).dispose();
+        } else if (obj instanceof THREE.Sprite) {
+          (obj.material as THREE.SpriteMaterial).map?.dispose();
+          (obj.material as THREE.Material).dispose();
+        }
+      });
       if (containerRef.current && renderer.domElement) {
         containerRef.current.removeChild(renderer.domElement);
       }
       renderer.dispose();
     };
-  }, [isPlaying, timeSpeed, autoRotate, cameraMode, selectedBody]);
+  }, []); // Run only once on mount
 
   useEffect(() => {
     bodiesRef.current.forEach(body => {
@@ -580,7 +637,26 @@ export const UniverseSimulator: React.FC = () => {
       
       // R for reset
       if (e.key === 'r' || e.key === 'R') {
-        bodiesRef.current.forEach(b => { b.angle = Math.random() * Math.PI * 2; });
+        const G_SIM = 500;
+        const sunMass = 27;
+        bodiesRef.current.forEach(b => {
+          const newAngle = Math.random() * Math.PI * 2;
+          const orbitalSpeed = b.distance > 0 ? Math.sqrt(G_SIM * sunMass / b.distance) : 0;
+          b.angle = newAngle;
+          b.position = {
+            x: Math.cos(newAngle) * b.distance,
+            y: 0,
+            z: Math.sin(newAngle) * b.distance
+          };
+          b.velocity = {
+            x: -Math.sin(newAngle) * orbitalSpeed,
+            y: 0,
+            z: Math.cos(newAngle) * orbitalSpeed
+          };
+          if (b.mesh) {
+            b.mesh.position.set(b.position.x, b.position.y, b.position.z);
+          }
+        });
         if (cameraRef.current && controlsRef.current) {
           cameraRef.current.position.set(0, 50, 80);
           controlsRef.current.target.set(0, 0, 0);
@@ -609,105 +685,103 @@ export const UniverseSimulator: React.FC = () => {
       {/* Left: 3D Scene */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Controls bar */}
-        <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900/60 border-b border-slate-800/60">
+        <div className="flex items-center justify-between px-4 py-2.5 bg-gray-900/60 border-b border-gray-800/60">
           <div className="flex items-center gap-2">
             <Sun className="h-4 w-4 text-yellow-500" />
             <span className="text-sm font-semibold text-white">Solar System Explorer</span>
           </div>
           <div className="flex items-center gap-1.5">
             {/* Playback controls */}
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => setIsPlaying(!isPlaying)} 
-              className="h-7 px-2 text-xs text-slate-300 hover:text-white hover:bg-slate-700/50"
+            <button
+              onClick={() => setIsPlaying(!isPlaying)}
+              className="h-7 px-2 text-xs text-gray-300 hover:text-white hover:bg-gray-700/50 rounded-md transition-colors"
               title={isPlaying ? 'Pause' : 'Play'}
             >
               {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-            </Button>
-            
+            </button>
+
             {/* View controls */}
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => setShowOrbits(!showOrbits)} 
-              className={`h-7 px-2 text-xs hover:bg-slate-700/50 ${showOrbits ? 'text-blue-400' : 'text-slate-300 hover:text-white'}`}
+            <button
+              onClick={() => setShowOrbits(!showOrbits)}
+              className={`h-7 px-2 text-xs rounded-md transition-colors hover:bg-gray-700/50 ${showOrbits ? 'text-blue-400' : 'text-gray-300 hover:text-white'}`}
               title="Toggle Orbits"
             >
               <Orbit className="h-3.5 w-3.5" />
-            </Button>
-            
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => setShowLabels(!showLabels)} 
-              className={`h-7 px-2 text-xs hover:bg-slate-700/50 ${showLabels ? 'text-blue-400' : 'text-slate-300 hover:text-white'}`}
-              title="Toggle Labels"
-            >
-              {showLabels ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-            </Button>
-            
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => setShowDistances(!showDistances)} 
-              className={`h-7 px-2 text-xs hover:bg-slate-700/50 ${showDistances ? 'text-blue-400' : 'text-slate-300 hover:text-white'}`}
+            </button>
+
+            <button
+              onClick={() => setShowDistances(!showDistances)}
+              className={`h-7 px-2 text-xs rounded-md transition-colors hover:bg-gray-700/50 ${showDistances ? 'text-blue-400' : 'text-gray-300 hover:text-white'}`}
               title="Show Distances"
             >
               <Ruler className="h-3.5 w-3.5" />
-            </Button>
-            
+            </button>
+
             {/* Camera controls */}
-            <div className="h-4 w-px bg-slate-700 mx-1" />
-            
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => setCameraMode(cameraMode === 'free' ? 'follow' : 'free')} 
-              className={`h-7 px-2 text-xs hover:bg-slate-700/50 ${cameraMode === 'follow' ? 'text-green-400' : 'text-slate-300 hover:text-white'}`}
+            <div className="h-4 w-px bg-gray-700 mx-1" />
+
+            <button
+              onClick={() => setCameraMode(cameraMode === 'free' ? 'follow' : 'free')}
+              className={`h-7 px-2 text-xs rounded-md transition-colors hover:bg-gray-700/50 ${cameraMode === 'follow' ? 'text-green-400' : 'text-gray-300 hover:text-white'}`}
               title={cameraMode === 'follow' ? 'Following Planet' : 'Free Camera'}
             >
               <Target className="h-3.5 w-3.5" />
-            </Button>
-            
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => setAutoRotate(!autoRotate)} 
-              className={`h-7 px-2 text-xs hover:bg-slate-700/50 ${autoRotate ? 'text-blue-400' : 'text-slate-300 hover:text-white'}`}
+            </button>
+
+            <button
+              onClick={() => setAutoRotate(!autoRotate)}
+              className={`h-7 px-2 text-xs rounded-md transition-colors hover:bg-gray-700/50 ${autoRotate ? 'text-blue-400' : 'text-gray-300 hover:text-white'}`}
               title="Auto Rotate Camera"
             >
               <Camera className="h-3.5 w-3.5" />
-            </Button>
-            
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            </button>
+
+            <button
               onClick={() => {
-                bodiesRef.current.forEach(b => { b.angle = Math.random() * Math.PI * 2; });
+                const G_SIM = 500;
+                const sunMass = 27;
+                bodiesRef.current.forEach(b => {
+                  const newAngle = Math.random() * Math.PI * 2;
+                  const orbitalSpeed = b.distance > 0 ? Math.sqrt(G_SIM * sunMass / b.distance) : 0;
+                  b.angle = newAngle;
+                  b.position = {
+                    x: Math.cos(newAngle) * b.distance,
+                    y: 0,
+                    z: Math.sin(newAngle) * b.distance
+                  };
+                  b.velocity = {
+                    x: -Math.sin(newAngle) * orbitalSpeed,
+                    y: 0,
+                    z: Math.cos(newAngle) * orbitalSpeed
+                  };
+                  if (b.mesh) {
+                    b.mesh.position.set(b.position.x, b.position.y, b.position.z);
+                  }
+                });
                 if (cameraRef.current && controlsRef.current) {
                   cameraRef.current.position.set(0, 50, 80);
                   controlsRef.current.target.set(0, 0, 0);
                 }
-              }} 
-              className="h-7 px-2 text-xs text-slate-300 hover:text-white hover:bg-slate-700/50"
+              }}
+              className="h-7 px-2 text-xs text-gray-300 hover:text-white hover:bg-gray-700/50 rounded-md transition-colors"
               title="Reset View"
             >
               <RotateCcw className="h-3.5 w-3.5" />
-            </Button>
-            
+            </button>
+
             {/* Speed control */}
-            <div className="flex items-center gap-2 ml-2 pl-2 border-l border-slate-700">
+            <div className="flex items-center gap-2 ml-2 pl-2 border-l border-gray-700">
               <Zap className="h-3 w-3 text-yellow-500" />
-              <Slider
-                value={[timeSpeed]}
-                onValueChange={(v) => setTimeSpeed(v[0])}
+              <input
+                type="range"
+                value={timeSpeed}
+                onChange={(e) => setTimeSpeed(parseFloat(e.target.value))}
                 min={0.1}
                 max={10}
                 step={0.1}
-                className="w-24"
+                className="w-24 h-1.5 accent-yellow-500 cursor-pointer"
               />
-              <span className="text-[10px] text-slate-400 w-8">{timeSpeed.toFixed(1)}x</span>
+              <span className="text-[10px] text-gray-400 w-8">{timeSpeed.toFixed(1)}x</span>
             </div>
           </div>
         </div>
@@ -718,27 +792,27 @@ export const UniverseSimulator: React.FC = () => {
           
           {/* Info overlay */}
           {showDistances && (
-            <div className="absolute top-4 left-4 bg-slate-900/80 backdrop-blur-sm border border-slate-700/50 rounded-lg p-3 space-y-2 text-xs">
-              <div className="flex items-center gap-2 text-slate-300 mb-2">
+            <div className="absolute top-4 left-4 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-lg p-3 space-y-2 text-xs">
+              <div className="flex items-center gap-2 text-gray-300 mb-2">
                 <Info className="h-3.5 w-3.5" />
                 <span className="font-semibold">Current View</span>
               </div>
               <div className="space-y-1">
                 <div className="flex justify-between gap-4">
-                  <span className="text-slate-400">Selected:</span>
+                  <span className="text-gray-400">Selected:</span>
                   <span className="text-white font-medium">{selectedBody}</span>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <span className="text-slate-400">Time Speed:</span>
+                  <span className="text-gray-400">Time Speed:</span>
                   <span className="text-white font-medium">{timeSpeed.toFixed(1)}x</span>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <span className="text-slate-400">Camera:</span>
+                  <span className="text-gray-400">Camera:</span>
                   <span className="text-white font-medium">{cameraMode === 'follow' ? 'Following' : 'Free'}</span>
                 </div>
                 {selectedPlanet && selectedPlanet.distance > 0 && (
                   <div className="flex justify-between gap-4">
-                    <span className="text-slate-400">Distance:</span>
+                    <span className="text-gray-400">Distance:</span>
                     <span className="text-white font-medium">{planetInfoMap[selectedBody]?.distanceFromSun || 'N/A'}</span>
                   </div>
                 )}
@@ -747,29 +821,29 @@ export const UniverseSimulator: React.FC = () => {
           )}
           
           {/* Controls hint */}
-          <div className="absolute bottom-4 left-4 bg-slate-900/80 backdrop-blur-sm border border-slate-700/50 rounded-lg px-3 py-2 text-[10px] text-slate-300 space-y-1 max-w-md">
-            <div className="font-semibold text-slate-200 mb-1.5 flex items-center gap-1.5">
+          <div className="absolute bottom-4 left-4 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 rounded-lg px-3 py-2 text-[10px] text-gray-300 space-y-1 max-w-md">
+            <div className="font-semibold text-gray-200 mb-1.5 flex items-center gap-1.5">
               <Info className="h-3 w-3" />
               Controls
             </div>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-slate-400">
-              <div><span className="text-slate-300">Mouse:</span> Drag to rotate, scroll to zoom</div>
-              <div><span className="text-slate-300">1-9:</span> Select planets</div>
-              <div><span className="text-slate-300">Space:</span> Play/Pause</div>
-              <div><span className="text-slate-300">O:</span> Toggle orbits</div>
-              <div><span className="text-slate-300">F:</span> Follow mode</div>
-              <div><span className="text-slate-300">R:</span> Reset view</div>
-              <div><span className="text-slate-300">↑↓:</span> Adjust speed</div>
-              <div><span className="text-slate-300">Click:</span> Select planet</div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-gray-400">
+              <div><span className="text-gray-300">Mouse:</span> Drag to rotate, scroll to zoom</div>
+              <div><span className="text-gray-300">1-9:</span> Select planets</div>
+              <div><span className="text-gray-300">Space:</span> Play/Pause</div>
+              <div><span className="text-gray-300">O:</span> Toggle orbits</div>
+              <div><span className="text-gray-300">F:</span> Follow mode</div>
+              <div><span className="text-gray-300">R:</span> Reset view</div>
+              <div><span className="text-gray-300">↑↓:</span> Adjust speed</div>
+              <div><span className="text-gray-300">Click:</span> Select planet</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Right: Planet Info Panel */}
-      <div className="w-[380px] flex flex-col border-l border-slate-800/60 bg-slate-900/40">
+      <div className="w-[380px] flex flex-col border-l border-gray-800/60 bg-gray-900/40">
         {/* Planet selector tabs */}
-        <div className="flex flex-wrap gap-1 p-2 border-b border-slate-800/60 bg-slate-900/60">
+        <div className="flex flex-wrap gap-1 p-2 border-b border-gray-800/60 bg-gray-900/60">
           {planets.map(planet => {
             const isActive = selectedBody === planet.name;
             return (
@@ -779,7 +853,7 @@ export const UniverseSimulator: React.FC = () => {
                 className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium transition-all ${
                   isActive
                     ? 'bg-blue-500/20 text-white border border-blue-500/40'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-800/60 border border-transparent'
                 }`}
               >
                 <div
@@ -815,12 +889,12 @@ export const UniverseSimulator: React.FC = () => {
                   </span>
                 </div>
               </div>
-              <p className="text-xs text-slate-300 leading-relaxed">{selectedInfo.description}</p>
+              <p className="text-xs text-gray-300 leading-relaxed">{selectedInfo.description}</p>
             </div>
 
             {/* Physical Properties */}
-            <div className="rounded-lg bg-slate-800/50 border-slate-700/50 p-3">
-              <h4 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2.5">Physical Properties</h4>
+            <div className="rounded-lg bg-gray-800/50 border-gray-700/50 p-3">
+              <h4 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2.5">Physical Properties</h4>
               <div className="grid grid-cols-2 gap-2.5">
                 <StatItem icon={<Globe2 className="h-3.5 w-3.5" />} label="Diameter" value={selectedInfo.diameter} />
                 <StatItem icon={<Scale className="h-3.5 w-3.5" />} label="Mass" value={selectedInfo.mass} />
@@ -830,8 +904,8 @@ export const UniverseSimulator: React.FC = () => {
             </div>
 
             {/* Orbital Data */}
-            <div className="rounded-lg bg-slate-800/50 border-slate-700/50 p-3">
-              <h4 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2.5">Orbital Data</h4>
+            <div className="rounded-lg bg-gray-800/50 border-gray-700/50 p-3">
+              <h4 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2.5">Orbital Data</h4>
               <div className="grid grid-cols-2 gap-2.5">
                 <StatItem icon={<Clock className="h-3.5 w-3.5" />} label="Day Length" value={selectedInfo.dayLength} />
                 <StatItem icon={<Orbit className="h-3.5 w-3.5" />} label="Year Length" value={selectedInfo.yearLength} />
@@ -840,26 +914,26 @@ export const UniverseSimulator: React.FC = () => {
             </div>
 
             {/* Atmosphere */}
-            <div className="rounded-lg bg-slate-800/50 border-slate-700/50 p-3">
-              <h4 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2.5">Atmosphere</h4>
+            <div className="rounded-lg bg-gray-800/50 border-gray-700/50 p-3">
+              <h4 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2.5">Atmosphere</h4>
               <div className="flex items-start gap-2">
-                <Wind className="h-3.5 w-3.5 text-slate-500 mt-0.5 flex-shrink-0" />
+                <Wind className="h-3.5 w-3.5 text-gray-500 mt-0.5 flex-shrink-0" />
                 <p className="text-xs text-white">{selectedInfo.atmosphere}</p>
               </div>
             </div>
 
             {/* Moons */}
-            <div className="rounded-lg bg-slate-800/50 border-slate-700/50 p-3">
-              <h4 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2.5">Moons</h4>
+            <div className="rounded-lg bg-gray-800/50 border-gray-700/50 p-3">
+              <h4 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2.5">Moons</h4>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <MoonStar className="h-3.5 w-3.5 text-slate-500" />
+                  <MoonStar className="h-3.5 w-3.5 text-gray-500" />
                   <span className="text-xs text-white">{selectedInfo.moons} known moon{selectedInfo.moons !== 1 ? 's' : ''}</span>
                 </div>
                 {selectedInfo.notableMoons !== 'None' && (
                   <div className="flex flex-wrap gap-1 ml-5">
                     {selectedInfo.notableMoons.split(', ').map(moon => (
-                      <span key={moon} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700/60 text-slate-300 border border-slate-600/50">
+                      <span key={moon} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-700/60 text-gray-300 border border-gray-600/50">
                         {moon}
                       </span>
                     ))}
@@ -869,8 +943,8 @@ export const UniverseSimulator: React.FC = () => {
             </div>
 
             {/* Quick comparison bar */}
-            <div className="rounded-lg bg-slate-800/50 border-slate-700/50 p-3">
-              <h4 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2.5">Size Comparison</h4>
+            <div className="rounded-lg bg-gray-800/50 border-gray-700/50 p-3">
+              <h4 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2.5">Size Comparison</h4>
               <div className="space-y-1.5">
                 {planets.filter(p => p.name !== 'Sun').map(planet => {
                   const maxRadius = 2.5; // Jupiter
@@ -878,10 +952,10 @@ export const UniverseSimulator: React.FC = () => {
                   const isThis = planet.name === selectedBody;
                   return (
                     <div key={planet.name} className="flex items-center gap-2">
-                      <span className={`text-[10px] w-14 text-right ${isThis ? 'text-white font-semibold' : 'text-slate-500'}`}>
+                      <span className={`text-[10px] w-14 text-right ${isThis ? 'text-white font-semibold' : 'text-gray-500'}`}>
                         {planet.name}
                       </span>
-                      <div className="flex-1 h-2 bg-slate-700/40 rounded-full overflow-hidden">
+                      <div className="flex-1 h-2 bg-gray-700/40 rounded-full overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all"
                           style={{
@@ -902,7 +976,7 @@ export const UniverseSimulator: React.FC = () => {
                 <Sparkles className="h-3.5 w-3.5 text-blue-400" />
                 <h4 className="text-[11px] font-semibold text-blue-300 uppercase tracking-wider">Did You Know?</h4>
               </div>
-              <p className="text-xs text-slate-300 leading-relaxed">
+              <p className="text-xs text-gray-300 leading-relaxed">
                 {selectedBody === 'Sun' && "The Sun accounts for 99.86% of the mass in the solar system and could fit 1.3 million Earths inside it!"}
                 {selectedBody === 'Mercury' && "Mercury has the most eccentric orbit of all planets, and a day on Mercury is longer than its year!"}
                 {selectedBody === 'Venus' && "Venus rotates backwards and so slowly that its day is longer than its year. It's also the brightest natural object in the night sky after the Moon."}
@@ -916,18 +990,18 @@ export const UniverseSimulator: React.FC = () => {
             </div>
             
             {/* Exploration Status */}
-            <div className="rounded-lg bg-slate-800/50 border-slate-700/50 p-3">
-              <h4 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2.5">Exploration</h4>
+            <div className="rounded-lg bg-gray-800/50 border-gray-700/50 p-3">
+              <h4 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2.5">Exploration</h4>
               <div className="space-y-1.5 text-xs">
-                {selectedBody === 'Sun' && <p className="text-slate-300">Studied by: Parker Solar Probe, SOHO, SDO</p>}
-                {selectedBody === 'Mercury' && <p className="text-slate-300">Visited by: Mariner 10, MESSENGER, BepiColombo (en route)</p>}
-                {selectedBody === 'Venus' && <p className="text-slate-300">Visited by: Venera missions, Magellan, Venus Express</p>}
-                {selectedBody === 'Earth' && <p className="text-slate-300">Home to: 8+ billion humans, ISS, thousands of satellites</p>}
-                {selectedBody === 'Mars' && <p className="text-slate-300">Active rovers: Perseverance, Curiosity • Orbiters: 8 active</p>}
-                {selectedBody === 'Jupiter' && <p className="text-slate-300">Visited by: Pioneer, Voyager, Galileo, Juno (orbiting)</p>}
-                {selectedBody === 'Saturn' && <p className="text-slate-300">Studied by: Cassini (2004-2017), Voyager flybys</p>}
-                {selectedBody === 'Uranus' && <p className="text-slate-300">Visited by: Voyager 2 (1986) - only spacecraft to visit</p>}
-                {selectedBody === 'Neptune' && <p className="text-slate-300">Visited by: Voyager 2 (1989) - only spacecraft to visit</p>}
+                {selectedBody === 'Sun' && <p className="text-gray-300">Studied by: Parker Solar Probe, SOHO, SDO</p>}
+                {selectedBody === 'Mercury' && <p className="text-gray-300">Visited by: Mariner 10, MESSENGER, BepiColombo (en route)</p>}
+                {selectedBody === 'Venus' && <p className="text-gray-300">Visited by: Venera missions, Magellan, Venus Express</p>}
+                {selectedBody === 'Earth' && <p className="text-gray-300">Home to: 8+ billion humans, ISS, thousands of satellites</p>}
+                {selectedBody === 'Mars' && <p className="text-gray-300">Active rovers: Perseverance, Curiosity • Orbiters: 8 active</p>}
+                {selectedBody === 'Jupiter' && <p className="text-gray-300">Visited by: Pioneer, Voyager, Galileo, Juno (orbiting)</p>}
+                {selectedBody === 'Saturn' && <p className="text-gray-300">Studied by: Cassini (2004-2017), Voyager flybys</p>}
+                {selectedBody === 'Uranus' && <p className="text-gray-300">Visited by: Voyager 2 (1986) - only spacecraft to visit</p>}
+                {selectedBody === 'Neptune' && <p className="text-gray-300">Visited by: Voyager 2 (1989) - only spacecraft to visit</p>}
               </div>
             </div>
           </div>
@@ -939,9 +1013,9 @@ export const UniverseSimulator: React.FC = () => {
 
 const StatItem = ({ icon, label, value, className = '' }: { icon: React.ReactNode; label: string; value: string; className?: string }) => (
   <div className={`flex items-start gap-2 ${className}`}>
-    <div className="text-slate-500 mt-0.5 flex-shrink-0">{icon}</div>
+    <div className="text-gray-500 mt-0.5 flex-shrink-0">{icon}</div>
     <div className="min-w-0">
-      <div className="text-[10px] text-slate-500 uppercase tracking-wider">{label}</div>
+      <div className="text-[10px] text-gray-500 uppercase tracking-wider">{label}</div>
       <div className="text-xs text-white font-medium mt-0.5 break-words">{value}</div>
     </div>
   </div>

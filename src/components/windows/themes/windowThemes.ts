@@ -2,27 +2,27 @@ import { WindowTheme } from '../types/WindowTypes';
 
 export const WINDOW_THEMES = {
   default: {
-    headerBg: 'rgba(255, 255, 255, 0.9)',
+    headerBg: 'rgba(255, 255, 255, 0.95)',
     headerText: '#1f2937',
-    headerBorder: 'rgba(255, 255, 255, 0.4)',
-    bodyBg: 'rgba(255, 255, 255, 0.9)',
+    headerBorder: 'rgba(229, 231, 235, 0.8)',
+    bodyBg: 'rgba(255, 255, 255, 0.95)',
     bodyText: '#1f2937',
     accentColor: '#0078D4',
     glassEffect: true,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
-    shadowColor: 'rgba(0, 0, 0, 0.1)',
+    borderColor: 'rgba(229, 231, 235, 0.8)',
+    shadowColor: 'rgba(0, 0, 0, 0.12)',
   } as WindowTheme,
 
   dark: {
-    headerBg: 'rgba(31, 41, 55, 0.9)',
+    headerBg: 'rgba(31, 41, 55, 0.95)',
     headerText: '#f9fafb',
-    headerBorder: 'rgba(75, 85, 99, 0.5)',
-    bodyBg: 'rgba(17, 24, 39, 0.9)',
+    headerBorder: 'rgba(75, 85, 99, 0.6)',
+    bodyBg: 'rgba(17, 24, 39, 0.95)',
     bodyText: '#f9fafb',
     accentColor: '#60A5FA',
     glassEffect: true,
-    borderColor: 'rgba(75, 85, 99, 0.5)',
-    shadowColor: 'rgba(0, 0, 0, 0.3)',
+    borderColor: 'rgba(75, 85, 99, 0.6)',
+    shadowColor: 'rgba(0, 0, 0, 0.4)',
   } as WindowTheme,
 
   blue: {
@@ -224,18 +224,19 @@ export function getTheme(themeName: WindowThemeName, isDark: boolean): WindowThe
     };
   }
 
-  // Colored themes: keep header, darken body with accent tint
+  // Colored themes: keep header, darken body with solid dark + subtle accent tint
   const rgb = ACCENT_RGB[themeName];
   const tintedDarkBody = rgb
-    ? `rgba(${rgb}, 0.08)`
-    : 'rgba(17, 24, 39, 0.95)';
+    ? `linear-gradient(135deg, rgba(17, 24, 39, 0.97) 0%, rgba(${rgb}, 0.15) 100%)`
+    : 'rgba(17, 24, 39, 0.97)';
 
   return {
     ...base,
     bodyBg: tintedDarkBody,
     bodyText: '#f9fafb',
-    borderColor: base.borderColor?.replace(/0\.\d+\)$/, '0.4)'),
-    shadowColor: base.shadowColor?.replace(/0\.\d+\)$/, '0.35)'),
+    headerBorder: base.headerBorder?.replace(/0\.\d+\)$/, '0.6)'),
+    borderColor: base.borderColor?.replace(/0\.\d+\)$/, '0.5)'),
+    shadowColor: base.shadowColor?.replace(/0\.\d+\)$/, '0.4)'),
   };
 }
 

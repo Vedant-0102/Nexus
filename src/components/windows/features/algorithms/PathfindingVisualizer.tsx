@@ -31,6 +31,15 @@ export const PathfindingVisualizer: React.FC = () => {
   const [stats, setStats] = useState({ visited: 0, pathLength: 0, time: 0 });
   const animationRef = useRef<number>();
   const pauseRef = useRef(false);
+  const unmountedRef = useRef(false);
+
+  // Cleanup on unmount: unblock any paused polling loops
+  useEffect(() => {
+    return () => {
+      unmountedRef.current = true;
+      pauseRef.current = false; // unblock any waiting loops
+    };
+  }, []);
 
   // Initialize grid
   useEffect(() => {
@@ -157,15 +166,17 @@ export const PathfindingVisualizer: React.FC = () => {
 
   const visualizePath = async (path: Cell[]) => {
     for (let i = 1; i < path.length - 1; i++) {
+      if (unmountedRef.current) return;
       if (pauseRef.current) {
         await new Promise(resolve => {
           const checkPause = setInterval(() => {
-            if (!pauseRef.current) {
+            if (!pauseRef.current || unmountedRef.current) {
               clearInterval(checkPause);
               resolve(null);
             }
           }, 100);
         });
+        if (unmountedRef.current) return;
       }
       
       const newGrid = [...grid];
@@ -192,16 +203,17 @@ export const PathfindingVisualizer: React.FC = () => {
 
     let visitedCount = 0;
 
-    while (unvisited.length > 0) {
+    while (unvisited.length > 0 && !unmountedRef.current) {
       if (pauseRef.current) {
         await new Promise(resolve => {
           const checkPause = setInterval(() => {
-            if (!pauseRef.current) {
+            if (!pauseRef.current || unmountedRef.current) {
               clearInterval(checkPause);
               resolve(null);
             }
           }, 100);
         });
+        if (unmountedRef.current) break;
       }
 
       unvisited.sort((a, b) => a.distance - b.distance);
@@ -250,16 +262,17 @@ export const PathfindingVisualizer: React.FC = () => {
     const openSet: Cell[] = [startCell];
     let visitedCount = 0;
 
-    while (openSet.length > 0) {
+    while (openSet.length > 0 && !unmountedRef.current) {
       if (pauseRef.current) {
         await new Promise(resolve => {
           const checkPause = setInterval(() => {
-            if (!pauseRef.current) {
+            if (!pauseRef.current || unmountedRef.current) {
               clearInterval(checkPause);
               resolve(null);
             }
           }, 100);
         });
+        if (unmountedRef.current) break;
       }
 
       openSet.sort((a, b) => (a.distance + a.heuristic) - (b.distance + b.heuristic));
@@ -309,16 +322,17 @@ export const PathfindingVisualizer: React.FC = () => {
     startCell.visited = true;
     let visitedCount = 0;
 
-    while (queue.length > 0) {
+    while (queue.length > 0 && !unmountedRef.current) {
       if (pauseRef.current) {
         await new Promise(resolve => {
           const checkPause = setInterval(() => {
-            if (!pauseRef.current) {
+            if (!pauseRef.current || unmountedRef.current) {
               clearInterval(checkPause);
               resolve(null);
             }
           }, 100);
         });
+        if (unmountedRef.current) break;
       }
 
       const current = queue.shift()!;
@@ -359,16 +373,17 @@ export const PathfindingVisualizer: React.FC = () => {
     const stack: Cell[] = [startCell];
     let visitedCount = 0;
 
-    while (stack.length > 0) {
+    while (stack.length > 0 && !unmountedRef.current) {
       if (pauseRef.current) {
         await new Promise(resolve => {
           const checkPause = setInterval(() => {
-            if (!pauseRef.current) {
+            if (!pauseRef.current || unmountedRef.current) {
               clearInterval(checkPause);
               resolve(null);
             }
           }, 100);
         });
+        if (unmountedRef.current) break;
       }
 
       const current = stack.pop()!;

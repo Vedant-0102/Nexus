@@ -143,6 +143,8 @@ import { NuclearDecay } from '../features/science/chemistry/NuclearDecay';
 import { PHScale } from '../features/science/chemistry/PHScale';
 import { OrganicChemistry } from '../features/science/chemistry/OrganicChemistry';
 import { PolymerBuilder } from '../features/science/chemistry/PolymerBuilder';
+import { ChemistryCalculator } from '../features/science/chemistry/ChemistryCalculator';
+import { FlameTest } from '../features/science/chemistry/FlameTest';
 import { CellDivision } from '../features/science/biology/CellDivision';
 import { DNAReplication } from '../features/science/biology/DNAReplication';
 import { NeuronSignal } from '../features/science/biology/NeuronSignal';
@@ -1657,6 +1659,34 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         isResizable: true,
         isMaximizable: true,
         defaultSize: { width: 1200, height: 800 },
+      },
+      {
+        id: 'chemistry-calculator',
+        title: 'Chemistry Calculator',
+        content: <ChemistryCalculator />,
+        isOpen: openWindowIds.includes('chemistry-calculator'),
+        isMinimized: minimizedWindowIds.includes('chemistry-calculator'),
+        icon: <Beaker className="h-5 w-5 text-teal-500" />,
+        zIndex: 100,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 900, height: 700 },
+      },
+      {
+        id: 'flame-test',
+        title: 'Flame Test',
+        content: <FlameTest />,
+        isOpen: openWindowIds.includes('flame-test'),
+        isMinimized: minimizedWindowIds.includes('flame-test'),
+        icon: <FlaskConical className="h-5 w-5 text-orange-500" />,
+        zIndex: 100,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1100, height: 750 },
       },
       {
         id: 'cell-division',

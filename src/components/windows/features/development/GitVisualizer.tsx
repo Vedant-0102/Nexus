@@ -753,7 +753,7 @@ function processCommand(state: GitSimState, raw: string): { state: GitSimState; 
   if (lower === 'git help' || lower === 'help') {
     return {
       state,
-      output: 'Available commands:\n  git init            Initialize repository\n  git status          Show working tree status\n  git add <file|.>    Stage files\n  git commit -m "msg" Create a commit\n  git log [--oneline] Show commit history\n  git branch [name]   List or create branches\n  git checkout <branch|name> Switch branches\n  git checkout -b <name>     Create & switch\n  git merge <branch>  Merge a branch\n  git diff            Show file changes\n  git stash / pop     Save/restore changes\n  git tag <name>      Tag current commit\n  git reset HEAD~1    Undo last commit\n  git rebase <branch> Rebase onto branch',
+      output: 'Available commands:\n  git init            Initialize repository\n  git clone <url>     Clone a remote repository\n  git status          Show working tree status\n  git add <file|.>    Stage files\n  git commit -m "msg" Create a commit\n  git log [--oneline] Show commit history\n  git branch [name]   List or create branches\n  git checkout <branch>      Switch branches\n  git checkout -b <name>     Create & switch\n  git merge <branch>  Merge a branch\n  git push [remote] [branch] Push commits to remote\n  git pull [remote] [branch] Pull from remote\n  git remote [-v]     Show remote info\n  git diff            Show file changes\n  git stash / pop     Save/restore changes\n  git tag <name>      Tag current commit\n  git reset HEAD~1    Undo last commit\n  git rebase <branch> Rebase onto branch',
     };
   }
 
@@ -1064,6 +1064,65 @@ function processCommand(state: GitSimState, raw: string): { state: GitSimState; 
         nextCommitNum: num,
       },
       output: `Successfully rebased ${state.currentBranch} onto ${target}.\n${rebasedCommits.length} commit(s) replayed.`,
+    };
+  }
+
+  // git push
+  if (subcmd === 'push') {
+    if (state.commits.length === 0) return { state, output: 'error: no commits to push', error: true };
+    const remote = parts[2] || 'origin';
+    const branch = parts[3] || state.currentBranch;
+    const branchCommits = state.commits.filter(c => c.branch === branch);
+    if (branchCommits.length === 0) return { state, output: `error: src refspec '${branch}' does not match any`, error: true };
+    return {
+      state,
+      output: `Enumerating objects: ${branchCommits.length * 3}, done.\nCounting objects: 100% (${branchCommits.length * 3}/${branchCommits.length * 3}), done.\nDelta compression using up to 8 threads\nCompressing objects: 100%\nWriting objects: 100%\nTo ${remote}:user/repo.git\n   ${branchCommits[0].hash}..${branchCommits[branchCommits.length - 1].hash}  ${branch} -> ${branch}`,
+    };
+  }
+
+  // git pull
+  if (subcmd === 'pull') {
+    const remote = parts[2] || 'origin';
+    const branch = parts[3] || state.currentBranch;
+    return {
+      state,
+      output: `From ${remote}:user/repo.git\n * branch            ${branch}     -> FETCH_HEAD\nAlready up to date.`,
+    };
+  }
+
+  // git remote
+  if (subcmd === 'remote') {
+    if (parts[2] === '-v') {
+      return { state, output: 'origin  https://github.com/user/repo.git (fetch)\norigin  https://github.com/user/repo.git (push)' };
+    }
+    if (parts[2] === 'add') {
+      return { state, output: `Remote '${parts[3] || 'origin'}' added.` };
+    }
+    return { state, output: 'origin' };
+  }
+
+  // git clone
+  if (subcmd === 'clone') {
+    const url = parts[2];
+    if (!url) return { state, output: 'fatal: You must specify a repository to clone.', error: true };
+    const initCommit: CommitNode = {
+      id: 's1', hash: makeHash(1), message: 'Initial commit (cloned)',
+      branch: 'main', parents: [], author: 'remote', timestamp: 'just now',
+    };
+    const readmeFile: SimFile = { name: 'README.md', status: 'committed', content: '# Cloned Repository\n\nWelcome to your cloned project.' };
+    return {
+      state: {
+        ...state,
+        initialized: true,
+        commits: [initCommit],
+        branches: assignLanes([{ name: 'main', color: getBranchColor('main'), lane: 0 }]),
+        currentBranch: 'main',
+        head: 's1',
+        files: [readmeFile],
+        nextCommitNum: 2,
+        terminalLines: [...state.terminalLines, { text: `Cloning into 'repo'...\nremote: Enumerating objects: 3, done.\nremote: Total 3 (delta 0), reused 0 (delta 0)\nReceiving objects: 100% (3/3), done.`, type: 'output' }],
+      },
+      output: '',
     };
   }
 
@@ -2124,11 +2183,26 @@ export const GitVisualizer: React.FC = () => {
                 <div ref={sandboxScrollRef} className="flex-1 overflow-auto">
                   {sandboxState.commits.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-center p-6">
-                      <Terminal className="h-8 w-8 text-slate-300 dark:text-slate-600 mb-3" />
-                      <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Git Sandbox</p>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 max-w-xs">
-                        Type <code className="text-orange-500 font-mono">git init</code> in the terminal below to create a repository, then use any git command freely.
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30 flex items-center justify-center mb-4">
+                        <Terminal className="h-8 w-8 text-orange-500 dark:text-orange-400" />
+                      </div>
+                      <p className="text-base font-semibold text-slate-700 dark:text-slate-200 mb-1">Git Sandbox</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 max-w-sm mb-4">
+                        Practice git commands in a safe, simulated environment. Your changes stay local.
                       </p>
+                      <div className="flex flex-col gap-2 text-left bg-slate-50 dark:bg-slate-800/60 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
+                        <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Get started:</p>
+                        <button onClick={() => { setSandboxCmd('git init'); }} className="flex items-center gap-2 text-left hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded px-2 py-1 transition-colors">
+                          <span className="text-green-500 text-xs font-mono">$</span>
+                          <code className="text-xs font-mono text-orange-500">git init</code>
+                          <span className="text-[10px] text-slate-400 ml-auto">Create a new repository</span>
+                        </button>
+                        <button onClick={() => { setSandboxCmd('git clone https://github.com/user/repo.git'); }} className="flex items-center gap-2 text-left hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded px-2 py-1 transition-colors">
+                          <span className="text-green-500 text-xs font-mono">$</span>
+                          <code className="text-xs font-mono text-orange-500">git clone &lt;url&gt;</code>
+                          <span className="text-[10px] text-slate-400 ml-auto">Clone an existing repo</span>
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div className="flex">
@@ -2222,8 +2296,8 @@ export const GitVisualizer: React.FC = () => {
             </div>
 
             {/* Terminal area */}
-            <div className="flex-shrink-0 border-t border-slate-200 dark:border-slate-700 bg-slate-900 dark:bg-slate-950 flex flex-col" style={{ height: '40%', minHeight: 160 }}>
-              {/* Terminal header */}
+            <div className="flex-shrink-0 border-t border-slate-200 dark:border-slate-700 bg-slate-900 dark:bg-slate-950 flex flex-col" style={{ height: '40%', minHeight: 180 }}>
+              {/* Terminal header with hint */}
               <div className="flex items-center gap-2 px-4 py-1.5 border-b border-slate-700/50 flex-shrink-0">
                 <Terminal className="h-3 w-3 text-green-500" />
                 <span className="text-[10px] font-mono text-green-500/80 font-medium uppercase tracking-wider">Terminal</span>
@@ -2239,6 +2313,30 @@ export const GitVisualizer: React.FC = () => {
                   <TooltipContent>Reset sandbox</TooltipContent>
                 </Tooltip>
               </div>
+
+              {/* Next step hint bar */}
+              {sandboxState.initialized && (
+                <div className="flex items-center gap-2 px-4 py-1.5 border-b border-slate-700/30 bg-slate-800/50 flex-shrink-0">
+                  <Brain className="h-3 w-3 text-amber-400 flex-shrink-0" />
+                  <span className="text-[10px] text-amber-400/90 font-mono">
+                    {(() => {
+                      const hasUntracked = sandboxState.files.some(f => f.status === 'untracked');
+                      const hasModified = sandboxState.files.some(f => f.status === 'modified');
+                      const hasStaged = sandboxState.files.some(f => f.status === 'staged');
+                      const totalCommits = sandboxState.commits.length;
+                      const branchCount = sandboxState.branches.length;
+
+                      if (totalCommits === 0) return 'Hint: Create some files with git add, then commit with git commit -m "message"';
+                      if (hasUntracked || hasModified) return 'Hint: Stage your changes with "git add ." then commit them';
+                      if (hasStaged) return 'Hint: Commit your staged changes with \'git commit -m "your message"\'';
+                      if (branchCount === 1 && totalCommits >= 1) return 'Hint: Try creating a branch with "git branch feature" then "git checkout feature"';
+                      if (branchCount > 1 && sandboxState.currentBranch !== 'main') return 'Hint: Make commits here, then switch back to main and merge with "git merge ' + sandboxState.currentBranch + '"';
+                      if (branchCount > 1 && sandboxState.currentBranch === 'main') return 'Hint: Try merging a branch or push your changes with "git push origin main"';
+                      return 'Hint: Try "git status", create branches, or push to remote with "git push"';
+                    })()}
+                  </span>
+                </div>
+              )}
 
               {/* Terminal output */}
               <div className="flex-1 overflow-auto px-4 py-2 font-mono text-[11px] space-y-0.5 min-h-0">
@@ -2280,13 +2378,13 @@ export const GitVisualizer: React.FC = () => {
               </div>
 
               {/* Supported commands bar */}
-              <div className="flex items-center gap-1.5 px-4 py-1 border-t border-slate-700/50 flex-shrink-0 overflow-x-auto">
-                <span className="text-[9px] text-slate-600 flex-shrink-0">Supported:</span>
-                {['init', 'add', 'commit', 'status', 'log', 'branch', 'checkout', 'merge', 'diff', 'stash', 'tag', 'reset', 'rebase', 'help'].map(cmd => (
+              <div className="flex items-center gap-1.5 px-4 py-1.5 border-t border-slate-700/50 flex-shrink-0 overflow-x-auto bg-slate-800/30">
+                <span className="text-[9px] text-slate-600 flex-shrink-0 font-medium">Commands:</span>
+                {['init', 'clone', 'add', 'commit', 'status', 'log', 'branch', 'checkout', 'merge', 'push', 'pull', 'remote', 'diff', 'stash', 'tag', 'reset', 'rebase', 'help'].map(cmd => (
                   <button
                     key={cmd}
                     onClick={() => setSandboxCmd(cmd === 'help' ? 'git help' : `git ${cmd} `)}
-                    className="text-[9px] font-mono text-slate-500 hover:text-green-400 transition-colors flex-shrink-0"
+                    className="text-[9px] font-mono px-1.5 py-0.5 rounded text-slate-500 hover:text-green-400 hover:bg-slate-700/50 transition-colors flex-shrink-0"
                   >
                     {cmd}
                   </button>

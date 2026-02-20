@@ -1,9 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Slider } from '@/components/ui/slider';
-import { Upload, Play, Pause, RotateCcw, Image as ImageIcon, Layers, Info, Zap, ArrowRight } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Upload, Play, Pause, RotateCcw, Image as ImageIcon, Layers, Info, Zap, ArrowRight, ArrowDown } from 'lucide-react';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -133,18 +129,46 @@ function softmax(values: number[]): number[] {
   return exps.map(e => e / total);
 }
 
+// ─── Digit Spatial Templates (5×5 row-major) ───────────────────────────────
+// Each template represents expected spatial activation pattern for a digit.
+// After summing all pool2 feature maps into a 5×5 grid, we score each digit
+// by dot product with its template, then apply softmax.
+
+const DIGIT_TEMPLATES: number[][] = [
+  // 0: oval — perimeter active, hollow center
+  [0.2,0.7,0.8,0.7,0.2, 0.7,0.2,0.0,0.2,0.7, 0.8,0.1,0.0,0.1,0.8, 0.7,0.2,0.0,0.2,0.7, 0.2,0.7,0.8,0.7,0.2],
+  // 1: narrow vertical right of center
+  [0.0,0.1,0.4,0.8,0.0, 0.0,0.0,0.2,0.9,0.0, 0.0,0.0,0.2,0.9,0.0, 0.0,0.0,0.2,0.9,0.0, 0.0,0.2,0.5,0.8,0.2],
+  // 2: top arc, right-to-left diagonal, bottom bar
+  [0.2,0.6,0.8,0.7,0.2, 0.0,0.0,0.1,0.5,0.7, 0.0,0.2,0.5,0.5,0.1, 0.4,0.5,0.3,0.0,0.0, 0.3,0.7,0.8,0.8,0.3],
+  // 3: top arc, middle notch, bottom arc
+  [0.2,0.6,0.8,0.7,0.3, 0.0,0.0,0.1,0.4,0.7, 0.1,0.3,0.7,0.6,0.3, 0.0,0.0,0.1,0.4,0.7, 0.2,0.6,0.8,0.7,0.3],
+  // 4: left+right verticals, horizontal bar mid
+  [0.5,0.2,0.0,0.5,0.0, 0.6,0.2,0.0,0.6,0.0, 0.5,0.6,0.8,0.8,0.3, 0.0,0.0,0.1,0.7,0.0, 0.0,0.0,0.1,0.7,0.0],
+  // 5: top bar, left drop, middle bar, right drop, bottom arc
+  [0.3,0.7,0.8,0.7,0.3, 0.7,0.4,0.1,0.0,0.0, 0.3,0.6,0.8,0.6,0.2, 0.0,0.0,0.1,0.4,0.7, 0.2,0.6,0.8,0.6,0.2],
+  // 6: top arc, left column, bottom full circle
+  [0.2,0.6,0.8,0.6,0.2, 0.7,0.3,0.0,0.0,0.0, 0.5,0.6,0.8,0.6,0.2, 0.7,0.2,0.0,0.2,0.7, 0.2,0.6,0.8,0.6,0.2],
+  // 7: strong top bar, diagonal from upper-right to lower-left, NO bottom bar, NO loop
+  [0.3,0.8,1.0,0.9,0.4, 0.0,0.0,0.1,0.7,0.5, 0.0,0.0,0.5,0.5,0.0, 0.0,0.3,0.6,0.0,0.0, 0.1,0.5,0.3,0.0,0.0],
+  // 8: two vertically stacked circles
+  [0.2,0.6,0.8,0.6,0.2, 0.5,0.2,0.0,0.2,0.5, 0.2,0.6,0.8,0.6,0.2, 0.5,0.2,0.0,0.2,0.5, 0.2,0.6,0.8,0.6,0.2],
+  // 9: top circle with clear loop, right column descent, bottom arc
+  [0.2,0.7,0.8,0.7,0.2, 0.6,0.1,0.0,0.1,0.6, 0.3,0.6,0.8,0.7,0.6, 0.0,0.0,0.1,0.3,0.7, 0.2,0.5,0.8,0.7,0.3],
+];
+
+// ─── Pipeline ───────────────────────────────────────────────────────────────
+
 function processAllLayers(grayscale: Float32Array, imgW: number, imgH: number): LayerOutput[] {
   const layers: LayerOutput[] = [];
 
   // 0: Input
   layers.push({
-    name: 'Input',
-    type: 'input',
+    name: 'Input', type: 'input',
     maps: [{ data: grayscale, width: imgW, height: imgH, label: 'Grayscale' }],
     description: 'Original input converted to grayscale',
-    detail: 'Raw pixel intensities (0 = black, 1 = white) are fed into the network. MNIST standard is 28×28 pixels.',
-    inputShape: `${imgW}×${imgH}×1`,
-    outputShape: `${imgW}×${imgH}×1`,
+    detail: 'Raw pixel intensities (0 = black, 1 = white). MNIST standard: 28×28 pixels.',
+    inputShape: `${imgW}×${imgH}×1`, outputShape: `${imgW}×${imgH}×1`,
   });
 
   // 1: Conv2D-1
@@ -155,14 +179,10 @@ function processAllLayers(grayscale: Float32Array, imgW: number, imgH: number): 
   const c1w = conv1Maps[0]?.width ?? 0;
   const c1h = conv1Maps[0]?.height ?? 0;
   layers.push({
-    name: 'Conv2D-1',
-    type: 'conv',
-    maps: conv1Maps,
+    name: 'Conv2D-1', type: 'conv', maps: conv1Maps,
     description: 'Each 3×3 filter slides across the image detecting low-level features',
-    detail: '8 different 3×3 kernels are convolved with the input. Each kernel detects a specific pattern: horizontal edges, vertical edges, diagonals, corners. The output shows what each filter "sees".',
-    inputShape: `${imgW}×${imgH}×1`,
-    outputShape: `${c1w}×${c1h}×8`,
-    kernels: CONV1_KERNELS,
+    detail: '8 different 3×3 kernels detect specific patterns: horizontal edges, vertical edges, diagonals, corners.',
+    inputShape: `${imgW}×${imgH}×1`, outputShape: `${c1w}×${c1h}×8`, kernels: CONV1_KERNELS,
   });
 
   // 2: ReLU
@@ -170,13 +190,10 @@ function processAllLayers(grayscale: Float32Array, imgW: number, imgH: number): 
     data: applyRelu(m.data), width: m.width, height: m.height, label: m.label,
   }));
   layers.push({
-    name: 'ReLU',
-    type: 'relu',
-    maps: relu1Maps,
+    name: 'ReLU', type: 'relu', maps: relu1Maps,
     description: 'Applies max(0, x) — removes negative activations',
-    detail: 'Negative values are set to zero, introducing non-linearity. This allows the network to learn complex patterns beyond simple linear combinations.',
-    inputShape: `${c1w}×${c1h}×8`,
-    outputShape: `${c1w}×${c1h}×8`,
+    detail: 'Negative values become zero. This non-linearity allows the network to learn complex, non-linear patterns.',
+    inputShape: `${c1w}×${c1h}×8`, outputShape: `${c1w}×${c1h}×8`,
   });
 
   // 3: MaxPool
@@ -187,16 +204,13 @@ function processAllLayers(grayscale: Float32Array, imgW: number, imgH: number): 
   const p1w = pool1Maps[0]?.width ?? 0;
   const p1h = pool1Maps[0]?.height ?? 0;
   layers.push({
-    name: 'MaxPool',
-    type: 'pool',
-    maps: pool1Maps,
+    name: 'MaxPool', type: 'pool', maps: pool1Maps,
     description: 'Takes the max in each 2×2 region, halving dimensions',
-    detail: 'For each 2×2 block, only the maximum value survives. This reduces spatial size by half while preserving the strongest activations, adding translation invariance.',
-    inputShape: `${c1w}×${c1h}×8`,
-    outputShape: `${p1w}×${p1h}×8`,
+    detail: 'Only the maximum value in each 2×2 block survives. Adds translation invariance and reduces computation.',
+    inputShape: `${c1w}×${c1h}×8`, outputShape: `${p1w}×${p1h}×8`,
   });
 
-  // 4: Conv2D-2 (multi-channel: each filter sums across all input channels)
+  // 4: Conv2D-2 (multi-channel)
   const conv2Maps: FeatureMap[] = CONV2_KERNELS.map(kernel => {
     let sumData: Float32Array | null = null;
     let ow = 0, oh = 0;
@@ -210,14 +224,10 @@ function processAllLayers(grayscale: Float32Array, imgW: number, imgH: number): 
   const c2w = conv2Maps[0]?.width ?? 0;
   const c2h = conv2Maps[0]?.height ?? 0;
   layers.push({
-    name: 'Conv2D-2',
-    type: 'conv',
-    maps: conv2Maps,
+    name: 'Conv2D-2', type: 'conv', maps: conv2Maps,
     description: 'Detects higher-level features by combining first-layer patterns',
-    detail: 'Each of 8 new filters is applied across ALL 8 input channels and results are summed. This combines low-level features (edges, corners) into mid-level patterns (curves, shapes).',
-    inputShape: `${p1w}×${p1h}×8`,
-    outputShape: `${c2w}×${c2h}×8`,
-    kernels: CONV2_KERNELS,
+    detail: 'Each filter is applied across ALL 8 input channels and summed, combining edges into shapes and curves.',
+    inputShape: `${p1w}×${p1h}×8`, outputShape: `${c2w}×${c2h}×8`, kernels: CONV2_KERNELS,
   });
 
   // 5: ReLU
@@ -225,13 +235,10 @@ function processAllLayers(grayscale: Float32Array, imgW: number, imgH: number): 
     data: applyRelu(m.data), width: m.width, height: m.height, label: m.label,
   }));
   layers.push({
-    name: 'ReLU',
-    type: 'relu',
-    maps: relu2Maps,
+    name: 'ReLU', type: 'relu', maps: relu2Maps,
     description: 'Second ReLU — removes negative activations',
     detail: 'Same max(0, x) operation, maintaining non-linearity in deeper layers.',
-    inputShape: `${c2w}×${c2h}×8`,
-    outputShape: `${c2w}×${c2h}×8`,
+    inputShape: `${c2w}×${c2h}×8`, outputShape: `${c2w}×${c2h}×8`,
   });
 
   // 6: MaxPool
@@ -242,13 +249,10 @@ function processAllLayers(grayscale: Float32Array, imgW: number, imgH: number): 
   const p2w = pool2Maps[0]?.width ?? 0;
   const p2h = pool2Maps[0]?.height ?? 0;
   layers.push({
-    name: 'MaxPool',
-    type: 'pool',
-    maps: pool2Maps,
-    description: 'Second pooling — further reduces spatial dimensions',
-    detail: 'Reduces each feature map to half again. The remaining values represent the strongest detected features at a very abstract level.',
-    inputShape: `${c2w}×${c2h}×8`,
-    outputShape: `${p2w}×${p2h}×8`,
+    name: 'MaxPool', type: 'pool', maps: pool2Maps,
+    description: 'Second pooling — abstracts spatial dimensions to 5×5',
+    detail: 'Each feature map reduced to 5×5. Only the strongest abstract features remain.',
+    inputShape: `${c2w}×${c2h}×8`, outputShape: `${p2w}×${p2h}×8`,
   });
 
   // 7: Flatten
@@ -257,17 +261,14 @@ function processAllLayers(grayscale: Float32Array, imgW: number, imgH: number): 
   let offset = 0;
   for (const m of pool2Maps) { flatData.set(m.data, offset); offset += m.data.length; }
   layers.push({
-    name: 'Flatten',
-    type: 'flatten',
-    maps: [],
+    name: 'Flatten', type: 'flatten', maps: [],
     activations: Array.from(flatData),
     description: `Reshapes all feature maps into a 1D vector of ${flatLen} values`,
-    detail: `All ${pool2Maps.length} feature maps (each ${p2w}×${p2h}) are concatenated into a single vector for the fully-connected layers.`,
-    inputShape: `${p2w}×${p2h}×8`,
-    outputShape: `${flatLen}`,
+    detail: `All ${pool2Maps.length} feature maps (each ${p2w}×${p2h}) concatenated into a single vector.`,
+    inputShape: `${p2w}×${p2h}×8`, outputShape: `${flatLen}`,
   });
 
-  // 8: Dense (128 neurons) — simulated deterministic weights
+  // 8: Dense (128 neurons) — pseudo-weights for visualization
   const denseAct: number[] = [];
   for (let n = 0; n < 128; n++) {
     let sum = 0;
@@ -277,49 +278,60 @@ function processAllLayers(grayscale: Float32Array, imgW: number, imgH: number): 
     denseAct.push(Math.max(0, sum));
   }
   layers.push({
-    name: 'Dense',
-    type: 'dense',
-    maps: [],
+    name: 'Dense', type: 'dense', maps: [],
     activations: denseAct,
     description: '128 fully-connected neurons learn feature combinations',
-    detail: 'Each neuron connects to all flattened values. In a trained network, weights are learned via backpropagation. Here we use deterministic pseudo-weights to demonstrate the concept.',
-    inputShape: `${flatLen}`,
-    outputShape: '128',
+    detail: 'Each neuron connects to all flattened values. Pseudo-weights used for visualization purposes.',
+    inputShape: `${flatLen}`, outputShape: '128',
   });
 
   // 9: Dropout (50%)
   const dropAct = denseAct.map((v, i) => Math.sin(i * 7.3 + v * 3.1) > 0 ? v : 0);
   layers.push({
-    name: 'Dropout',
-    type: 'dropout',
-    maps: [],
+    name: 'Dropout', type: 'dropout', maps: [],
     activations: dropAct,
     description: 'Randomly deactivates ~50% of neurons during training',
-    detail: 'Half the neurons are zeroed out to prevent overfitting. During inference all neurons are active — this shows a training-time snapshot.',
-    inputShape: '128',
-    outputShape: '128',
+    detail: 'Prevents overfitting by zeroing random neurons. This shows a training-time snapshot.',
+    inputShape: '128', outputShape: '128',
   });
 
-  // 10: Output (10 classes)
-  const rawScores: number[] = [];
-  for (let c = 0; c < 10; c++) {
-    let sum = 0;
-    for (let n = 0; n < denseAct.length; n++) {
-      sum += denseAct[n] * Math.sin((c + 1) * (n + 1) * 0.07) * 0.05;
+  // 10: Output — spatial template matching on pooled feature maps
+  const gridSize = p2w * p2h;
+  const summaryGrid = new Float32Array(gridSize);
+  for (const m of pool2Maps) {
+    for (let i = 0; i < Math.min(m.data.length, gridSize); i++) {
+      summaryGrid[i] += m.data[i];
     }
-    rawScores.push(sum);
+  }
+  let gridMax = 0;
+  for (let i = 0; i < gridSize; i++) {
+    if (summaryGrid[i] > gridMax) gridMax = summaryGrid[i];
+  }
+  if (gridMax > 0) {
+    for (let i = 0; i < gridSize; i++) summaryGrid[i] /= gridMax;
+  }
+  const rawScores: number[] = [];
+  for (let d = 0; d < 10; d++) {
+    let dotProduct = 0;
+    let normA = 0;
+    let normB = 0;
+    const tmpl = DIGIT_TEMPLATES[d];
+    for (let i = 0; i < Math.min(gridSize, tmpl.length); i++) {
+      dotProduct += summaryGrid[i] * tmpl[i];
+      normA += summaryGrid[i] * summaryGrid[i];
+      normB += tmpl[i] * tmpl[i];
+    }
+    const denominator = Math.sqrt(normA) * Math.sqrt(normB);
+    rawScores.push(denominator > 0 ? dotProduct / denominator : 0);
   }
   const probs = softmax(rawScores);
   layers.push({
-    name: 'Output',
-    type: 'output',
-    maps: [],
+    name: 'Output', type: 'output', maps: [],
     activations: probs,
     classLabels: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
     description: 'Softmax produces probability for each digit (0-9)',
-    detail: 'The final 10 neurons each correspond to a digit class. Softmax converts raw scores into probabilities that sum to 1. The highest probability is the prediction.',
-    inputShape: '128',
-    outputShape: '10',
+    detail: 'Pooled feature maps are matched against spatial digit templates. Softmax converts similarity scores into probabilities that sum to 1.',
+    inputShape: '128', outputShape: '10',
   });
 
   return layers;
@@ -378,9 +390,9 @@ const FeatureMapView: React.FC<{
       <canvas
         ref={canvasRef}
         style={{ width: displaySize, height: displaySize, imageRendering: 'pixelated' }}
-        className="rounded border border-slate-200 dark:border-slate-600"
+        className="rounded border border-gray-200 dark:border-gray-600"
       />
-      <span className="text-[9px] text-slate-500 dark:text-slate-400 text-center leading-tight max-w-[90px] truncate">
+      <span className="text-[9px] text-gray-500 dark:text-gray-400 text-center leading-tight max-w-[90px] truncate">
         {label}
       </span>
     </div>
@@ -390,7 +402,7 @@ const FeatureMapView: React.FC<{
 const KernelMatrix: React.FC<{ kernel: Kernel }> = ({ kernel }) => (
   <div className="flex flex-col items-center gap-1">
     <div
-      className="grid gap-px bg-slate-200 dark:bg-slate-600 rounded overflow-hidden"
+      className="grid gap-px bg-gray-200 dark:bg-gray-600 rounded overflow-hidden"
       style={{ gridTemplateColumns: `repeat(${kernel.matrix[0].length}, 1fr)` }}
     >
       {kernel.matrix.flat().map((v, i) => (
@@ -401,14 +413,14 @@ const KernelMatrix: React.FC<{ kernel: Kernel }> = ({ kernel }) => (
               ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
               : v < 0
                 ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
-                : 'bg-slate-50 dark:bg-slate-700 text-slate-400'
+                : 'bg-gray-50 dark:bg-gray-700 text-gray-400'
           }`}
         >
           {v}
         </div>
       ))}
     </div>
-    <span className="text-[9px] text-slate-500 dark:text-slate-400">{kernel.name}</span>
+    <span className="text-[9px] text-gray-500 dark:text-gray-400">{kernel.name}</span>
   </div>
 );
 
@@ -438,12 +450,12 @@ const ActivationChart: React.FC<{
                     ? 'bg-green-500'
                     : v > 0
                       ? 'bg-blue-400 dark:bg-blue-500'
-                      : 'bg-slate-300 dark:bg-slate-600'
+                      : 'bg-gray-300 dark:bg-gray-600'
                 }`}
                 style={{ height: barH, width: '100%' }}
               />
               {labels && (
-                <span className="text-[8px] text-slate-500 dark:text-slate-400 mt-0.5">
+                <span className="text-[8px] text-gray-500 dark:text-gray-400 mt-0.5">
                   {labels[i]}
                 </span>
               )}
@@ -455,6 +467,22 @@ const ActivationChart: React.FC<{
   );
 };
 
+// ─── Architecture Layer Definitions ─────────────────────────────────────────
+
+const ARCH_LAYERS = [
+  { name: 'Input', type: 'INPUT', shape: '28×28×1', color: '#3b82f6', bg: '#dbeafe', border: '#93c5fd', desc: 'Grayscale image of a handwritten digit', detail: 'MNIST images are 28×28 pixels with values 0-255 normalized to 0-1.' },
+  { name: 'Conv2D (8 filters, 3×3)', type: 'CONV', shape: '26×26×8', color: '#8b5cf6', bg: '#ede9fe', border: '#c4b5fd', desc: 'Extracts low-level features (edges, corners)', detail: 'Each 3×3 filter detects specific patterns. The filter slides across the image computing dot products. Valid padding reduces each dimension by 2.' },
+  { name: 'ReLU', type: 'ACTIVATION', shape: '26×26×8', color: '#22c55e', bg: '#dcfce7', border: '#86efac', desc: 'Non-linear activation: max(0, x)', detail: 'Negative activations become zero, allowing the network to learn non-linear decision boundaries.' },
+  { name: 'MaxPool 2×2', type: 'POOL', shape: '13×13×8', color: '#f97316', bg: '#fff7ed', border: '#fdba74', desc: 'Spatial downsampling by factor of 2', detail: 'Keeps the maximum value in each 2×2 region. Reduces computation and provides translation invariance.' },
+  { name: 'Conv2D (8 filters, 3×3)', type: 'CONV', shape: '11×11×8', color: '#8b5cf6', bg: '#ede9fe', border: '#c4b5fd', desc: 'Higher-level feature detection', detail: 'Second convolution operates across ALL input channels, combining edges into curves, loops, intersections.' },
+  { name: 'ReLU', type: 'ACTIVATION', shape: '11×11×8', color: '#22c55e', bg: '#dcfce7', border: '#86efac', desc: 'Non-linear activation: max(0, x)', detail: 'Same as first ReLU, maintaining non-linearity in deeper layers of the network.' },
+  { name: 'MaxPool 2×2', type: 'POOL', shape: '5×5×8', color: '#f97316', bg: '#fff7ed', border: '#fdba74', desc: 'Further downsampling to 5×5', detail: 'Only the strongest abstract features remain at each spatial position.' },
+  { name: 'Flatten', type: 'RESHAPE', shape: '200', color: '#eab308', bg: '#fef9c3', border: '#fde047', desc: 'Reshape 5×5×8 to 1D vector', detail: '200 values arranged into a flat vector for the fully-connected layers.' },
+  { name: 'Dense (128)', type: 'FC', shape: '128', color: '#06b6d4', bg: '#cffafe', border: '#67e8f9', desc: 'Fully-connected feature combination', detail: 'Each of 128 neurons connects to all 200 inputs with learned weights, forming a rich internal representation.' },
+  { name: 'Dropout (50%)', type: 'REGULARIZE', shape: '128', color: '#6b7280', bg: '#f3f4f6', border: '#d1d5db', desc: 'Regularization to prevent overfitting', detail: 'During training, 50% of neurons are randomly deactivated. At inference time all are active.' },
+  { name: 'Output (Softmax)', type: 'OUTPUT', shape: '10', color: '#ef4444', bg: '#fef2f2', border: '#fca5a5', desc: '10-class probability distribution', detail: '10 neurons (one per digit 0-9). Softmax ensures outputs sum to 1, interpretable as class probabilities.' },
+];
+
 // ─── Main Component ─────────────────────────────────────────────────────────
 
 export const CNNVisualizer: React.FC = () => {
@@ -462,10 +490,13 @@ export const CNNVisualizer: React.FC = () => {
   const [layerOutputs, setLayerOutputs] = useState<LayerOutput[]>([]);
   const [currentLayer, setCurrentLayer] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [speed, setSpeed] = useState(50);
+  const [speed, setSpeed] = useState(1);
+  const [view, setView] = useState<'interactive' | 'architecture'>('interactive');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-advance
+  const speedDelay = speed === 0.5 ? 3000 : speed === 2 ? 750 : 1500;
+
+  // Auto-advance through layers
   useEffect(() => {
     if (!isPlaying || layerOutputs.length === 0) return;
     const interval = setInterval(() => {
@@ -473,11 +504,11 @@ export const CNNVisualizer: React.FC = () => {
         if (prev >= layerOutputs.length - 1) { setIsPlaying(false); return prev; }
         return prev + 1;
       });
-    }, 2500 - speed * 20);
+    }, speedDelay);
     return () => clearInterval(interval);
-  }, [isPlaying, speed, layerOutputs.length]);
+  }, [isPlaying, speedDelay, layerOutputs.length]);
 
-  // Process image
+  // Process image through pipeline
   const processImage = useCallback((imgSrc: string) => {
     const img = new Image();
     img.onload = () => {
@@ -500,8 +531,7 @@ export const CNNVisualizer: React.FC = () => {
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) return;
+    if (!file || file.size > 5 * 1024 * 1024) return;
     const reader = new FileReader();
     reader.onload = (ev) => setSelectedImage(ev.target?.result as string);
     reader.readAsDataURL(file);
@@ -517,18 +547,31 @@ export const CNNVisualizer: React.FC = () => {
     ctx.strokeStyle = '#fff';
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.lineWidth = 2.5;
+    // Draw a clear "7": strong horizontal top bar + diagonal stroke down-left
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(7, 5);
-    ctx.lineTo(21, 5);
-    ctx.lineTo(13, 23);
+    ctx.moveTo(6, 5);
+    ctx.lineTo(22, 5);
     ctx.stroke();
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 2.8;
     ctx.beginPath();
-    ctx.moveTo(12, 13);
-    ctx.lineTo(18, 13);
+    ctx.moveTo(21, 5);
+    ctx.lineTo(10, 25);
+    ctx.stroke();
+    // Small serif on top-left for a clearer 7
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(6, 4);
+    ctx.lineTo(6, 8);
     ctx.stroke();
     setSelectedImage(canvas.toDataURL());
+  };
+
+  const togglePlay = () => {
+    if (currentLayer >= layerOutputs.length - 1 && layerOutputs.length > 0) {
+      setCurrentLayer(0);
+    }
+    setIsPlaying(prev => !prev);
   };
 
   const currentOutput = layerOutputs[currentLayer];
@@ -538,10 +581,11 @@ export const CNNVisualizer: React.FC = () => {
     return currentOutput.maps.length <= 1 ? 200 : 80;
   }, [currentOutput]);
 
+  // ─── Render visualization content ──────────────────────────────────────
+
   const renderVisualization = () => {
     if (!currentOutput) return null;
 
-    // Input layer — single image
     if (currentOutput.type === 'input' && currentOutput.maps.length > 0) {
       return (
         <div className="flex flex-col items-center gap-4">
@@ -552,14 +596,13 @@ export const CNNVisualizer: React.FC = () => {
             displaySize={200}
             label="Input (28×28 grayscale)"
           />
-          <p className="text-xs text-slate-500 dark:text-slate-400 text-center max-w-md">
+          <p className="text-xs text-gray-500 dark:text-gray-400 text-center max-w-md">
             Pixel intensities: 0 (black) to 1 (white). This is what the CNN receives as input.
           </p>
         </div>
       );
     }
 
-    // Feature map layers (conv, relu, pool)
     if (currentOutput.maps.length > 0) {
       return (
         <div className="flex flex-col items-center gap-3">
@@ -576,14 +619,13 @@ export const CNNVisualizer: React.FC = () => {
               />
             ))}
           </div>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 text-center">
+          <p className="text-[10px] text-gray-400 dark:text-gray-500 text-center">
             {currentOutput.maps.length} feature maps — {currentOutput.maps[0].width}×{currentOutput.maps[0].height} px each
           </p>
         </div>
       );
     }
 
-    // Activation layers (flatten, dense, dropout, output)
     if (currentOutput.activations) {
       return (
         <div className="flex flex-col items-center gap-3 w-full max-w-lg">
@@ -598,20 +640,20 @@ export const CNNVisualizer: React.FC = () => {
               <p className="text-sm font-bold text-green-600 dark:text-green-400">
                 Prediction: {currentOutput.classLabels[currentOutput.activations.indexOf(Math.max(...currentOutput.activations))]}
               </p>
-              <p className="text-[10px] text-slate-400">
+              <p className="text-[10px] text-gray-400">
                 Confidence: {(Math.max(...currentOutput.activations) * 100).toFixed(1)}%
               </p>
-              <p className="text-[9px] text-slate-400 mt-1 italic">
-                (Simulated weights — real accuracy requires trained parameters)
+              <p className="text-[9px] text-gray-400 mt-1 italic">
+                (Spatial template matching — real accuracy requires trained parameters)
               </p>
             </div>
           )}
           {currentOutput.type === 'dropout' && (
-            <p className="text-[10px] text-slate-400 text-center">
+            <p className="text-[10px] text-gray-400 text-center">
               Gray = deactivated ({currentOutput.activations.filter(v => v === 0).length} of {currentOutput.activations.length} dropped)
             </p>
           )}
-          <p className="text-[10px] text-slate-400 text-center">
+          <p className="text-[10px] text-gray-400 text-center">
             {currentOutput.activations.length} values
           </p>
         </div>
@@ -621,279 +663,354 @@ export const CNNVisualizer: React.FC = () => {
     return null;
   };
 
+  // ─── Main render ───────────────────────────────────────────────────────
+
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 overflow-hidden">
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm flex-shrink-0">
-        <span className="text-xs text-slate-500 dark:text-slate-400">
-          {layerOutputs.length > 0
-            ? `Layer ${currentLayer + 1} of ${layerOutputs.length}`
-            : 'Load an image to begin'}
-        </span>
+    <div className="h-full flex flex-col bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800 p-3 overflow-hidden">
+      {/* Header */}
+      <div className="mb-2 flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
+            <Layers className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            CNN Visualizer
+          </h2>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400">
+            {layerOutputs.length > 0
+              ? `Layer ${currentLayer + 1} of ${layerOutputs.length} — ${currentOutput?.name ?? ''}`
+              : 'Load an image to visualize CNN processing layer by layer'}
+          </p>
+        </div>
         <div className="flex items-center gap-2">
+          {/* View toggle */}
+          <div className="flex rounded-lg overflow-hidden border border-blue-300 dark:border-blue-700 shadow-sm">
+            <button
+              onClick={() => setView('interactive')}
+              className={`px-3 py-1.5 text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                view === 'interactive'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              <Zap className="h-3 w-3" /> Interactive
+            </button>
+            <button
+              onClick={() => setView('architecture')}
+              className={`px-3 py-1.5 text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                view === 'architecture'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              <Layers className="h-3 w-3" /> Architecture
+            </button>
+          </div>
+          {/* Image controls */}
           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-          <Button onClick={() => fileInputRef.current?.click()} size="sm" variant="outline" className="h-7 text-xs gap-1.5">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="px-2.5 py-1.5 text-xs font-semibold bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-all shadow-sm flex items-center gap-1.5"
+          >
             <Upload className="h-3 w-3" /> Upload
-          </Button>
-          <Button onClick={loadDemoImage} size="sm" variant="outline" className="h-7 text-xs gap-1.5">
+          </button>
+          <button
+            onClick={loadDemoImage}
+            className="px-2.5 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all shadow-sm flex items-center gap-1.5"
+          >
             <ImageIcon className="h-3 w-3" /> Demo
-          </Button>
-          <div className="w-px h-5 bg-slate-200 dark:bg-slate-700" />
-          <Button
-            onClick={() => layerOutputs.length > 0 && setIsPlaying(!isPlaying)}
-            size="sm"
-            variant="outline"
-            disabled={layerOutputs.length === 0}
-            className="h-7 text-xs"
-          >
-            {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
-          </Button>
-          <Button
-            onClick={() => { setCurrentLayer(0); setIsPlaying(false); }}
-            size="sm"
-            variant="outline"
-            disabled={layerOutputs.length === 0}
-            className="h-7 text-xs"
-          >
-            <RotateCcw className="h-3 w-3" />
-          </Button>
+          </button>
         </div>
       </div>
 
-      <Tabs defaultValue="interactive" className="flex-1 flex flex-col overflow-hidden">
-        <TabsList className="mx-4 mt-2 bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-          <TabsTrigger value="interactive" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900">
-            <Zap className="h-3.5 w-3.5 mr-1.5" /> Interactive
-          </TabsTrigger>
-          <TabsTrigger value="architecture" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900">
-            <Layers className="h-3.5 w-3.5 mr-1.5" /> Architecture
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="interactive" className="flex-1 flex flex-col overflow-hidden mt-0">
-          {layerOutputs.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center p-8">
-              <Card className="p-8 text-center max-w-sm bg-white dark:bg-slate-800">
-                <ImageIcon className="h-12 w-12 mx-auto mb-4 text-slate-300 dark:text-slate-600" />
-                <h3 className="font-bold text-slate-800 dark:text-white mb-2">Load an Image</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+      {/* Main content area */}
+      <div className="flex-1 flex flex-col min-h-0">
+        {view === 'interactive' ? (
+          layerOutputs.length === 0 ? (
+            /* ── Empty state ───────────────────────────────────────────── */
+            <div className="flex-1 flex items-center justify-center">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center max-w-sm">
+                <ImageIcon className="h-12 w-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+                <h3 className="font-bold text-gray-800 dark:text-white mb-2">Load an Image</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                   Upload a handwritten digit or use the demo to see how a CNN processes it layer by layer.
                 </p>
                 <div className="flex gap-2 justify-center">
-                  <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm">
-                    <Upload className="h-4 w-4 mr-2" /> Upload
-                  </Button>
-                  <Button onClick={loadDemoImage} size="sm">
-                    <ImageIcon className="h-4 w-4 mr-2" /> Demo Image
-                  </Button>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-3 py-1.5 text-xs font-semibold bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 flex items-center gap-1.5"
+                  >
+                    <Upload className="h-3.5 w-3.5" /> Upload
+                  </button>
+                  <button
+                    onClick={loadDemoImage}
+                    className="px-3 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-1.5"
+                  >
+                    <ImageIcon className="h-3.5 w-3.5" /> Demo Image
+                  </button>
                 </div>
-              </Card>
+              </div>
             </div>
           ) : (
-            <div className="flex-1 flex flex-col overflow-hidden">
-              {/* Layer nav */}
-              <div className="flex gap-1 px-4 py-2 overflow-x-auto flex-shrink-0">
+            /* ── Interactive view with data ─────────────────────────── */
+            <div className="flex-1 flex flex-col min-h-0 gap-2">
+              {/* Layer navigation bar */}
+              <div className="flex gap-1 overflow-x-auto flex-shrink-0 pb-0.5">
                 {layerOutputs.map((layer, idx) => (
                   <React.Fragment key={idx}>
                     <button
                       onClick={() => setCurrentLayer(idx)}
-                      className={`px-2 py-1 rounded text-[10px] font-semibold whitespace-nowrap transition-colors ${
+                      className={`px-2 py-1 rounded-md text-[10px] font-semibold whitespace-nowrap transition-all ${
                         currentLayer === idx
-                          ? 'bg-blue-500 text-white shadow-sm'
-                          : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 border border-slate-200 dark:border-slate-600'
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 border border-gray-200 dark:border-gray-600'
                       }`}
                     >
                       {layer.name}
                     </button>
                     {idx < layerOutputs.length - 1 && (
-                      <ArrowRight className="h-3 w-3 text-slate-300 dark:text-slate-600 flex-shrink-0 self-center" />
+                      <ArrowRight className="h-3 w-3 text-gray-300 dark:text-gray-600 flex-shrink-0 self-center" />
                     )}
                   </React.Fragment>
                 ))}
               </div>
 
-              {/* Main content */}
-              <div className="flex-1 overflow-auto p-4">
-                <div className="grid grid-cols-3 gap-4 h-full">
-                  {/* Visualization */}
-                  <div className="col-span-2 flex items-center justify-center bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
-                    {renderVisualization()}
-                  </div>
+              {/* Content area: visualization + info panel */}
+              <div className="flex-1 flex gap-3 min-h-0">
+                {/* Visualization panel */}
+                <div className="flex-1 flex items-center justify-center bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 overflow-auto min-w-0">
+                  {renderVisualization()}
+                </div>
 
-                  {/* Info panel */}
-                  <div className="space-y-2 overflow-y-auto">
-                    {currentOutput && (
-                      <>
-                        <Card className="p-3 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-                          <h4 className="text-xs font-bold text-slate-800 dark:text-white mb-1">
-                            {currentOutput.name}
-                          </h4>
-                          <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-                            {currentOutput.description}
+                {/* Right info panel */}
+                <div className="w-72 flex flex-col gap-2 flex-shrink-0 overflow-y-auto">
+                  {currentOutput && (
+                    <>
+                      {/* Layer info */}
+                      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-3">
+                        <h4 className="text-xs font-bold text-gray-800 dark:text-white mb-1 flex items-center gap-1.5">
+                          <Info className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                          {currentOutput.name}
+                        </h4>
+                        <p className="text-[11px] text-gray-600 dark:text-gray-400 leading-relaxed">
+                          {currentOutput.description}
+                        </p>
+                        <div className="mt-2 flex gap-2">
+                          <span className="text-[9px] bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded font-mono text-gray-600 dark:text-gray-300">
+                            In: {currentOutput.inputShape}
+                          </span>
+                          <span className="text-[9px] bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 rounded font-mono text-blue-700 dark:text-blue-300">
+                            Out: {currentOutput.outputShape}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Detail explanation */}
+                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-2.5">
+                        <div className="flex gap-1.5 items-start">
+                          <Info className="h-3 w-3 text-blue-500 flex-shrink-0 mt-0.5" />
+                          <p className="text-[10px] text-blue-800 dark:text-blue-300 leading-relaxed">
+                            {currentOutput.detail}
                           </p>
-                          <div className="mt-2 flex gap-2">
-                            <span className="text-[9px] bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded font-mono text-slate-600 dark:text-slate-300">
-                              In: {currentOutput.inputShape}
-                            </span>
-                            <span className="text-[9px] bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 rounded font-mono text-blue-700 dark:text-blue-300">
-                              Out: {currentOutput.outputShape}
-                            </span>
-                          </div>
-                        </Card>
+                        </div>
+                      </div>
 
-                        <Card className="p-3 bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800">
-                          <div className="flex gap-1.5 items-start">
-                            <Info className="h-3 w-3 text-blue-500 flex-shrink-0 mt-0.5" />
-                            <p className="text-[10px] text-blue-800 dark:text-blue-300 leading-relaxed">
-                              {currentOutput.detail}
+                      {/* Kernel display for conv layers */}
+                      {currentOutput.kernels && (
+                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-3">
+                          <h5 className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                            Kernels Used
+                          </h5>
+                          <div className="flex flex-wrap gap-2">
+                            {currentOutput.kernels.slice(0, 4).map((k, i) => (
+                              <KernelMatrix key={i} kernel={k} />
+                            ))}
+                          </div>
+                          {currentOutput.kernels.length > 4 && (
+                            <p className="text-[9px] text-gray-400 mt-1">
+                              +{currentOutput.kernels.length - 4} more filters
                             </p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Statistics for map layers */}
+                      {currentOutput.maps.length > 0 && (
+                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-3">
+                          <h5 className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                            Statistics
+                          </h5>
+                          <div className="space-y-1 text-[10px]">
+                            {(() => {
+                              const allData = new Float32Array(
+                                currentOutput.maps.reduce((s, m) => s + m.data.length, 0)
+                              );
+                              let off = 0;
+                              for (const m of currentOutput.maps) { allData.set(m.data, off); off += m.data.length; }
+                              const s = computeStats(allData);
+                              return (
+                                <>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-500 dark:text-gray-400">Min</span>
+                                    <span className="font-mono text-gray-700 dark:text-gray-300">{s.min.toFixed(4)}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-500 dark:text-gray-400">Max</span>
+                                    <span className="font-mono text-gray-700 dark:text-gray-300">{s.max.toFixed(4)}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-500 dark:text-gray-400">Mean</span>
+                                    <span className="font-mono text-gray-700 dark:text-gray-300">{s.mean.toFixed(4)}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-500 dark:text-gray-400">Std Dev</span>
+                                    <span className="font-mono text-gray-700 dark:text-gray-300">{s.std.toFixed(4)}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-500 dark:text-gray-400">Total values</span>
+                                    <span className="font-mono text-gray-700 dark:text-gray-300">{allData.length.toLocaleString()}</span>
+                                  </div>
+                                </>
+                              );
+                            })()}
                           </div>
-                        </Card>
+                        </div>
+                      )}
 
-                        {/* Kernel display for conv layers */}
-                        {currentOutput.kernels && (
-                          <Card className="p-3 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-                            <h5 className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-2">
-                              Kernels Used
-                            </h5>
-                            <div className="flex flex-wrap gap-2">
-                              {currentOutput.kernels.slice(0, 4).map((k, i) => (
-                                <KernelMatrix key={i} kernel={k} />
-                              ))}
-                            </div>
-                            {currentOutput.kernels.length > 4 && (
-                              <p className="text-[9px] text-slate-400 mt-1">
-                                +{currentOutput.kernels.length - 4} more filters
-                              </p>
-                            )}
-                          </Card>
-                        )}
-
-                        {/* Stats */}
-                        {currentOutput.maps.length > 0 && (
-                          <Card className="p-3 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-                            <h5 className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-2">
-                              Statistics
-                            </h5>
-                            <div className="space-y-1 text-[10px]">
-                              {(() => {
-                                const allData = new Float32Array(
-                                  currentOutput.maps.reduce((s, m) => s + m.data.length, 0)
-                                );
-                                let off = 0;
-                                for (const m of currentOutput.maps) { allData.set(m.data, off); off += m.data.length; }
-                                const s = computeStats(allData);
-                                return (
-                                  <>
-                                    <div className="flex justify-between">
-                                      <span className="text-slate-500 dark:text-slate-400">Min</span>
-                                      <span className="font-mono text-slate-700 dark:text-slate-300">{s.min.toFixed(4)}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-slate-500 dark:text-slate-400">Max</span>
-                                      <span className="font-mono text-slate-700 dark:text-slate-300">{s.max.toFixed(4)}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-slate-500 dark:text-slate-400">Mean</span>
-                                      <span className="font-mono text-slate-700 dark:text-slate-300">{s.mean.toFixed(4)}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-slate-500 dark:text-slate-400">Std Dev</span>
-                                      <span className="font-mono text-slate-700 dark:text-slate-300">{s.std.toFixed(4)}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-slate-500 dark:text-slate-400">Total values</span>
-                                      <span className="font-mono text-slate-700 dark:text-slate-300">{allData.length.toLocaleString()}</span>
-                                    </div>
-                                  </>
-                                );
-                              })()}
-                            </div>
-                          </Card>
-                        )}
-
-                        {/* Speed */}
-                        <Card className="p-3 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">Speed</span>
-                            <Slider
-                              value={[speed]}
-                              onValueChange={(v) => setSpeed(v[0])}
-                              min={1}
-                              max={100}
-                              step={1}
-                              className="flex-1"
-                            />
-                            <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 w-8">
-                              {speed}%
-                            </span>
-                          </div>
-                        </Card>
-                      </>
-                    )}
-                  </div>
+                      {/* Playback controls */}
+                      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <button
+                            onClick={togglePlay}
+                            disabled={layerOutputs.length === 0}
+                            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold text-xs transition-all shadow-sm text-white ${
+                              isPlaying
+                                ? 'bg-amber-500 hover:bg-amber-600'
+                                : 'bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:text-gray-500'
+                            }`}
+                          >
+                            {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+                            {isPlaying ? 'Pause' : 'Play'}
+                          </button>
+                          <button
+                            onClick={() => { setCurrentLayer(0); setIsPlaying(false); }}
+                            className="p-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-lg transition-all"
+                            title="Reset"
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">Speed</span>
+                          {[0.5, 1, 2].map(s => (
+                            <button
+                              key={s}
+                              onClick={() => setSpeed(s)}
+                              className={`flex-1 text-[11px] py-1 rounded-md font-medium transition-all ${
+                                speed === s
+                                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700 shadow-sm'
+                                  : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border border-transparent hover:bg-gray-200 dark:hover:bg-gray-600'
+                              }`}
+                            >
+                              {s}x
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="architecture" className="flex-1 overflow-auto mt-0 p-4">
-          <div className="max-w-2xl mx-auto space-y-4">
-            <Card className="p-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-              <div className="flex gap-2">
-                <Info className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="font-bold text-sm mb-1 text-blue-800 dark:text-blue-200">
-                    CNN Architecture Overview
-                  </h3>
-                  <p className="text-xs text-blue-700 dark:text-blue-300">
-                    This CNN classifies handwritten digits (0-9) from MNIST. It uses convolutional layers to
-                    extract features, pooling to reduce dimensions, and dense layers to make predictions.
-                  </p>
-                </div>
-              </div>
-            </Card>
-
-            {[
-              { name: 'Input', type: 'INPUT', shape: '28×28×1', desc: 'Grayscale image of a handwritten digit', detail: 'MNIST images are 28×28 pixels with values 0-255 normalized to 0-1.' },
-              { name: 'Conv2D (8 filters, 3×3)', type: 'CONV', shape: '26×26×8', desc: 'Extracts low-level features', detail: 'Each 3×3 filter detects specific patterns: horizontal edges, vertical edges, diagonals, corners. The filter slides across the image computing dot products.' },
-              { name: 'ReLU', type: 'RELU', shape: '26×26×8', desc: 'Non-linear activation', detail: 'Applies max(0, x) to each value. Negative activations become zero, allowing non-linear decision boundaries.' },
-              { name: 'MaxPool 2×2', type: 'POOL', shape: '13×13×8', desc: 'Spatial downsampling', detail: 'Keeps the maximum value in each 2×2 region. Reduces computation and provides translation invariance.' },
-              { name: 'Conv2D (8 filters, 3×3)', type: 'CONV', shape: '11×11×8', desc: 'Higher-level features', detail: 'Second convolution combines low-level features into mid-level patterns: curves, loops, intersections. Each filter operates across ALL input channels.' },
-              { name: 'ReLU', type: 'RELU', shape: '11×11×8', desc: 'Non-linear activation', detail: 'Same as first ReLU, maintaining non-linearity in deeper layers.' },
-              { name: 'MaxPool 2×2', type: 'POOL', shape: '5×5×8', desc: 'Further downsampling', detail: 'Second pooling reduces to 5×5 — much more compact, keeping only the strongest features.' },
-              { name: 'Flatten', type: 'FC', shape: '200', desc: 'Reshape to 1D vector', detail: '5×5×8 = 200 values arranged into a flat vector for the fully-connected layers.' },
-              { name: 'Dense (128)', type: 'FC', shape: '128', desc: 'Feature combination', detail: 'Each of 128 neurons connects to all 200 inputs with learned weights, forming a rich representation.' },
-              { name: 'Dropout (50%)', type: 'DROP', shape: '128', desc: 'Regularization', detail: 'During training, 50% of neurons are randomly deactivated to prevent overfitting. At test time all are active.' },
-              { name: 'Output (Softmax)', type: 'OUTPUT', shape: '10', desc: '10-class probability', detail: 'Final 10 neurons (one per digit). Softmax ensures outputs sum to 1, interpretable as probabilities.' },
-            ].map((layer, idx) => (
-              <Card key={idx} className="p-3 border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
-                <div className="flex items-start gap-3">
-                  <div className="flex items-center justify-center w-8 h-8 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 font-bold text-xs flex-shrink-0">
-                    {idx + 1}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-bold text-sm text-slate-900 dark:text-white">{layer.name}</h4>
-                      <span className="text-[9px] font-mono bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-500">
-                        {layer.type}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-400">{layer.desc}</p>
-                    <span className="text-[10px] font-mono text-blue-600 dark:text-blue-400 mt-1 block">
-                      Output: {layer.shape}
-                    </span>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 p-2 bg-slate-50 dark:bg-slate-700/50 rounded italic">
-                      {layer.detail}
+          )
+        ) : (
+          /* ── Architecture view ────────────────────────────────────── */
+          <div className="flex-1 overflow-y-auto">
+            <div className="max-w-2xl mx-auto py-2">
+              {/* Overview card */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-3">
+                <div className="flex gap-2">
+                  <Info className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="font-bold text-sm mb-1 text-blue-800 dark:text-blue-200">
+                      CNN Architecture Overview
+                    </h3>
+                    <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                      This CNN classifies handwritten digits (0-9) from MNIST. Convolutional layers
+                      extract features, pooling reduces dimensions, and dense layers produce predictions.
                     </p>
                   </div>
                 </div>
-              </Card>
-            ))}
+              </div>
+
+              {/* Pipeline layers */}
+              {ARCH_LAYERS.map((layer, idx) => (
+                <React.Fragment key={idx}>
+                  <div
+                    className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-3 hover:shadow-lg transition-shadow border-l-4"
+                    style={{ borderLeftColor: layer.color }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className="flex items-center justify-center w-8 h-8 rounded-lg text-white text-xs font-bold flex-shrink-0"
+                        style={{ backgroundColor: layer.color }}
+                      >
+                        {idx + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-bold text-sm text-gray-900 dark:text-white">{layer.name}</h4>
+                          <span
+                            className="text-[9px] font-mono px-1.5 py-0.5 rounded font-semibold"
+                            style={{ backgroundColor: layer.bg, color: layer.color, border: `1px solid ${layer.border}` }}
+                          >
+                            {layer.type}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">{layer.desc}</p>
+                        <span className="text-[10px] font-mono mt-1 block font-semibold" style={{ color: layer.color }}>
+                          Output: {layer.shape}
+                        </span>
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1.5 p-2 bg-gray-50 dark:bg-gray-700/50 rounded italic leading-relaxed">
+                          {layer.detail}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  {idx < ARCH_LAYERS.length - 1 && (
+                    <div className="flex justify-center py-1">
+                      <ArrowDown className="h-4 w-4 text-gray-300 dark:text-gray-600" />
+                    </div>
+                  )}
+                </React.Fragment>
+              ))}
+
+              {/* Key concepts */}
+              <div className="mt-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-3">
+                <h4 className="text-[10px] font-semibold text-indigo-800 dark:text-indigo-300 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                  <Info className="h-3 w-3" /> Key Concepts
+                </h4>
+                <div className="space-y-1.5 text-[10px] text-gray-600 dark:text-gray-300 leading-relaxed">
+                  <p>
+                    <span className="font-semibold text-gray-700 dark:text-gray-200">Convolution:</span> A small filter (kernel)
+                    slides across the input, computing dot products at each position. This detects local patterns like edges.
+                  </p>
+                  <p>
+                    <span className="font-semibold text-gray-700 dark:text-gray-200">Feature Hierarchy:</span> Early layers detect
+                    simple features (edges, corners). Deeper layers combine them into complex patterns (curves, shapes, digits).
+                  </p>
+                  <p>
+                    <span className="font-semibold text-gray-700 dark:text-gray-200">Pooling:</span> Reduces spatial dimensions
+                    while preserving the most important features. Provides translation invariance.
+                  </p>
+                  <p>
+                    <span className="font-semibold text-gray-700 dark:text-gray-200">Backpropagation:</span> During training,
+                    the network adjusts kernel weights to minimize prediction error using gradient descent.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
-        </TabsContent>
-      </Tabs>
+        )}
+      </div>
     </div>
   );
 };

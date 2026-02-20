@@ -22,7 +22,7 @@ export const FolderContent: React.FC<FolderContentProps> = ({ type }) => {
     } else if (type === 'engine') {
       return ['database', 'codeeditor', 'nocode', 'sortingvisualizer', 'pathfinding', 'qrcode', 'cnnvisualizer', 'gitvisualizer', 'api-tester', 'texttohtml', 'markdowneditor', 'data-formatter'].includes(app.id);
     } else if (type === 'chemistry') {
-      return ['periodictable', 'molecularviewer', 'reactionsimulator', 'equation-balancer', 'titration-simulator', 'gas-laws'].includes(app.id);
+      return ['periodictable', 'molecularviewer', 'reactionsimulator', 'equation-balancer', 'titration-simulator', 'gas-laws', 'electrochemistry', 'spectroscopy', 'nuclear-decay', 'ph-scale', 'organic-chemistry', 'polymer-builder', 'chemistry-calculator', 'flame-test'].includes(app.id);
     } else if (type === 'physics') {
       return ['projectilemotion', 'pendulum', 'spring', 'waves', 'collisions', 'electromagneticlab', 'optics-simulator', 'electric-field', 'magnetic-field', 'rocket-propulsion', 'doppler-effect', 'quantum-tunneling'].includes(app.id);
     } else if (type === 'biology') {

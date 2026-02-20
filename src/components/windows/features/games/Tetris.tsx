@@ -71,14 +71,15 @@ export const Tetris: React.FC = () => {
     return false;
   }, []);
 
-  const mergePiece = useCallback(() => {
+  const mergePiece = useCallback((pieceOverride?: typeof currentPiece) => {
+    const piece = pieceOverride || currentPiece;
     const newBoard = board.map(row => [...row]);
-    currentPiece.shape.forEach((row, y) => {
+    piece.shape.forEach((row, y) => {
       row.forEach((cell, x) => {
         if (cell) {
-          const by = currentPiece.y + y;
-          const bx = currentPiece.x + x;
-          if (by >= 0) newBoard[by][bx] = currentPiece.color + 1;
+          const by = piece.y + y;
+          const bx = piece.x + x;
+          if (by >= 0) newBoard[by][bx] = piece.color + 1;
         }
       });
     });
@@ -138,8 +139,9 @@ export const Tetris: React.FC = () => {
     while (!checkCollision(currentPiece, board, 0, dropY + 1)) {
       dropY++;
     }
-    setCurrentPiece(prev => ({ ...prev, y: prev.y + dropY }));
-    setTimeout(() => mergePiece(), 0);
+    const droppedPiece = { ...currentPiece, y: currentPiece.y + dropY };
+    setCurrentPiece(droppedPiece);
+    mergePiece(droppedPiece);
   }, [currentPiece, board, checkCollision, mergePiece]);
 
   // Game tick
