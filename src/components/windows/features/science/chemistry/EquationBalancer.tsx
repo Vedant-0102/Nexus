@@ -27,15 +27,29 @@ export const EquationBalancer: React.FC = () => {
   // Parse chemical formula to get element counts
   const parseFormula = (formula: string): Record<string, number> => {
     const elements: Record<string, number> = {};
-    const regex = /([A-Z][a-z]?)(\d*)/g;
-    let match;
-
-    while ((match = regex.exec(formula)) !== null) {
-      const element = match[1];
-      const count = match[2] ? parseInt(match[2]) : 1;
-      elements[element] = (elements[element] || 0) + count;
-    }
-
+    
+    const parseSegment = (segment: string, multiplier: number) => {
+      const groupRegex = /\(([^()]+)\)(\d*)/g;
+      let processed = segment;
+      let groupMatch;
+      
+      while ((groupMatch = groupRegex.exec(segment)) !== null) {
+        const groupContent = groupMatch[1];
+        const groupCount = groupMatch[2] ? parseInt(groupMatch[2]) : 1;
+        parseSegment(groupContent, multiplier * groupCount);
+        processed = processed.replace(groupMatch[0], '');
+      }
+      
+      const regex = /([A-Z][a-z]?)(\d*)/g;
+      let match;
+      while ((match = regex.exec(processed)) !== null) {
+        const element = match[1];
+        const count = match[2] ? parseInt(match[2]) : 1;
+        elements[element] = (elements[element] || 0) + count * multiplier;
+      }
+    };
+    
+    parseSegment(formula, 1);
     return elements;
   };
 

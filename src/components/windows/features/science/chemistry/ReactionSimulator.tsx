@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Play, RotateCcw, Flame, Droplet, Zap, Leaf, Beaker, FlaskConical } from 'lucide-react';
 
 interface Reaction {
@@ -120,24 +120,33 @@ export const ReactionSimulator: React.FC = () => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [speed, setSpeed] = useState(2);
+  const intervalRef = useRef<number | undefined>();
+
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isAnimating && progress >= 100) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      setIsAnimating(false);
+    }
+  }, [progress, isAnimating]);
 
   const runReaction = () => {
     setIsAnimating(true);
     setProgress(0);
     
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setIsAnimating(false);
-          return 100;
-        }
-        return prev + speed;
-      });
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = window.setInterval(() => {
+      setProgress((prev) => Math.min(prev + speed, 100));
     }, 50);
   };
 
   const resetReaction = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
     setProgress(0);
     setIsAnimating(false);
   };

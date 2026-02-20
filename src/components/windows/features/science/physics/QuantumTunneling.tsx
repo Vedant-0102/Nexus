@@ -26,7 +26,9 @@ export const QuantumTunneling: React.FC = () => {
     draw();
   }, [progress, barrierHeight, particleEnergy]);
 
-  const tunnelingProbability = Math.exp(-2 * (barrierHeight - particleEnergy));
+  const tunnelingProbability = particleEnergy >= barrierHeight
+    ? 1.0
+    : Math.exp(-2 * (barrierHeight - particleEnergy));
 
   const draw = () => {
     const canvas = canvasRef.current;

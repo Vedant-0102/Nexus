@@ -53,8 +53,8 @@ export const FractalGenerator: React.FC = () => {
         const imag = minImag + (y / height) * (maxImag - minImag);
 
         let iterations = 0;
-        let zReal = fractalType === 'mandelbrot' ? real : 0;
-        let zImag = fractalType === 'mandelbrot' ? imag : 0;
+        let zReal = fractalType === 'julia' ? real : 0;
+        let zImag = fractalType === 'julia' ? imag : 0;
         const cReal = fractalType === 'mandelbrot' ? real : juliaC.real;
         const cImag = fractalType === 'mandelbrot' ? imag : juliaC.imag;
 

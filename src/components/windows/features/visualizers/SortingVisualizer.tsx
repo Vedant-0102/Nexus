@@ -36,6 +36,8 @@ export const SortingVisualizer: React.FC = () => {
     }
     return () => {
       isPlayingRef.current = false;
+      audioContextRef.current?.close();
+      audioContextRef.current = null;
     };
   }, []);
 

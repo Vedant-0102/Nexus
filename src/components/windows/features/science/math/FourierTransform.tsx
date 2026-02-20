@@ -184,8 +184,7 @@ export const FourierTransform: React.FC = () => {
                     type="checkbox"
                     checked={wave.active}
                     onChange={(e) => {
-                      const newWaves = [...waves];
-                      newWaves[idx].active = e.target.checked;
+                      const newWaves = waves.map((w, i) => i === idx ? { ...w, active: e.target.checked } : w);
                       setWaves(newWaves);
                     }}
                     className="w-4 h-4"
@@ -202,8 +201,7 @@ export const FourierTransform: React.FC = () => {
                     max="10"
                     value={wave.freq}
                     onChange={(e) => {
-                      const newWaves = [...waves];
-                      newWaves[idx].freq = Number(e.target.value);
+                      const newWaves = waves.map((w, i) => i === idx ? { ...w, freq: Number(e.target.value) } : w);
                       setWaves(newWaves);
                     }}
                     className="w-full"
@@ -218,8 +216,7 @@ export const FourierTransform: React.FC = () => {
                     step="0.1"
                     value={wave.amp}
                     onChange={(e) => {
-                      const newWaves = [...waves];
-                      newWaves[idx].amp = Number(e.target.value);
+                      const newWaves = waves.map((w, i) => i === idx ? { ...w, amp: Number(e.target.value) } : w);
                       setWaves(newWaves);
                     }}
                     className="w-full"

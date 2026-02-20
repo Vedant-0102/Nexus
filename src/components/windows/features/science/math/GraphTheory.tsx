@@ -14,6 +14,7 @@ interface Edge {
 
 export const GraphTheory: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const nextIdRef = useRef(3);
   const [nodes, setNodes] = useState<Node[]>([
     { id: 0, x: 200, y: 150 },
     { id: 1, x: 400, y: 150 },
@@ -31,27 +32,29 @@ export const GraphTheory: React.FC = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const y = (e.clientY - rect.top) * (canvas.height / rect.height);
 
-    const clickedNode = nodes.findIndex(n => 
+    const clickedNode = nodes.find(n => 
       Math.sqrt((n.x - x) ** 2 + (n.y - y) ** 2) < 20
     );
+    const clickedNodeId = clickedNode?.id ?? -1;
 
-    if (mode === 'add' && clickedNode === -1) {
-      setNodes([...nodes, { id: nodes.length, x, y }]);
-    } else if (mode === 'connect' && clickedNode !== -1) {
+    if (mode === 'add' && !clickedNode) {
+      const newId = nextIdRef.current++;
+      setNodes([...nodes, { id: newId, x, y }]);
+    } else if (mode === 'connect' && clickedNodeId !== -1) {
       if (selectedNode === null) {
-        setSelectedNode(clickedNode);
+        setSelectedNode(clickedNodeId);
       } else {
-        if (selectedNode !== clickedNode) {
-          setEdges([...edges, { from: selectedNode, to: clickedNode }]);
+        if (selectedNode !== clickedNodeId) {
+          setEdges([...edges, { from: selectedNode, to: clickedNodeId }]);
         }
         setSelectedNode(null);
       }
-    } else if (mode === 'delete' && clickedNode !== -1) {
-      setNodes(nodes.filter(n => n.id !== clickedNode));
-      setEdges(edges.filter(e => e.from !== clickedNode && e.to !== clickedNode));
+    } else if (mode === 'delete' && clickedNodeId !== -1) {
+      setNodes(nodes.filter(n => n.id !== clickedNodeId));
+      setEdges(edges.filter(e => e.from !== clickedNodeId && e.to !== clickedNodeId));
     }
   };
 

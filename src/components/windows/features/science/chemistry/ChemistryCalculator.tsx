@@ -15,7 +15,7 @@ export const ChemistryCalculator: React.FC = () => {
   const [mode, setMode] = useState<CalculatorMode>('molar-mass');
 
   return (
-    <div className="h-full flex flex-col p-4 overflow-hidden">
+    <div className="h-full flex flex-col p-4 overflow-hidden bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-gray-900 dark:to-gray-800">
       <h2 className="text-xl font-bold mb-3 dark:text-white">Chemistry Calculator</h2>
       
       <div className="flex gap-2 mb-4 overflow-x-auto">
@@ -78,20 +78,36 @@ const MolarMassCalculator: React.FC = () => {
 
   const parseFormula = (formula: string): Record<string, number> => {
     const elements: Record<string, number> = {};
-    const regex = /([A-Z][a-z]?)(\d*)/g;
-    let match;
-
-    while ((match = regex.exec(formula)) !== null) {
-      const element = match[1];
-      const count = match[2] ? parseInt(match[2]) : 1;
+    
+    const parseSegment = (segment: string, multiplier: number) => {
+      // Handle parenthetical groups: e.g. Ca(OH)2
+      const groupRegex = /\(([^()]+)\)(\d*)/g;
+      let processed = segment;
+      let groupMatch;
       
-      if (!atomicMasses[element]) {
-        throw new Error(`Unknown element: ${element}`);
+      while ((groupMatch = groupRegex.exec(segment)) !== null) {
+        const groupContent = groupMatch[1];
+        const groupCount = groupMatch[2] ? parseInt(groupMatch[2]) : 1;
+        parseSegment(groupContent, multiplier * groupCount);
+        processed = processed.replace(groupMatch[0], '');
       }
       
-      elements[element] = (elements[element] || 0) + count;
-    }
-
+      // Parse remaining elements
+      const regex = /([A-Z][a-z]?)(\d*)/g;
+      let match;
+      while ((match = regex.exec(processed)) !== null) {
+        const element = match[1];
+        const count = match[2] ? parseInt(match[2]) : 1;
+        
+        if (!atomicMasses[element]) {
+          throw new Error(`Unknown element: ${element}`);
+        }
+        
+        elements[element] = (elements[element] || 0) + count * multiplier;
+      }
+    };
+    
+    parseSegment(formula, 1);
     return elements;
   };
 
@@ -194,7 +210,7 @@ const MolesMassCalculator: React.FC = () => {
       }
     } else {
       const m = parseFloat(mass);
-      if (!isNaN(mm) && !isNaN(m)) {
+      if (!isNaN(mm) && !isNaN(m) && mm > 0) {
         setMoles((m / mm).toFixed(4));
       }
     }
@@ -497,7 +513,8 @@ const LimitingReactantCalculator: React.FC = () => {
     const coeff2 = parseFloat(reactant2Coeff);
 
     if (!isNaN(mass1) && !isNaN(mm1) && !isNaN(coeff1) && 
-        !isNaN(mass2) && !isNaN(mm2) && !isNaN(coeff2)) {
+        !isNaN(mass2) && !isNaN(mm2) && !isNaN(coeff2) &&
+        mm1 > 0 && mm2 > 0 && coeff1 > 0 && coeff2 > 0) {
       
       const moles1 = mass1 / mm1;
       const moles2 = mass2 / mm2;
