@@ -23,3 +23,4 @@ export { PressureConverter } from './PressureConverter';
 export { VolumeConverter } from './VolumeConverter';
 export { TimeConverter } from './TimeConverter';
 export { AreaConverter } from './AreaConverter';
+export { BinaryConverter } from './BinaryConverter';

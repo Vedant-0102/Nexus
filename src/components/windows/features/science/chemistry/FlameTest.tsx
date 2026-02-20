@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Flame, Info, RotateCcw } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Flame, Info, RotateCcw, GripVertical } from 'lucide-react';
 
 interface ElementData {
   name: string;
@@ -137,16 +137,34 @@ interface Particle {
   size: number;
 }
 
+// Spark that flies out when an element is dropped into the flame
+interface Spark {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  maxLife: number;
+  size: number;
+  color: string;
+}
+
 export const FlameTest: React.FC = () => {
   const [selectedElement, setSelectedElement] = useState<ElementData | null>(null);
   const [flameColor, setFlameColor] = useState(DEFAULT_FLAME_COLOR);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [draggedElement, setDraggedElement] = useState<ElementData | null>(null);
+  const [dropFlash, setDropFlash] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef = useRef<number>(0);
   const particlesRef = useRef<Particle[]>([]);
+  const sparksRef = useRef<Spark[]>([]);
   const flameColorRef = useRef(DEFAULT_FLAME_COLOR);
   const targetColorRef = useRef(DEFAULT_FLAME_COLOR);
   const transitionRef = useRef(0);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
+  const flameBurstRef = useRef(0); // controls flame size burst on drop
 
   // Hex to RGB helper (handles both '#RRGGBB' and 'rgb(r,g,b)' formats)
   const hexToRgb = (color: string) => {
@@ -179,13 +197,42 @@ export const FlameTest: React.FC = () => {
     return rgbToHex(r, g, bl);
   };
 
-  const selectElement = (el: ElementData) => {
+  const spawnDropSparks = useCallback((color: string) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const cx = rect.width / 2;
+    const cy = rect.height * 0.58 - 50;
+    for (let i = 0; i < 35; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 2 + Math.random() * 5;
+      sparksRef.current.push({
+        x: cx + (Math.random() - 0.5) * 20,
+        y: cy + (Math.random() - 0.5) * 10,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 2,
+        life: 0,
+        maxLife: 20 + Math.random() * 30,
+        size: 1.5 + Math.random() * 3,
+        color,
+      });
+    }
+  }, []);
+
+  const selectElement = useCallback((el: ElementData, fromDrop = false) => {
     setSelectedElement(el);
     targetColorRef.current = el.flameColor;
     transitionRef.current = 0;
     setIsTransitioning(true);
     setFlameColor(el.flameColor);
-  };
+
+    if (fromDrop) {
+      flameBurstRef.current = 1;
+      spawnDropSparks(el.flameColor);
+      setDropFlash(true);
+      setTimeout(() => setDropFlash(false), 400);
+    }
+  }, [spawnDropSparks]);
 
   const clearSelection = () => {
     setSelectedElement(null);
@@ -194,6 +241,59 @@ export const FlameTest: React.FC = () => {
     setIsTransitioning(true);
     setFlameColor(DEFAULT_FLAME_COLOR);
   };
+
+  // --- HTML5 Drag & Drop handlers ---
+  const handleDragStart = useCallback((e: React.DragEvent, el: ElementData) => {
+    setDraggedElement(el);
+    e.dataTransfer.setData('text/plain', el.symbol);
+    e.dataTransfer.effectAllowed = 'move';
+
+    // Create a custom drag image (colored circle with symbol)
+    const dragImg = document.createElement('div');
+    dragImg.style.cssText = `
+      width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center;
+      justify-content: center; color: white; font-weight: bold; font-size: 18px;
+      background: ${el.flameColor}; box-shadow: 0 4px 12px ${el.flameColor}80;
+      position: absolute; top: -1000px;
+    `;
+    dragImg.textContent = el.symbol;
+    document.body.appendChild(dragImg);
+    e.dataTransfer.setDragImage(dragImg, 24, 24);
+    requestAnimationFrame(() => document.body.removeChild(dragImg));
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    setDraggedElement(null);
+    setIsDragOver(false);
+  }, []);
+
+  const handleDropZoneDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setIsDragOver(true);
+  }, []);
+
+  const handleDropZoneDragLeave = useCallback((e: React.DragEvent) => {
+    // Only trigger if actually leaving the drop zone
+    const rect = dropZoneRef.current?.getBoundingClientRect();
+    if (rect) {
+      const { clientX, clientY } = e;
+      if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
+        setIsDragOver(false);
+      }
+    }
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const symbol = e.dataTransfer.getData('text/plain');
+    const el = elements.find((x) => x.symbol === symbol) || draggedElement;
+    if (el) {
+      selectElement(el, true);
+    }
+    setDraggedElement(null);
+  }, [draggedElement, selectElement]);
 
   // Flame canvas animation
   useEffect(() => {
@@ -213,16 +313,16 @@ export const FlameTest: React.FC = () => {
     const resObs = new ResizeObserver(resize);
     resObs.observe(canvas);
 
-    const spawnParticle = (cx: number, baseY: number): Particle => {
-      const spread = 18 + Math.random() * 14;
+    const spawnParticle = (cx: number, baseY: number, burst: number): Particle => {
+      const spread = (18 + Math.random() * 14) * (1 + burst * 1.5);
       return {
         x: cx + (Math.random() - 0.5) * spread,
         y: baseY,
-        vx: (Math.random() - 0.5) * 0.8,
-        vy: -(1.5 + Math.random() * 2.5),
+        vx: (Math.random() - 0.5) * (0.8 + burst * 2),
+        vy: -(1.5 + Math.random() * 2.5) * (1 + burst * 1.2),
         life: 0,
-        maxLife: 30 + Math.random() * 40,
-        size: 3 + Math.random() * 6,
+        maxLife: 30 + Math.random() * 40 + burst * 20,
+        size: (3 + Math.random() * 6) * (1 + burst * 0.8),
       };
     };
 
@@ -233,6 +333,12 @@ export const FlameTest: React.FC = () => {
       const rect = canvas.getBoundingClientRect();
       const w = rect.width;
       const h = rect.height;
+
+      // Decay flame burst
+      if (flameBurstRef.current > 0) {
+        flameBurstRef.current = Math.max(0, flameBurstRef.current - 0.02);
+      }
+      const burst = flameBurstRef.current;
 
       // Color transition
       if (transitionRef.current < 1) {
@@ -330,9 +436,10 @@ export const FlameTest: React.FC = () => {
       ctx.textAlign = 'left';
       ctx.fillText('Nichrome wire', wireBaseX - 30, wireBaseY + 72);
 
-      // Spawn new particles
-      for (let i = 0; i < 4; i++) {
-        particlesRef.current.push(spawnParticle(burnerCenterX, burnerTop - 32));
+      // Spawn new particles (more when bursting)
+      const spawnCount = Math.floor(4 + burst * 12);
+      for (let i = 0; i < spawnCount; i++) {
+        particlesRef.current.push(spawnParticle(burnerCenterX, burnerTop - 32, burst));
       }
 
       // Update and draw particles (flame)
@@ -367,21 +474,54 @@ export const FlameTest: React.FC = () => {
       }
       particlesRef.current = aliveParticles;
 
-      // Outer glow around flame
+      // Draw sparks (from element drop)
+      const aliveSparks: Spark[] = [];
+      for (const s of sparksRef.current) {
+        s.life++;
+        if (s.life > s.maxLife) continue;
+        s.x += s.vx;
+        s.y += s.vy;
+        s.vy += 0.12; // gravity
+        s.vx *= 0.98;
+
+        const lifeRatio = s.life / s.maxLife;
+        const alpha = lifeRatio < 0.1 ? lifeRatio * 10 : 1 - lifeRatio;
+        const sRgb = hexToRgb(s.color);
+
+        ctx.fillStyle = `rgba(${sRgb.r},${sRgb.g},${sRgb.b},${alpha})`;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.size * (1 - lifeRatio * 0.5), 0, Math.PI * 2);
+        ctx.fill();
+
+        // Spark trail
+        ctx.strokeStyle = `rgba(${sRgb.r},${sRgb.g},${sRgb.b},${alpha * 0.3})`;
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(s.x, s.y);
+        ctx.lineTo(s.x - s.vx * 2, s.y - s.vy * 2);
+        ctx.stroke();
+
+        aliveSparks.push(s);
+      }
+      sparksRef.current = aliveSparks;
+
+      // Outer glow around flame (larger when burst)
+      const glowRadius = 70 + burst * 50;
       const glowGrad = ctx.createRadialGradient(
         burnerCenterX,
         burnerTop - 65,
         5,
         burnerCenterX,
         burnerTop - 55,
-        70
+        glowRadius
       );
-      glowGrad.addColorStop(0, `rgba(${rgb.r},${rgb.g},${rgb.b},0.15)`);
-      glowGrad.addColorStop(0.5, `rgba(${rgb.r},${rgb.g},${rgb.b},0.05)`);
+      const glowAlpha = 0.15 + burst * 0.2;
+      glowGrad.addColorStop(0, `rgba(${rgb.r},${rgb.g},${rgb.b},${glowAlpha})`);
+      glowGrad.addColorStop(0.5, `rgba(${rgb.r},${rgb.g},${rgb.b},${glowAlpha * 0.33})`);
       glowGrad.addColorStop(1, `rgba(${rgb.r},${rgb.g},${rgb.b},0)`);
       ctx.fillStyle = glowGrad;
       ctx.beginPath();
-      ctx.arc(burnerCenterX, burnerTop - 55, 70, 0, Math.PI * 2);
+      ctx.arc(burnerCenterX, burnerTop - 55, glowRadius, 0, Math.PI * 2);
       ctx.fill();
 
       // Label
@@ -389,6 +529,23 @@ export const FlameTest: React.FC = () => {
       ctx.font = '10px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('Bunsen Burner', burnerCenterX, h * 0.97);
+
+      // Drop zone hint when dragging
+      if (isDragOver) {
+        ctx.save();
+        ctx.strokeStyle = `rgba(${rgb.r},${rgb.g},${rgb.b},${0.4 + Math.sin(Date.now() * 0.005) * 0.2})`;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.arc(burnerCenterX, burnerTop - 50, 50, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Drop here!', burnerCenterX, burnerTop - 90);
+        ctx.restore();
+      }
     };
 
     animate();
@@ -398,7 +555,7 @@ export const FlameTest: React.FC = () => {
       resObs.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedElement]);
+  }, [selectedElement, isDragOver]);
 
   return (
     <div className="h-full flex flex-col bg-gradient-to-br from-orange-50 to-amber-50 dark:from-gray-900 dark:to-gray-800 p-3 overflow-hidden">
@@ -410,10 +567,14 @@ export const FlameTest: React.FC = () => {
             Flame Test Experiment
           </h2>
           <p className="text-[11px] text-gray-500 dark:text-gray-400">
-            Identify metal ions by their characteristic flame colours
+            Drag an element sample onto the flame to test it
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800">
+            <GripVertical className="h-3 w-3 text-blue-500" />
+            <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">Drag & Drop</span>
+          </div>
           <button
             onClick={clearSelection}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all text-xs font-medium"
@@ -460,47 +621,71 @@ export const FlameTest: React.FC = () => {
 
       {/* Main layout */}
       <div className="flex-1 flex gap-3 min-h-0">
-        {/* Column 1 - Element selector */}
+        {/* Column 1 - Element sample tray (draggable) */}
         <div className="w-[200px] flex flex-col gap-2 flex-shrink-0 overflow-y-auto">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-2.5">
-            <h4 className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wider">
-              Select Element
+            <h4 className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 mb-1.5 uppercase tracking-wider flex items-center gap-1.5">
+              <GripVertical className="h-3 w-3 text-gray-400" />
+              Sample Tray
             </h4>
+            <p className="text-[9px] text-gray-400 dark:text-gray-500 mb-2 leading-relaxed">
+              Drag a sample onto the Bunsen burner flame, or click to test
+            </p>
             <div className="space-y-1.5">
               {elements.map((el) => (
-                <button
+                <div
                   key={el.symbol}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, el)}
+                  onDragEnd={handleDragEnd}
                   onClick={() => selectElement(el)}
-                  className={`w-full text-left px-2.5 py-2 rounded-lg transition-all flex items-center gap-2.5 group ${
+                  className={`w-full text-left px-2.5 py-2 rounded-lg transition-all flex items-center gap-2.5 group cursor-grab active:cursor-grabbing select-none ${
                     selectedElement?.symbol === el.symbol
                       ? 'bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700 shadow-sm'
-                      : 'hover:bg-gray-50 dark:hover:bg-gray-700 border border-transparent'
-                  }`}
+                      : 'hover:bg-gray-50 dark:hover:bg-gray-700 border border-transparent hover:shadow-sm'
+                  } ${draggedElement?.symbol === el.symbol ? 'opacity-40 scale-95' : ''}`}
                 >
-                  <div
-                    className="w-8 h-8 rounded-md flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0"
-                    style={{ backgroundColor: el.flameColor }}
-                  >
-                    {el.symbol}
+                  <div className="relative">
+                    <div
+                      className="w-8 h-8 rounded-md flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0 transition-transform group-hover:scale-110"
+                      style={{ backgroundColor: el.flameColor }}
+                    >
+                      {el.symbol}
+                    </div>
+                    {/* Small drag handle indicator */}
+                    <div className="absolute -right-0.5 -top-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <GripVertical className="h-2.5 w-2.5 text-gray-400" />
+                    </div>
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="text-[11px] font-semibold text-gray-800 dark:text-gray-200 truncate">
                       {el.name}
                     </div>
                     <div className="text-[9px] text-gray-400 dark:text-gray-500 font-mono">
-                      Z = {el.atomicNumber}
+                      {el.compound.split(' ')[0]}
                     </div>
                   </div>
-                </button>
+                  <div className="opacity-0 group-hover:opacity-60 transition-opacity text-[8px] text-gray-400 whitespace-nowrap">
+                    drag →
+                  </div>
+                </div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Column 2 - Flame visualization (canvas) */}
+        {/* Column 2 - Flame visualization (canvas) — DROP ZONE */}
         <div className="flex-1 flex flex-col gap-2.5 min-w-0 min-h-0">
           <div
-            className="bg-gray-950 rounded-lg shadow-md p-3 flex flex-col flex-1"
+            ref={dropZoneRef}
+            onDragOver={handleDropZoneDragOver}
+            onDragLeave={handleDropZoneDragLeave}
+            onDrop={handleDrop}
+            className={`bg-gray-950 rounded-lg shadow-md p-3 flex flex-col flex-1 transition-all duration-300 ${
+              isDragOver
+                ? 'ring-2 ring-orange-400 ring-offset-2 ring-offset-gray-950 shadow-lg shadow-orange-500/20'
+                : ''
+            } ${dropFlash ? 'ring-4 ring-white/50' : ''}`}
             style={{ minHeight: 0 }}
           >
             <div className="flex items-center justify-between mb-1.5">
@@ -508,10 +693,12 @@ export const FlameTest: React.FC = () => {
                 <Flame className="h-3.5 w-3.5 text-orange-400" />
                 Bunsen Burner &mdash; Flame Test
               </span>
-              <span className="text-[9px] text-gray-500">
-                {selectedElement
-                  ? `Testing: ${selectedElement.compound}`
-                  : 'Place an element on the wire loop'}
+              <span className={`text-[9px] transition-colors ${isDragOver ? 'text-orange-400 font-semibold' : 'text-gray-500'}`}>
+                {isDragOver
+                  ? '🔥 Release to drop into flame!'
+                  : selectedElement
+                    ? `Testing: ${selectedElement.compound}`
+                    : 'Drag a sample here to test'}
               </span>
             </div>
             <div className="flex-1 min-h-0 relative">
@@ -520,8 +707,22 @@ export const FlameTest: React.FC = () => {
                 className="w-full h-full rounded"
                 style={{ background: 'radial-gradient(ellipse at 50% 40%, #1a1a2e 0%, #0a0a0f 100%)' }}
               />
+
+              {/* Animated drag-over overlay */}
+              {isDragOver && (
+                <div className="absolute inset-0 rounded pointer-events-none overflow-hidden">
+                  <div
+                    className="absolute inset-0 opacity-10"
+                    style={{
+                      background: `radial-gradient(circle at 50% 55%, ${draggedElement?.flameColor || '#ff8c00'}40 0%, transparent 60%)`,
+                      animation: 'pulse 1s ease-in-out infinite',
+                    }}
+                  />
+                </div>
+              )}
+
               {/* Spectral colour band at the bottom of the canvas area */}
-              {selectedElement && (
+              {selectedElement && !isDragOver && (
                 <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/60 backdrop-blur-sm rounded-full px-4 py-1.5">
                   <div
                     className="w-3 h-3 rounded-full animate-pulse"
@@ -670,8 +871,8 @@ export const FlameTest: React.FC = () => {
                 No Element Selected
               </div>
               <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-relaxed">
-                Click on an element from the list to place its chloride salt on the nichrome wire loop
-                and observe its characteristic flame colour.
+                Drag a sample from the tray on the left onto the Bunsen burner flame to observe
+                its characteristic flame colour. You can also click a sample to test it.
               </p>
             </div>
           )}
@@ -727,11 +928,11 @@ export const FlameTest: React.FC = () => {
               </div>
               <div className="flex items-start gap-1.5">
                 <span className="font-bold text-gray-600 dark:text-gray-300 flex-shrink-0">2.</span>
-                <span>Dip the clean wire into the sample (metal chloride solution or solid)</span>
+                <span>Drag a sample from the tray onto the Bunsen burner flame</span>
               </div>
               <div className="flex items-start gap-1.5">
                 <span className="font-bold text-gray-600 dark:text-gray-300 flex-shrink-0">3.</span>
-                <span>Hold the wire in the non-luminous (blue) Bunsen burner flame</span>
+                <span>Watch the flame change colour as electrons get excited</span>
               </div>
               <div className="flex items-start gap-1.5">
                 <span className="font-bold text-gray-600 dark:text-gray-300 flex-shrink-0">4.</span>

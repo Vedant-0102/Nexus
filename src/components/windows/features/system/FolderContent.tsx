@@ -3,7 +3,7 @@ import React from 'react';
 import { useWindows } from '../../context/WindowsContext';
 
 interface FolderContentProps {
-  type: 'games' | 'utilities' | 'office' | 'converters' | 'simulators' | 'chemistry' | 'physics' | 'biology' | 'engine' | 'colors' | 'crypt' | 'math';
+  type: 'games' | 'utilities' | 'office' | 'converters' | 'simulators' | 'chemistry' | 'physics' | 'biology' | 'engine' | 'colors' | 'crypt' | 'math' | 'earth-space';
 }
 
 export const FolderContent: React.FC<FolderContentProps> = ({ type }) => {
@@ -18,15 +18,15 @@ export const FolderContent: React.FC<FolderContentProps> = ({ type }) => {
     } else if (type === 'converters') {
       return ['imageconverter', 'documentconverter', 'lengthconverter', 'weightconverter', 'currencyconverter', 'temperature-converter', 'speed-converter', 'energy-converter', 'power-converter', 'pressure-converter', 'volume-converter', 'time-converter', 'area-converter'].includes(app.id);
     } else if (type === 'simulators') {
-      return ['chemistry-folder-window', 'physics-folder-window', 'biology-folder-window', 'universe'].includes(app.id);
+      return ['chemistry-folder-window', 'physics-folder-window', 'biology-folder-window', 'earth-space-folder-window', 'universe'].includes(app.id);
     } else if (type === 'engine') {
-      return ['database', 'codeeditor', 'nocode', 'sortingvisualizer', 'pathfinding', 'qrcode', 'cnnvisualizer', 'gitvisualizer', 'api-tester', 'texttohtml', 'markdowneditor', 'data-formatter'].includes(app.id);
+      return ['database', 'codeeditor', 'nocode', 'sortingvisualizer', 'pathfinding', 'qrcode', 'cnnvisualizer', 'gitvisualizer', 'api-tester', 'texttohtml', 'markdowneditor', 'data-formatter', 'binary-converter', 'logic-gates', 'cpu-simulator', 'memory-allocator', 'turing-machine', 'pid-controller'].includes(app.id);
     } else if (type === 'chemistry') {
       return ['periodictable', 'molecularviewer', 'reactionsimulator', 'equation-balancer', 'titration-simulator', 'gas-laws', 'electrochemistry', 'spectroscopy', 'nuclear-decay', 'ph-scale', 'organic-chemistry', 'polymer-builder', 'chemistry-calculator', 'flame-test'].includes(app.id);
     } else if (type === 'physics') {
-      return ['projectilemotion', 'pendulum', 'spring', 'waves', 'collisions', 'electromagneticlab', 'optics-simulator', 'electric-field', 'magnetic-field', 'rocket-propulsion', 'doppler-effect', 'quantum-tunneling'].includes(app.id);
+      return ['projectilemotion', 'pendulum', 'spring', 'waves', 'collisions', 'electromagneticlab', 'optics-simulator', 'electric-field', 'magnetic-field', 'rocket-propulsion', 'doppler-effect', 'quantum-tunneling', 'bernoulli-principle', 'thermodynamics', 'special-relativity', 'black-hole', 'lc-circuit', 'snells-law', 'diffraction-grating', 'buoyancy', 'torque-rotation', 'bridge-stress', 'gear-train', 'hydraulic-system', 'simple-machines', 'electrical-circuit', 'truss-analysis'].includes(app.id);
     } else if (type === 'biology') {
-      return ['cell-division', 'dna-replication', 'neuron-signal', 'heart-circulation'].includes(app.id);
+      return ['cell-division', 'dna-replication', 'neuron-signal', 'heart-circulation', 'ecosystem-food-web', 'natural-selection', 'punnett-square', 'enzyme-substrate'].includes(app.id);
     } else if (type === 'math') {
       return ['supercalculator', 'geometry-calculator', 'quadratic-solver', 'linear-system-solver', 'matrix-calculator', 'graph-plotter', 'statistics-calculator', 'derivative-calculator', 'integral-calculator', 'trig-calculator', 'number-theory', 'percentage-calculator', '3d-function-grapher', 'fractal-generator', 'fourier-transform', 'calculus-visualizer', 'linear-algebra', 'prime-sieve', 'graph-theory', 'probability-dist'].includes(app.id);
     } else if (type === 'utilities') {
@@ -36,6 +36,8 @@ export const FolderContent: React.FC<FolderContentProps> = ({ type }) => {
         'battery', 'filemanager', 'wikipedia',
         'calendar'
       ].includes(app.id);
+    } else if (type === 'earth-space') {
+      return ['solar-system', 'moon-phases', 'plate-tectonics', 'atmospheric-layers', 'star-life-cycle', 'eclipse-simulator', 'seasons-earth-tilt'].includes(app.id);
     } else if (type === 'crypt') {
       return ['base64-converter', 'regex-tester', 'password-generator', 'data-formatter', 'lorem-ipsum'].includes(app.id);
     }
@@ -56,6 +58,7 @@ export const FolderContent: React.FC<FolderContentProps> = ({ type }) => {
       case 'colors': return 'Colors for Artists';
       case 'crypt': return 'Crypt';
       case 'math': return 'Math Tools';
+      case 'earth-space': return 'Earth & Space Sciences';
       default: return 'Folder';
     }
   };
