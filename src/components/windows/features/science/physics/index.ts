@@ -8,3 +8,6 @@ export { ElectricFieldVisualizer } from './ElectricFieldVisualizer';
 export { MagneticFieldVisualizer } from './MagneticFieldVisualizer';
 export { RocketPropulsion } from './RocketPropulsion';
 export { ElectromagneticLab } from './ElectromagneticLab';
+export { QuantumTunneling } from './QuantumTunneling';
+export { SpringSimulator } from './SpringSimulator';
+export { DopplerEffect } from './DopplerEffect';

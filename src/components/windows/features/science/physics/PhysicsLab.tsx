@@ -121,10 +121,11 @@ export const PhysicsLab: React.FC = () => {
     const pivotY = 50;
     
     // Update pendulum physics
+    const dt = 0.016;
     const angleRad = (pendulumAngle * Math.PI) / 180;
-    const angularAccel = (-gravity / pendulumLength) * Math.sin(angleRad);
-    const newVelocity = pendulumVelocity + angularAccel;
-    const newAngle = pendulumAngle + newVelocity;
+    const angularAccel = (-gravity / (pendulumLength / 100)) * Math.sin(angleRad);
+    const newVelocity = pendulumVelocity + angularAccel * dt;
+    const newAngle = pendulumAngle + newVelocity * dt * (180 / Math.PI);
     
     setPendulumVelocity(newVelocity * 0.999); // Damping
     setPendulumAngle(newAngle);
@@ -165,12 +166,13 @@ export const PhysicsLab: React.FC = () => {
     const equilibrium = canvas.width / 2;
     
     // Update spring physics (Hooke's Law)
+    const dt = 0.016;
     const force = -springK * springDisplacement;
     const acceleration = force / springMass;
-    const newVelocity = springVelocity + acceleration;
-    const newDisplacement = springDisplacement + newVelocity;
+    const newVelocity = (springVelocity + acceleration * dt) * 0.99; // Damping
+    const newDisplacement = springDisplacement + newVelocity * dt * 60;
     
-    setSpringVelocity(newVelocity * 0.99); // Damping
+    setSpringVelocity(newVelocity);
     setSpringDisplacement(newDisplacement);
     
     const massX = equilibrium + springDisplacement;

@@ -28,8 +28,11 @@ export const OpticsSimulator = () => {
 
   useEffect(() => {
     calculateAngles();
-    draw();
   }, [incidentAngle, material1, material2]);
+
+  useEffect(() => {
+    draw();
+  }, [incidentAngle, material1, material2, reflectionAngle, refractionAngle, totalInternalReflection, criticalAngle]);
 
   const calculateAngles = () => {
     const n1 = materials[material1].refractiveIndex;

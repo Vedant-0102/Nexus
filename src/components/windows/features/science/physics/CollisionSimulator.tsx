@@ -315,7 +315,7 @@ export const CollisionSimulator: React.FC = () => {
                 <p className="font-semibold">Kinetic Energy:</p>
                 <p>Initial: {initialKE.toFixed(2)} J</p>
                 <p>Current: {currentKE.toFixed(2)} J</p>
-                <p>Loss: {(initialKE - currentKE).toFixed(2)} J ({((1 - currentKE / initialKE) * 100).toFixed(1)}%)</p>
+                <p>Loss: {(initialKE - currentKE).toFixed(2)} J ({initialKE > 0 ? ((1 - currentKE / initialKE) * 100).toFixed(1) : '0.0'}%)</p>
               </div>
             </div>
           </div>

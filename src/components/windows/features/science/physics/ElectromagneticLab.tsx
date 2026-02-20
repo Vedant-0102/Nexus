@@ -14,6 +14,7 @@ interface Charge {
 
 export const ElectromagneticLab: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const simTimeRef = useRef(0);
   const [activeTab, setActiveTab] = useState('electromagnetic');
   const [isRunning, setIsRunning] = useState(false);
   const [charges, setCharges] = useState<Charge[]>([
@@ -28,7 +29,9 @@ export const ElectromagneticLab: React.FC = () => {
   useEffect(() => {
     if (isRunning) {
       const interval = setInterval(() => {
+        simTimeRef.current += 0.03;
         updateCharges();
+        drawScene();
       }, 30);
       return () => clearInterval(interval);
     }
@@ -150,7 +153,7 @@ export const ElectromagneticLab: React.FC = () => {
   };
 
   const drawInduction = (ctx: CanvasRenderingContext2D) => {
-    const time = Date.now() / 1000;
+    const time = simTimeRef.current;
     const centerX = 400;
     const centerY = 300;
     const coilRadius = 100;
@@ -188,7 +191,7 @@ export const ElectromagneticLab: React.FC = () => {
   };
 
   const drawEMWaves = (ctx: CanvasRenderingContext2D) => {
-    const time = Date.now() / 1000;
+    const time = simTimeRef.current;
     const centerY = 300;
 
     // Draw electric field wave
