@@ -53,6 +53,7 @@ function isBlackKey(noteIdx: number): boolean {
 export function MusicTheoryHelper() {
   const [rootNote, setRootNote] = useState<NoteName>('C');
   const [scaleType, setScaleType] = useState<ScaleType>('major');
+  const [instrument, setInstrument] = useState<InstrumentType>('piano');
 
   const scaleNotes = getScaleNotes(rootNote, scaleType);
   const scaleIntervals = SCALES[scaleType];
@@ -60,8 +61,8 @@ export function MusicTheoryHelper() {
   const playNoteSound = useCallback((note: NoteName, octave = 4) => {
     const ctx = getAudioContext();
     const midi = noteNameToMidi(note, octave);
-    playNote(ctx, getMasterGain(), 'piano', midi, 100, undefined, 0.5);
-  }, []);
+    playNote(ctx, getMasterGain(), instrument, midi, 100, undefined, 0.5);
+  }, [instrument]);
 
   const playScale = useCallback(() => {
     const ctx = getAudioContext();
@@ -69,11 +70,11 @@ export function MusicTheoryHelper() {
     scaleNotes.forEach((note, i) => {
       const midi = noteNameToMidi(note, 4);
       const adjustedMidi = midi < noteNameToMidi(rootNote, 4) ? midi + 12 : midi;
-      playNote(ctx, dest, 'piano', adjustedMidi, 100, ctx.currentTime + i * 0.3, 0.25);
+      playNote(ctx, dest, instrument, adjustedMidi, 100, ctx.currentTime + i * 0.3, 0.25);
     });
     // Play octave
-    playNote(ctx, dest, 'piano', noteNameToMidi(rootNote, 5), 100, ctx.currentTime + scaleNotes.length * 0.3, 0.5);
-  }, [rootNote, scaleNotes]);
+    playNote(ctx, dest, instrument, noteNameToMidi(rootNote, 5), 100, ctx.currentTime + scaleNotes.length * 0.3, 0.5);
+  }, [rootNote, scaleNotes, instrument]);
 
   const playChordSound = useCallback((root: NoteName, quality: ChordQuality) => {
     const ctx = getAudioContext();
@@ -82,9 +83,9 @@ export function MusicTheoryHelper() {
     notes.forEach((note, i) => {
       const midi = noteNameToMidi(note, 4);
       const adjusted = i > 0 && midi <= noteNameToMidi(root, 4) ? midi + 12 : midi;
-      playNote(ctx, dest, 'piano', adjusted, 100, undefined, 0.8);
+      playNote(ctx, dest, instrument, adjusted, 100, undefined, 0.8);
     });
-  }, []);
+  }, [instrument]);
 
   // Get diatonic chords for major/minor
   const showDiatonicChords = scaleType === 'major' || scaleType === 'natural-minor';
@@ -105,6 +106,16 @@ export function MusicTheoryHelper() {
           <label className="text-sm text-gray-400">Scale:</label>
           <select value={scaleType} onChange={e => setScaleType(e.target.value as ScaleType)} className="bg-gray-700 text-sm rounded px-2 py-1 text-white">
             {(Object.keys(SCALES) as ScaleType[]).map(s => <option key={s} value={s}>{SCALE_TYPE_LABELS[s]}</option>)}
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-gray-400">Sound:</label>
+          <select value={instrument} onChange={e => setInstrument(e.target.value as InstrumentType)} className="bg-gray-700 text-sm rounded px-2 py-1 text-white">
+            <option value="piano">Piano</option>
+            <option value="guitar">Guitar</option>
+            <option value="synth">Synth</option>
+            <option value="bass">Bass</option>
+            <option value="strings">Strings</option>
           </select>
         </div>
         <button onClick={playScale} className="px-3 py-1 bg-blue-600 rounded text-sm hover:bg-blue-700">Play Scale</button>

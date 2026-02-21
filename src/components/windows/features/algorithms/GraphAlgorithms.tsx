@@ -74,7 +74,7 @@ function dijkstra(nodes: GraphNode[], edges: GraphEdge[], source: string): StepS
   for (const n of nodes) dist.set(n.id, Infinity);
   dist.set(source, 0);
 
-  steps.push({ visitedNodes: new Set(), highlightedEdges: new Set(), mstEdges: new Set(), distances: new Map(dist), currentNode: source, description: `Start Dijkstra from ${source}. dist[${source}]=0, all others=∞` });
+  steps.push({ visitedNodes: new Set(), highlightedEdges: new Set(), mstEdges: new Set(), distances: new Map(dist), currentNode: source, description: `Start Dijkstra from ${source}. dist[${source}]=0, all others=inf` });
 
   for (let i = 0; i < nodes.length; i++) {
     let u: string | null = null;
@@ -216,7 +216,7 @@ function kruskal(nodes: GraphNode[], edges: GraphEdge[]): StepState[] {
         mstEdges: new Set(mstEdges),
         distances: new Map(),
         currentNode: null,
-        description: `Add edge ${e.from}↔${e.to} (w=${e.weight}) — no cycle formed`,
+        description: `Add edge ${e.from}-${e.to} (w=${e.weight}) -- no cycle formed`,
       });
     } else {
       steps.push({
@@ -225,7 +225,7 @@ function kruskal(nodes: GraphNode[], edges: GraphEdge[]): StepState[] {
         mstEdges: new Set(mstEdges),
         distances: new Map(),
         currentNode: null,
-        description: `Skip edge ${e.from}↔${e.to} (w=${e.weight}) — would form cycle`,
+        description: `Skip edge ${e.from}-${e.to} (w=${e.weight}) -- would form cycle`,
       });
     }
   }
@@ -266,11 +266,14 @@ function prim(nodes: GraphNode[], edges: GraphEdge[], source: string): StepState
       mstEdges: new Set(mstEdges),
       distances: new Map(),
       currentNode: bestEdge.to,
-      description: `Add ${bestEdge.from}↔${bestEdge.to} (w=${bestEdge.w}). MST grows to ${inMST.size} nodes.`,
+      description: `Add ${bestEdge.from}-${bestEdge.to} (w=${bestEdge.w}). MST grows to ${inMST.size} nodes.`,
     });
   }
   return steps;
 }
+
+const NODE_LABELS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const NODE_RADIUS = 22;
 
 export const GraphAlgorithms: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -283,22 +286,156 @@ export const GraphAlgorithms: React.FC = () => {
   const [source, setSource] = useState('A');
   const isPlayingRef = useRef(false);
 
-  const preset = PRESETS[presetIdx];
+  // Sandbox state
+  const [sandboxMode, setSandboxMode] = useState(false);
+  const [customNodes, setCustomNodes] = useState<GraphNode[]>([]);
+  const [customEdges, setCustomEdges] = useState<GraphEdge[]>([]);
+  const [edgeWeight, setEdgeWeight] = useState(1);
+  const [edgeFromNode, setEdgeFromNode] = useState<string | null>(null);
+  const [draggingNode, setDraggingNode] = useState<string | null>(null);
+  const [useCustomGraph, setUseCustomGraph] = useState(false);
+  const [sandboxTool, setSandboxTool] = useState<'add-node' | 'add-edge' | 'move' | 'delete'>('add-node');
+
+  // Which graph data to use
+  const activeNodes = useCustomGraph ? customNodes : PRESETS[presetIdx].nodes;
+  const activeEdges = useCustomGraph ? customEdges : PRESETS[presetIdx].edges;
 
   const runAlgorithm = useCallback(() => {
+    if (activeNodes.length === 0) {
+      setSteps([{ visitedNodes: new Set(), highlightedEdges: new Set(), mstEdges: new Set(), distances: new Map(), currentNode: null, description: 'No nodes in graph. Add nodes in sandbox mode.' }]);
+      setCurrentStep(0);
+      return;
+    }
+    const validSource = activeNodes.find(n => n.id === source) ? source : activeNodes[0].id;
     let result: StepState[];
-    if (algorithm === 'dijkstra') result = dijkstra(preset.nodes, preset.edges, source);
-    else if (algorithm === 'bellman-ford') result = bellmanFord(preset.nodes, preset.edges, source);
-    else if (algorithm === 'floyd-warshall') result = floydWarshall(preset.nodes, preset.edges);
-    else if (algorithm === 'kruskal') result = kruskal(preset.nodes, preset.edges);
-    else result = prim(preset.nodes, preset.edges, source);
+    if (algorithm === 'dijkstra') result = dijkstra(activeNodes, activeEdges, validSource);
+    else if (algorithm === 'bellman-ford') result = bellmanFord(activeNodes, activeEdges, validSource);
+    else if (algorithm === 'floyd-warshall') result = floydWarshall(activeNodes, activeEdges);
+    else if (algorithm === 'kruskal') result = kruskal(activeNodes, activeEdges);
+    else result = prim(activeNodes, activeEdges, validSource);
     setSteps(result);
     setCurrentStep(0);
     setIsPlaying(false);
     isPlayingRef.current = false;
-  }, [algorithm, preset, source]);
+  }, [algorithm, activeNodes, activeEdges, source]);
 
-  useEffect(() => { runAlgorithm(); }, [runAlgorithm]);
+  useEffect(() => { if (!sandboxMode) runAlgorithm(); }, [runAlgorithm, sandboxMode]);
+
+  // Get canvas offset for node positioning
+  const getCanvasOffset = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { offsetX: 0, offsetY: 0 };
+    if (useCustomGraph) return { offsetX: 0, offsetY: 0 };
+    return { offsetX: (canvas.offsetWidth - 600) / 2, offsetY: 10 };
+  }, [useCustomGraph]);
+
+  // Find node at canvas position
+  const findNodeAt = useCallback((mx: number, my: number): GraphNode | null => {
+    const { offsetX, offsetY } = getCanvasOffset();
+    const nodes = useCustomGraph ? customNodes : PRESETS[presetIdx].nodes;
+    for (const n of nodes) {
+      const dx = mx - (n.x + offsetX);
+      const dy = my - (n.y + offsetY);
+      if (dx * dx + dy * dy <= NODE_RADIUS * NODE_RADIUS) return n;
+    }
+    return null;
+  }, [customNodes, presetIdx, useCustomGraph, getCanvasOffset]);
+
+  // Sandbox: add node
+  const addNode = useCallback((x: number, y: number) => {
+    const usedIds = new Set(customNodes.map(n => n.id));
+    let newId = '';
+    for (const ch of NODE_LABELS) {
+      if (!usedIds.has(ch)) { newId = ch; break; }
+    }
+    if (!newId) return;
+    setCustomNodes(prev => [...prev, { id: newId, x, y }]);
+  }, [customNodes]);
+
+  // Sandbox: remove node
+  const removeNode = useCallback((id: string) => {
+    setCustomNodes(prev => prev.filter(n => n.id !== id));
+    setCustomEdges(prev => prev.filter(e => e.from !== id && e.to !== id));
+    setEdgeFromNode(null);
+    if (source === id) {
+      setSource(customNodes.find(n => n.id !== id)?.id || 'A');
+    }
+  }, [customNodes, source]);
+
+  // Sandbox: add edge
+  const addEdge = useCallback((from: string, to: string) => {
+    if (from === to) return;
+    const exists = customEdges.some(e =>
+      (e.from === from && e.to === to) || (e.from === to && e.to === from)
+    );
+    if (exists) return;
+    setCustomEdges(prev => [...prev, { from, to, weight: edgeWeight }]);
+  }, [customEdges, edgeWeight]);
+
+  // Sandbox: remove edge
+  const removeEdge = useCallback((from: string, to: string) => {
+    setCustomEdges(prev => prev.filter(e =>
+      !((e.from === from && e.to === to) || (e.from === to && e.to === from))
+    ));
+  }, []);
+
+  // Canvas mouse handlers
+  const handleCanvasMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!sandboxMode || !useCustomGraph) return;
+    if (e.button === 2) { e.preventDefault(); return; }
+    const rect = canvasRef.current!.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const node = findNodeAt(mx, my);
+
+    if (sandboxTool === 'add-node') {
+      if (!node) addNode(mx, my);
+    } else if (sandboxTool === 'add-edge') {
+      if (node) {
+        if (edgeFromNode) {
+          addEdge(edgeFromNode, node.id);
+          setEdgeFromNode(null);
+        } else {
+          setEdgeFromNode(node.id);
+        }
+      } else {
+        setEdgeFromNode(null);
+      }
+    } else if (sandboxTool === 'move') {
+      if (node) setDraggingNode(node.id);
+    } else if (sandboxTool === 'delete') {
+      if (node) {
+        removeNode(node.id);
+      } else {
+        for (const edge of customEdges) {
+          const fromN = customNodes.find(n => n.id === edge.from);
+          const toN = customNodes.find(n => n.id === edge.to);
+          if (!fromN || !toN) continue;
+          const dist = pointToSegmentDist(mx, my, fromN.x, fromN.y, toN.x, toN.y);
+          if (dist < 10) {
+            removeEdge(edge.from, edge.to);
+            return;
+          }
+        }
+      }
+    }
+  }, [sandboxMode, useCustomGraph, sandboxTool, findNodeAt, edgeFromNode, addNode, addEdge, removeNode, removeEdge, customEdges, customNodes]);
+
+  const handleCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!draggingNode || !sandboxMode || !useCustomGraph) return;
+    const rect = canvasRef.current!.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    setCustomNodes(prev => prev.map(n => n.id === draggingNode ? { ...n, x: mx, y: my } : n));
+  }, [draggingNode, sandboxMode, useCustomGraph]);
+
+  const handleCanvasMouseUp = useCallback(() => {
+    setDraggingNode(null);
+  }, []);
+
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    if (sandboxMode && useCustomGraph) e.preventDefault();
+  }, [sandboxMode, useCustomGraph]);
 
   // Drawing
   useEffect(() => {
@@ -308,103 +445,149 @@ export const GraphAlgorithms: React.FC = () => {
     if (!ctx) return;
 
     const render = () => {
-    const dpr = window.devicePixelRatio || 1;
-    const w = canvas.offsetWidth;
-    const h = canvas.offsetHeight;
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, w, h);
-    const isDark = document.documentElement.classList.contains('dark');
-    ctx.fillStyle = isDark ? '#080c18' : '#f8f9fc';
-    ctx.fillRect(0, 0, w, h);
+      const dpr = window.devicePixelRatio || 1;
+      const w = canvas.offsetWidth;
+      const h = canvas.offsetHeight;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      const isDark = document.documentElement.classList.contains('dark');
+      ctx.fillStyle = isDark ? '#080c18' : '#f8f9fc';
+      ctx.fillRect(0, 0, w, h);
 
-    const step = steps[currentStep];
-    if (!step) return;
+      const nodes = activeNodes;
+      const edges = activeEdges;
 
-    const offsetX = (canvas.offsetWidth - 600) / 2;
-    const offsetY = 10;
+      const { offsetX, offsetY } = getCanvasOffset();
 
-    // Draw edges
-    for (const e of preset.edges) {
-      const from = preset.nodes.find(n => n.id === e.from)!;
-      const to = preset.nodes.find(n => n.id === e.to)!;
-      const ek = edgeKey(e.from, e.to);
-
-      ctx.beginPath();
-      ctx.moveTo(from.x + offsetX, from.y + offsetY);
-      ctx.lineTo(to.x + offsetX, to.y + offsetY);
-
-      if (step.mstEdges.has(ek)) {
-        ctx.strokeStyle = '#22c55e';
-        ctx.lineWidth = 3;
-      } else if (step.highlightedEdges.has(ek)) {
-        ctx.strokeStyle = '#f59e0b';
-        ctx.lineWidth = 3;
-      } else {
-        ctx.strokeStyle = '#64748b';
-        ctx.lineWidth = 1.5;
+      if (sandboxMode) {
+        // Draw sandbox grid
+        ctx.strokeStyle = isDark ? '#1e293b' : '#e2e8f0';
+        ctx.lineWidth = 0.5;
+        for (let x = 0; x < w; x += 40) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+        }
+        for (let y = 0; y < h; y += 40) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+        }
       }
-      ctx.stroke();
 
-      // Weight label
-      const mx = (from.x + to.x) / 2 + offsetX;
-      const my = (from.y + to.y) / 2 + offsetY;
-      ctx.fillStyle = '#1e293b';
-      ctx.font = 'bold 11px monospace';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = '#fff';
-      ctx.beginPath();
-      ctx.arc(mx, my, 10, 0, Math.PI * 2);
-      ctx.fillStyle = '#334155';
-      ctx.fill();
-      ctx.fillStyle = '#fff';
-      ctx.fillText(String(e.weight), mx, my);
-    }
+      const step = !sandboxMode ? steps[currentStep] : null;
 
-    // Draw nodes
-    for (const n of preset.nodes) {
-      ctx.beginPath();
-      ctx.arc(n.x + offsetX, n.y + offsetY, 22, 0, Math.PI * 2);
-      if (step.currentNode === n.id) {
-        ctx.fillStyle = '#f59e0b';
-        ctx.shadowColor = '#f59e0b';
-        ctx.shadowBlur = 12;
-      } else if (step.visitedNodes.has(n.id)) {
-        ctx.fillStyle = '#22c55e';
-        ctx.shadowColor = '#22c55e';
-        ctx.shadowBlur = 6;
-      } else {
-        ctx.fillStyle = '#3b82f6';
+      // Draw edges
+      for (const e of edges) {
+        const from = nodes.find(n => n.id === e.from);
+        const to = nodes.find(n => n.id === e.to);
+        if (!from || !to) continue;
+        const ek = edgeKey(e.from, e.to);
+
+        ctx.beginPath();
+        ctx.moveTo(from.x + offsetX, from.y + offsetY);
+        ctx.lineTo(to.x + offsetX, to.y + offsetY);
+
+        if (step?.mstEdges.has(ek)) {
+          ctx.strokeStyle = '#22c55e';
+          ctx.lineWidth = 3;
+        } else if (step?.highlightedEdges.has(ek)) {
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 3;
+        } else {
+          ctx.strokeStyle = '#64748b';
+          ctx.lineWidth = 1.5;
+        }
+        ctx.stroke();
+
+        // Weight label
+        const mx = (from.x + to.x) / 2 + offsetX;
+        const my = (from.y + to.y) / 2 + offsetY;
+        ctx.beginPath();
+        ctx.arc(mx, my, 10, 0, Math.PI * 2);
+        ctx.fillStyle = '#334155';
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 11px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(e.weight), mx, my);
+      }
+
+      // Draw pending edge line
+      if (sandboxMode && edgeFromNode && useCustomGraph) {
+        const fromN = customNodes.find(n => n.id === edgeFromNode);
+        if (fromN) {
+          ctx.beginPath();
+          ctx.setLineDash([5, 5]);
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 2;
+          ctx.moveTo(fromN.x, fromN.y);
+          // Line follows to center of canvas as hint
+          ctx.lineTo(w / 2, h / 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+      }
+
+      // Draw nodes
+      for (const n of nodes) {
+        ctx.beginPath();
+        ctx.arc(n.x + offsetX, n.y + offsetY, NODE_RADIUS, 0, Math.PI * 2);
+
+        if (sandboxMode) {
+          if (edgeFromNode === n.id) {
+            ctx.fillStyle = '#f59e0b';
+          } else {
+            ctx.fillStyle = '#3b82f6';
+          }
+        } else if (step?.currentNode === n.id) {
+          ctx.fillStyle = '#f59e0b';
+          ctx.shadowColor = '#f59e0b';
+          ctx.shadowBlur = 12;
+        } else if (step?.visitedNodes.has(n.id)) {
+          ctx.fillStyle = '#22c55e';
+          ctx.shadowColor = '#22c55e';
+          ctx.shadowBlur = 6;
+        } else {
+          ctx.fillStyle = '#3b82f6';
+          ctx.shadowBlur = 0;
+        }
+        ctx.fill();
         ctx.shadowBlur = 0;
-      }
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.strokeStyle = isDark ? '#64748b' : '#1e293b';
-      ctx.lineWidth = 2;
-      ctx.stroke();
+        ctx.strokeStyle = isDark ? '#64748b' : '#1e293b';
+        ctx.lineWidth = 2;
+        ctx.stroke();
 
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 14px monospace';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(n.id, n.x + offsetX, n.y + offsetY);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 14px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(n.id, n.x + offsetX, n.y + offsetY);
 
-      // Distance label
-      const d = step.distances.get(n.id);
-      if (d !== undefined) {
-        ctx.fillStyle = '#64748b';
-        ctx.font = '10px monospace';
-        ctx.fillText(d === Infinity ? '∞' : String(d), n.x + offsetX, n.y + offsetY + 32);
+        // Distance label (only in algorithm mode)
+        if (!sandboxMode && step) {
+          const d = step.distances.get(n.id);
+          if (d !== undefined) {
+            ctx.fillStyle = '#64748b';
+            ctx.font = '10px monospace';
+            ctx.fillText(d === Infinity ? 'inf' : String(d), n.x + offsetX, n.y + offsetY + 32);
+          }
+        }
       }
-    }
+
+      // Sandbox instructions
+      if (sandboxMode && useCustomGraph && nodes.length === 0) {
+        ctx.fillStyle = isDark ? '#64748b' : '#94a3b8';
+        ctx.font = '14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Click anywhere to add nodes', w / 2, h / 2);
+      }
     };
     render();
     const obs = new ResizeObserver(render);
     obs.observe(canvas);
     return () => obs.disconnect();
-  }, [currentStep, steps, preset]);
+  }, [currentStep, steps, activeNodes, activeEdges, sandboxMode, edgeFromNode, customNodes, useCustomGraph, getCanvasOffset]);
 
   const play = useCallback(async () => {
     if (isPlayingRef.current) return;
@@ -426,66 +609,196 @@ export const GraphAlgorithms: React.FC = () => {
 
   const descriptions: Record<Algorithm, string> = {
     'dijkstra': 'Dijkstra\'s: Greedy shortest-path. O((V+E)log V) with min-heap. No negative weights.',
-    'bellman-ford': 'Bellman-Ford: Relaxes all edges V-1 times. O(V·E). Handles negative weights.',
-    'floyd-warshall': 'Floyd-Warshall: All-pairs shortest paths via DP. O(V³). Intermediate vertex approach.',
+    'bellman-ford': 'Bellman-Ford: Relaxes all edges V-1 times. O(V*E). Handles negative weights.',
+    'floyd-warshall': 'Floyd-Warshall: All-pairs shortest paths via DP. O(V^3). Intermediate vertex approach.',
     'kruskal': 'Kruskal\'s MST: Sort edges, add cheapest non-cycle edge. O(E log E). Uses Union-Find.',
     'prim': 'Prim\'s MST: Grow MST from source, always add cheapest crossing edge. O(E log V).',
   };
 
+  const toggleSandbox = () => {
+    const entering = !sandboxMode;
+    setSandboxMode(entering);
+    if (entering) {
+      // Copy current graph into custom
+      setCustomNodes(activeNodes.map(n => ({ ...n })));
+      setCustomEdges(activeEdges.map(e => ({ ...e })));
+      setUseCustomGraph(true);
+      setEdgeFromNode(null);
+      setSandboxTool('add-node');
+      setIsPlaying(false);
+      isPlayingRef.current = false;
+    } else {
+      // Exit sandbox, run algorithm on custom graph
+      runAlgorithm();
+    }
+  };
+
+  const clearCustomGraph = () => {
+    setCustomNodes([]);
+    setCustomEdges([]);
+    setEdgeFromNode(null);
+  };
+
+  const loadPresetToCustom = (idx: number) => {
+    setCustomNodes(PRESETS[idx].nodes.map(n => ({ ...n })));
+    setCustomEdges(PRESETS[idx].edges.map(e => ({ ...e })));
+    setEdgeFromNode(null);
+  };
+
   return (
     <div className="h-full flex flex-col bg-gradient-to-br from-slate-50 to-emerald-50 dark:from-gray-950 dark:to-emerald-950 p-3 overflow-hidden">
-      <div className="flex flex-wrap gap-2 mb-3 items-center">
-        <select value={algorithm} onChange={e => setAlgorithm(e.target.value as Algorithm)}
-          className="px-3 py-1.5 text-sm rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
-          <option value="dijkstra">Dijkstra</option>
-          <option value="bellman-ford">Bellman-Ford</option>
-          <option value="floyd-warshall">Floyd-Warshall</option>
-          <option value="kruskal">Kruskal (MST)</option>
-          <option value="prim">Prim (MST)</option>
-        </select>
+      <div className="flex flex-wrap gap-2 mb-2 items-center">
+        <button
+          onClick={toggleSandbox}
+          className={`px-3 py-1.5 text-sm rounded-lg font-semibold ${sandboxMode ? 'bg-amber-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200'}`}
+        >
+          {sandboxMode ? 'Run Algorithm' : 'Edit Graph'}
+        </button>
 
-        <select value={presetIdx} onChange={e => setPresetIdx(Number(e.target.value))}
-          className="px-3 py-1.5 text-sm rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
-          {PRESETS.map((p, i) => <option key={i} value={i}>{p.label}</option>)}
-        </select>
+        {!sandboxMode && (
+          <>
+            <select value={algorithm} onChange={e => setAlgorithm(e.target.value as Algorithm)}
+              className="px-3 py-1.5 text-sm rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
+              <option value="dijkstra">Dijkstra</option>
+              <option value="bellman-ford">Bellman-Ford</option>
+              <option value="floyd-warshall">Floyd-Warshall</option>
+              <option value="kruskal">Kruskal (MST)</option>
+              <option value="prim">Prim (MST)</option>
+            </select>
 
-        {isSPAlgo && (
-          <select value={source} onChange={e => setSource(e.target.value)}
-            className="px-3 py-1.5 text-sm rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
-            {preset.nodes.map(n => <option key={n.id} value={n.id}>Source: {n.id}</option>)}
-          </select>
+            {!useCustomGraph && (
+              <select value={presetIdx} onChange={e => { setPresetIdx(Number(e.target.value)); setUseCustomGraph(false); }}
+                className="px-3 py-1.5 text-sm rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
+                {PRESETS.map((p, i) => <option key={i} value={i}>{p.label}</option>)}
+              </select>
+            )}
+
+            {useCustomGraph && (
+              <span className="px-3 py-1.5 text-sm rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-medium">
+                Custom Graph ({customNodes.length}N, {customEdges.length}E)
+              </span>
+            )}
+
+            {useCustomGraph && (
+              <button onClick={() => setUseCustomGraph(false)}
+                className="px-2 py-1 text-xs bg-gray-300 dark:bg-gray-600 rounded text-gray-700 dark:text-gray-200">
+                Use Preset
+              </button>
+            )}
+
+            {isSPAlgo && (
+              <select value={source} onChange={e => setSource(e.target.value)}
+                className="px-3 py-1.5 text-sm rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
+                {activeNodes.map(n => <option key={n.id} value={n.id}>Source: {n.id}</option>)}
+              </select>
+            )}
+
+            <div className="flex items-center gap-1 ml-2">
+              <span className="text-xs text-gray-500">Speed:</span>
+              <input type="range" min={100} max={2000} step={100} value={speed} onChange={e => setSpeed(Number(e.target.value))} className="w-24" />
+              <span className="text-xs text-gray-500 w-12">{speed}ms</span>
+            </div>
+
+            <div className="flex gap-1 ml-auto">
+              {!isPlaying ? (
+                <button onClick={play} className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700">Play</button>
+              ) : (
+                <button onClick={pause} className="px-3 py-1.5 text-sm bg-yellow-600 text-white rounded-lg hover:bg-yellow-700">Pause</button>
+              )}
+              <button onClick={() => setCurrentStep(s => Math.min(s + 1, steps.length - 1))} disabled={isPlaying}
+                className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">Step</button>
+              <button onClick={runAlgorithm} className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700">Reset</button>
+            </div>
+          </>
         )}
 
-        <div className="flex items-center gap-1 ml-2">
-          <span className="text-xs text-gray-500">Speed:</span>
-          <input type="range" min={100} max={2000} step={100} value={speed} onChange={e => setSpeed(Number(e.target.value))} className="w-24" />
-          <span className="text-xs text-gray-500 w-12">{speed}ms</span>
-        </div>
+        {sandboxMode && (
+          <>
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
+              {([['add-node', '+Node'], ['add-edge', '+Edge'], ['move', 'Move'], ['delete', 'Delete']] as const).map(([tool, label]) => (
+                <button key={tool} onClick={() => { setSandboxTool(tool); if (tool !== 'add-edge') setEdgeFromNode(null); }}
+                  className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${sandboxTool === tool ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
 
-        <div className="flex gap-1 ml-auto">
-          {!isPlaying ? (
-            <button onClick={play} className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700">▶ Play</button>
-          ) : (
-            <button onClick={pause} className="px-3 py-1.5 text-sm bg-yellow-600 text-white rounded-lg hover:bg-yellow-700">⏸ Pause</button>
-          )}
-          <button onClick={() => setCurrentStep(s => Math.min(s + 1, steps.length - 1))} disabled={isPlaying}
-            className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">Step →</button>
-          <button onClick={runAlgorithm} className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700">↺ Reset</button>
-        </div>
+            {sandboxTool === 'add-edge' && (
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-500">Weight:</span>
+                <input type="number" min={1} max={99} value={edgeWeight} onChange={e => setEdgeWeight(Math.max(1, Number(e.target.value)))}
+                  className="w-14 px-2 py-1 text-sm rounded bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100" />
+              </div>
+            )}
+
+            {edgeFromNode && (
+              <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/40 rounded text-blue-700 dark:text-blue-300 font-medium">
+                From {edgeFromNode} → click target node
+              </span>
+            )}
+
+            <button onClick={clearCustomGraph}
+              className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700">
+              Clear All
+            </button>
+
+            <select defaultValue="" onChange={e => { if (e.target.value) { loadPresetToCustom(Number(e.target.value)); e.target.value = ''; } }}
+              className="px-3 py-1.5 text-sm rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
+              <option value="" disabled>Load Preset...</option>
+              {PRESETS.map((p, i) => <option key={i} value={i}>{p.label}</option>)}
+            </select>
+
+            <span className="text-xs text-gray-500 ml-auto">
+              {customNodes.length}N, {customEdges.length}E
+            </span>
+          </>
+        )}
       </div>
 
-      <div className="text-xs text-gray-600 dark:text-gray-400 bg-white/60 dark:bg-gray-800/60 rounded-lg p-2 mb-2">
-        {descriptions[algorithm]}
-      </div>
+      {sandboxMode && (
+        <div className="text-xs text-gray-500 dark:text-gray-400 bg-white/60 dark:bg-gray-800/60 rounded-lg px-2 py-1.5 mb-2">
+          {sandboxTool === 'add-node' && 'Click on empty space to add a node.'}
+          {sandboxTool === 'add-edge' && (edgeFromNode ? `Click a node to connect it to ${edgeFromNode}.` : 'Click a node to start drawing an edge, then click the target node.')}
+          {sandboxTool === 'move' && 'Click and drag a node to reposition it.'}
+          {sandboxTool === 'delete' && 'Click a node or edge to remove it.'}
+        </div>
+      )}
+
+      {!sandboxMode && (
+        <div className="text-xs text-gray-600 dark:text-gray-400 bg-white/60 dark:bg-gray-800/60 rounded-lg p-2 mb-2">
+          {descriptions[algorithm]}
+        </div>
+      )}
 
       <div className="flex-1 min-h-0 relative">
-        <canvas ref={canvasRef} className="w-full h-full rounded-xl bg-white/80 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700" />
+        <canvas
+          ref={canvasRef}
+          className="w-full h-full rounded-xl bg-white/80 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700"
+          style={{ cursor: sandboxMode ? (draggingNode ? 'grabbing' : sandboxTool === 'add-node' ? 'crosshair' : sandboxTool === 'add-edge' ? 'pointer' : sandboxTool === 'move' ? 'grab' : 'not-allowed') : 'default' }}
+          onMouseDown={handleCanvasMouseDown}
+          onMouseMove={handleCanvasMouseMove}
+          onMouseUp={handleCanvasMouseUp}
+          onMouseLeave={handleCanvasMouseUp}
+          onContextMenu={handleContextMenu}
+        />
       </div>
 
-      <div className="mt-2 bg-white/60 dark:bg-gray-800/60 rounded-lg p-2">
-        <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Step {currentStep + 1}/{steps.length}: </span>
-        <span className="text-xs text-gray-600 dark:text-gray-400">{steps[currentStep]?.description || '—'}</span>
-      </div>
+      {!sandboxMode && (
+        <div className="mt-2 bg-white/60 dark:bg-gray-800/60 rounded-lg p-2">
+          <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Step {currentStep + 1}/{steps.length}: </span>
+          <span className="text-xs text-gray-600 dark:text-gray-400">{steps[currentStep]?.description || '--'}</span>
+        </div>
+      )}
     </div>
   );
 };
+
+// Helper: distance from point to line segment
+function pointToSegmentDist(px: number, py: number, ax: number, ay: number, bx: number, by: number): number {
+  const dx = bx - ax, dy = by - ay;
+  const len2 = dx * dx + dy * dy;
+  if (len2 === 0) return Math.hypot(px - ax, py - ay);
+  let t = ((px - ax) * dx + (py - ay) * dy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}

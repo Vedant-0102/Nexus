@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, useRef, useMemo, useCallback } from 'react';
 import { WindowType } from '../types/WindowTypes';
 import { WINDOW_THEMES, WALLPAPER_TO_THEME, WindowThemeName } from '../themes/windowThemes';
-import { Settings as SettingsIcon, Clock, FileText, Battery, Timer, Terminal as TerminalIcon, StickyNote, Gamepad, PaintBucket, Folder, Crown, Globe, RefreshCcw, Code, Layers, Flag, Cloud, Image, Table, Presentation, TrendingUp, Bitcoin, Trophy, Rocket, Briefcase, Repeat, FlaskConical, BarChart3, Beaker, Zap, Atom, QrCode, Plane, Ship, Palette, Sparkles, CheckCircle2, Eye, Newspaper, Cpu, Waves, Brain, ClipboardList, CheckSquare, Ruler, Weight, DollarSign, Sigma, Calculator, Grid3x3, PieChart, Calendar as CalendarIcon, GitBranch, Gauge, Thermometer, Droplet, Shield, Wind, Microscope, Dna, Heart, Circle, Lightbulb, Scan, Settings, Sun, Moon, Mountain, Star, Binary, CircuitBoard, MemoryStick, Cog, Wrench, Bolt } from 'lucide-react';
+import { Settings as SettingsIcon, Clock, FileText, Battery, Timer, Terminal as TerminalIcon, StickyNote, Gamepad, PaintBucket, Folder, Crown, Globe, RefreshCcw, Code, Layers, Flag, Cloud, Image, Table, Presentation, TrendingUp, Bitcoin, Trophy, Rocket, Briefcase, Repeat, FlaskConical, BarChart3, Beaker, Zap, Atom, QrCode, Plane, Ship, Palette, Sparkles, CheckCircle2, Eye, Newspaper, Cpu, Waves, Brain, ClipboardList, CheckSquare, Ruler, Weight, DollarSign, Sigma, Calculator, Grid3x3, PieChart, Calendar as CalendarIcon, GitBranch, Gauge, Thermometer, Droplet, Shield, Wind, Microscope, Dna, Heart, Circle, Lightbulb, Scan, Settings, Sun, Moon, Mountain, Star, Binary, CircuitBoard, MemoryStick, Cog, Wrench, Bolt, Lock, Key, Hash, Fingerprint, KeyRound, FileKey } from 'lucide-react';
 import { Notepad } from '../features/office/Notepad';
 import { TextEditor } from '../features/office/TextEditor';
 import { FormBuilder } from '../features/office/FormBuilder';
@@ -208,6 +208,11 @@ import { TrieSegmentTree } from '../features/algorithms/TrieSegmentTree';
 import { ComplexityAnalyzer } from '../features/algorithms/ComplexityAnalyzer';
 import { VirtualInstruments, BeatSequencer, WaveformVisualizer, EffectsRack, PianoRoll, ChordProgressionHelper, MusicTheoryHelper, Arpeggiator, SamplePad, DAWStudio } from '../features/music';
 import { Music } from 'lucide-react';
+import { UUIDGenerator, TokenGenerator, HashingTool, HMACGenerator, BcryptTool, StringObfuscation, JWTDecoder, ClassicalCiphers, AESEncryption, RSASandbox } from '../features/cryptography';
+import { SubnetCalculator, IPv4Converter, IPv4RangeExpander, MACAddressTool, IPv6ULAGenerator } from '../features/networking';
+import { ImageEditor } from '../features/editing/ImageEditor';
+import { VideoEditor } from '../features/editing/VideoEditor';
+import { Network, Scissors } from 'lucide-react';
 
 const BASE_ZINDEX = 100000;
 const FOLDER_ZINDEX = BASE_ZINDEX;
@@ -1210,6 +1215,117 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         isResizable: true,
         isMaximizable: true,
         defaultSize: { width: 700, height: 650 },
+      },
+      // Cryptography Tools
+      {
+        id: 'token-generator',
+        title: 'Token Generator',
+        content: <TokenGenerator />,
+        isOpen: openWindowIds.includes('token-generator'),
+        isMinimized: minimizedWindowIds.includes('token-generator'),
+        icon: <Key className="h-5 w-5 text-green-600" />,
+        zIndex: 100,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 800, height: 600 },
+      },
+      {
+        id: 'string-obfuscation',
+        title: 'String Obfuscation',
+        content: <StringObfuscation />,
+        isOpen: openWindowIds.includes('string-obfuscation'),
+        isMinimized: minimizedWindowIds.includes('string-obfuscation'),
+        icon: <Code className="h-5 w-5 text-violet-600" />,
+        zIndex: 100,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 900, height: 600 },
+      },
+      {
+        id: 'bcrypt-tool',
+        title: 'Password Hashing (PBKDF2)',
+        content: <BcryptTool />,
+        isOpen: openWindowIds.includes('bcrypt-tool'),
+        isMinimized: minimizedWindowIds.includes('bcrypt-tool'),
+        icon: <Lock className="h-5 w-5 text-amber-600" />,
+        zIndex: 100,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 700, height: 650 },
+      },
+      {
+        id: 'uuid-generator',
+        title: 'UUID Generator',
+        content: <UUIDGenerator />,
+        isOpen: openWindowIds.includes('uuid-generator'),
+        isMinimized: minimizedWindowIds.includes('uuid-generator'),
+        icon: <Fingerprint className="h-5 w-5 text-indigo-600" />,
+        zIndex: 100,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 800, height: 600 },
+      },
+      {
+        id: 'hashing-tool',
+        title: 'Hashing Tool',
+        content: <HashingTool />,
+        isOpen: openWindowIds.includes('hashing-tool'),
+        isMinimized: minimizedWindowIds.includes('hashing-tool'),
+        icon: <Hash className="h-5 w-5 text-cyan-600" />,
+        zIndex: 100,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 900, height: 650 },
+      },
+      {
+        id: 'classical-ciphers',
+        title: 'Classical Ciphers',
+        content: <ClassicalCiphers />,
+        isOpen: openWindowIds.includes('classical-ciphers'),
+        isMinimized: minimizedWindowIds.includes('classical-ciphers'),
+        icon: <Shield className="h-5 w-5 text-orange-600" />,
+        zIndex: 100,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 950, height: 700 },
+      },
+      {
+        id: 'aes-encryption',
+        title: 'AES Encryption',
+        content: <AESEncryption />,
+        isOpen: openWindowIds.includes('aes-encryption'),
+        isMinimized: minimizedWindowIds.includes('aes-encryption'),
+        icon: <Lock className="h-5 w-5 text-blue-600" />,
+        zIndex: 100,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 800, height: 650 },
+      },
+      {
+        id: 'hmac-generator',
+        title: 'HMAC Generator',
+        content: <HMACGenerator />,
+        isOpen: openWindowIds.includes('hmac-generator'),
+        isMinimized: minimizedWindowIds.includes('hmac-generator'),
+        icon: <KeyRound className="h-5 w-5 text-teal-600" />,
+        zIndex: 100,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 750, height: 650 },
+      },
+      {
+        id: 'rsa-sandbox',
+        title: 'RSA Sandbox',
+        content: <RSASandbox />,
+        isOpen: openWindowIds.includes('rsa-sandbox'),
+        isMinimized: minimizedWindowIds.includes('rsa-sandbox'),
+        icon: <FileKey className="h-5 w-5 text-purple-600" />,
+        zIndex: 100,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1000, height: 700 },
+      },
+      {
+        id: 'jwt-decoder',
+        title: 'JWT Decoder',
+        content: <JWTDecoder />,
+        isOpen: openWindowIds.includes('jwt-decoder'),
+        isMinimized: minimizedWindowIds.includes('jwt-decoder'),
+        icon: <FileText className="h-5 w-5 text-rose-600" />,
+        zIndex: 100,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 900, height: 650 },
       },
       {
         id: 'temperature-converter',
@@ -3244,6 +3360,106 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         isMaximizable: true,
         defaultSize: { width: 1400, height: 900 },
       },
+      // ---- Networking Tools ----
+      {
+        id: 'subnet-calculator',
+        title: 'Subnet Calculator',
+        content: <SubnetCalculator />,
+        isOpen: openWindowIds.includes('subnet-calculator'),
+        isMinimized: minimizedWindowIds.includes('subnet-calculator'),
+        icon: <Network className="h-5 w-5 text-blue-500" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1000, height: 700 },
+      },
+      {
+        id: 'ipv4-converter',
+        title: 'IPv4 Converter',
+        content: <IPv4Converter />,
+        isOpen: openWindowIds.includes('ipv4-converter'),
+        isMinimized: minimizedWindowIds.includes('ipv4-converter'),
+        icon: <Globe className="h-5 w-5 text-emerald-500" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 800, height: 600 },
+      },
+      {
+        id: 'ipv4-range-expander',
+        title: 'IPv4 Range Expander',
+        content: <IPv4RangeExpander />,
+        isOpen: openWindowIds.includes('ipv4-range-expander'),
+        isMinimized: minimizedWindowIds.includes('ipv4-range-expander'),
+        icon: <TrendingUp className="h-5 w-5 text-orange-500" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 900, height: 650 },
+      },
+      {
+        id: 'mac-address-tool',
+        title: 'MAC Address Tool',
+        content: <MACAddressTool />,
+        isOpen: openWindowIds.includes('mac-address-tool'),
+        isMinimized: minimizedWindowIds.includes('mac-address-tool'),
+        icon: <Cpu className="h-5 w-5 text-teal-500" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 900, height: 650 },
+      },
+      {
+        id: 'ipv6-ula-generator',
+        title: 'IPv6 ULA Generator',
+        content: <IPv6ULAGenerator />,
+        isOpen: openWindowIds.includes('ipv6-ula-generator'),
+        isMinimized: minimizedWindowIds.includes('ipv6-ula-generator'),
+        icon: <Globe className="h-5 w-5 text-violet-500" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 900, height: 650 },
+      },
+      // ---- Editing Tools ----
+      {
+        id: 'image-editor',
+        title: 'Image Editor',
+        content: <ImageEditor />,
+        isOpen: openWindowIds.includes('image-editor'),
+        isMinimized: minimizedWindowIds.includes('image-editor'),
+        icon: <Image className="h-5 w-5 text-pink-500" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1200, height: 800 },
+      },
+      {
+        id: 'video-editor',
+        title: 'Video Editor',
+        content: <VideoEditor />,
+        isOpen: openWindowIds.includes('video-editor'),
+        isMinimized: minimizedWindowIds.includes('video-editor'),
+        icon: <Scissors className="h-5 w-5 text-indigo-500" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 1400, height: 900 },
+      },
     ];
 
     // Notepad removed from showing by default
@@ -3477,6 +3693,81 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
       isMaximizable: true,
     };
 
+    const engineCodeFolderWindow: WindowType = {
+      id: 'engine-code-folder-window',
+      title: 'Code / CS',
+      content: <FolderContent type="engine-code" />,
+      isOpen: openWindowIds.includes('engine-code-folder-window'),
+      isMinimized: minimizedWindowIds.includes('engine-code-folder-window'),
+      icon: <Code className="h-5 w-5 text-blue-500" />,
+      zIndex: FOLDER_ZINDEX,
+      defaultSize: { width: 800, height: 600 },
+      showInStartMenu: false,
+      showInTaskbar: true,
+      isResizable: true,
+      isMaximizable: true,
+    };
+
+    const engineArchFolderWindow: WindowType = {
+      id: 'engine-arch-folder-window',
+      title: 'Computer Architecture',
+      content: <FolderContent type="engine-arch" />,
+      isOpen: openWindowIds.includes('engine-arch-folder-window'),
+      isMinimized: minimizedWindowIds.includes('engine-arch-folder-window'),
+      icon: <CircuitBoard className="h-5 w-5 text-orange-500" />,
+      zIndex: FOLDER_ZINDEX,
+      defaultSize: { width: 800, height: 600 },
+      showInStartMenu: false,
+      showInTaskbar: true,
+      isResizable: true,
+      isMaximizable: true,
+    };
+
+    const engineDsaFolderWindow: WindowType = {
+      id: 'engine-dsa-folder-window',
+      title: 'DSA Visualizers',
+      content: <FolderContent type="engine-dsa" />,
+      isOpen: openWindowIds.includes('engine-dsa-folder-window'),
+      isMinimized: minimizedWindowIds.includes('engine-dsa-folder-window'),
+      icon: <BarChart3 className="h-5 w-5 text-green-500" />,
+      zIndex: FOLDER_ZINDEX,
+      defaultSize: { width: 800, height: 600 },
+      showInStartMenu: false,
+      showInTaskbar: true,
+      isResizable: true,
+      isMaximizable: true,
+    };
+
+    const networksFolderWindow: WindowType = {
+      id: 'networks-folder-window',
+      title: 'Networks',
+      content: <FolderContent type="networks" />,
+      isOpen: openWindowIds.includes('networks-folder-window'),
+      isMinimized: minimizedWindowIds.includes('networks-folder-window'),
+      icon: <Network className="h-5 w-5 text-blue-500" />,
+      zIndex: FOLDER_ZINDEX,
+      defaultSize: { width: 800, height: 600 },
+      showInStartMenu: true,
+      showInTaskbar: true,
+      isResizable: true,
+      isMaximizable: true,
+    };
+
+    const editingFolderWindow: WindowType = {
+      id: 'editing-folder-window',
+      title: 'Editing',
+      content: <FolderContent type="editing" />,
+      isOpen: openWindowIds.includes('editing-folder-window'),
+      isMinimized: minimizedWindowIds.includes('editing-folder-window'),
+      icon: <Scissors className="h-5 w-5 text-pink-500" />,
+      zIndex: FOLDER_ZINDEX,
+      defaultSize: { width: 800, height: 600 },
+      showInStartMenu: true,
+      showInTaskbar: true,
+      isResizable: true,
+      isMaximizable: true,
+    };
+
     setWindows([
       ...portfolioWindows,
       ...utilityWindows,
@@ -3493,7 +3784,12 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
       virtualEngineFolderWindow,
       mathFolderWindow,
       cryptFolderWindow,
-      musicFolderWindow
+      musicFolderWindow,
+      engineCodeFolderWindow,
+      engineArchFolderWindow,
+      engineDsaFolderWindow,
+      networksFolderWindow,
+      editingFolderWindow
     ]);
   };
 

@@ -3,10 +3,15 @@ import { midiToFrequency } from './constants';
 
 function applyADSR(ctx: AudioContext, gain: GainNode, a: number, d: number, s: number, r: number, startTime: number, duration: number) {
   const t = startTime;
+  // Clamp release so it never exceeds remaining time after attack+decay
+  const safeR = Math.min(r, Math.max(0.01, duration - a - d));
+  const sustainEnd = t + duration - safeR;
   gain.gain.setValueAtTime(0.001, t);
   gain.gain.linearRampToValueAtTime(1, t + a);
   gain.gain.linearRampToValueAtTime(s, t + a + d);
-  gain.gain.setValueAtTime(s, t + duration - r);
+  if (sustainEnd > t + a + d) {
+    gain.gain.setValueAtTime(s, sustainEnd);
+  }
   gain.gain.linearRampToValueAtTime(0.001, t + duration);
 }
 

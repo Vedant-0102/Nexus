@@ -48,7 +48,7 @@ const DRUM_COLORS = [
   'from-teal-500 to-teal-600', 'from-blue-500 to-blue-600',
   'from-indigo-500 to-indigo-600', 'from-purple-500 to-purple-600',
 ];
-const DRUM_ICONS = ['💥', '🥁', '🔔', '🔓', '🪘', '🪘', '👏', '🔔'];
+const DRUM_ICONS = ['KCK', 'SNR', 'HH', 'OH', 'TL', 'TM', 'CLP', 'RDE'];
 
 function isBlackKey(noteIdx: number): boolean {
   return [1, 3, 6, 8, 10].includes(noteIdx % 12);
@@ -334,7 +334,7 @@ function DrumsTab() {
                 : 'bg-gray-700/80 hover:bg-gray-600/80 hover:scale-[1.02]'
             }`}
           >
-            <span className="text-2xl">{DRUM_ICONS[i]}</span>
+            <span className="text-sm font-bold font-mono tracking-wider">{DRUM_ICONS[i]}</span>
             <span className="text-sm font-semibold">{name}</span>
             <span className="text-[10px] text-gray-400 font-mono">{i + 1}</span>
           </button>

@@ -277,6 +277,7 @@ export function DAWStudio() {
   const playStartRef = useRef(0);
   const playBeatRef = useRef(0);
   const rafRef = useRef(0);
+  const sessionGainRef = useRef<GainNode | null>(null);
 
   // ── Derived ────────────────────────────────────────────────────────────────
 
@@ -393,6 +394,11 @@ export function DAWStudio() {
     playBeatRef.current = 0;
     setCurrentBeat(0);
     cancelAnimationFrame(rafRef.current);
+    // Disconnect session gain to immediately kill all scheduled audio
+    if (sessionGainRef.current) {
+      try { sessionGainRef.current.disconnect(); } catch {}
+      sessionGainRef.current = null;
+    }
   }, []);
 
   const startPlayback = useCallback(() => {
@@ -400,6 +406,13 @@ export function DAWStudio() {
 
     const ctx = getAudioContext();
     const master = getMasterGain();
+
+    // Create a session gain node - disconnecting it kills all scheduled audio
+    const sessionGain = ctx.createGain();
+    sessionGain.gain.value = 1.0;
+    sessionGain.connect(master);
+    sessionGainRef.current = sessionGain;
+
     isPlayingRef.current = true;
     setIsPlaying(true);
 
@@ -419,9 +432,9 @@ export function DAWStudio() {
         const panner = ctx.createStereoPanner();
         panner.pan.value = track.pan;
         trackGain.connect(panner);
-        panner.connect(master);
+        panner.connect(sessionGain);
       } else {
-        trackGain.connect(master);
+        trackGain.connect(sessionGain);
       }
 
       for (const note of track.notes) {
@@ -474,6 +487,10 @@ export function DAWStudio() {
     return () => {
       isPlayingRef.current = false;
       cancelAnimationFrame(rafRef.current);
+      if (sessionGainRef.current) {
+        try { sessionGainRef.current.disconnect(); } catch {}
+        sessionGainRef.current = null;
+      }
     };
   }, []);
 

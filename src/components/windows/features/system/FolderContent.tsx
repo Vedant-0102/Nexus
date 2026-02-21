@@ -3,7 +3,7 @@ import React from 'react';
 import { useWindows } from '../../context/WindowsContext';
 
 interface FolderContentProps {
-  type: 'games' | 'utilities' | 'office' | 'converters' | 'simulators' | 'chemistry' | 'physics' | 'biology' | 'engine' | 'colors' | 'crypt' | 'math' | 'earth-space' | 'music';
+  type: 'games' | 'utilities' | 'office' | 'converters' | 'simulators' | 'chemistry' | 'physics' | 'biology' | 'engine' | 'engine-code' | 'engine-arch' | 'engine-dsa' | 'colors' | 'crypt' | 'math' | 'earth-space' | 'music' | 'networks' | 'editing';
 }
 
 export const FolderContent: React.FC<FolderContentProps> = ({ type }) => {
@@ -20,7 +20,13 @@ export const FolderContent: React.FC<FolderContentProps> = ({ type }) => {
     } else if (type === 'simulators') {
       return ['chemistry-folder-window', 'physics-folder-window', 'biology-folder-window', 'earth-space-folder-window', 'universe'].includes(app.id);
     } else if (type === 'engine') {
-      return ['database', 'codeeditor', 'nocode', 'sortingvisualizer', 'pathfinding', 'qrcode', 'cnnvisualizer', 'gitvisualizer', 'api-tester', 'texttohtml', 'markdowneditor', 'data-formatter', 'binary-converter', 'logic-gates', 'cpu-simulator', 'memory-allocator', 'turing-machine', 'pid-controller', 'tree-traversals', 'graph-algorithms', 'dp-visualizer', 'hashing-visualizer', 'memory-stack-heap', 'bigo-comparator', 'backtracking-visualizer', 'trie-segment-tree', 'complexity-analyzer'].includes(app.id);
+      return ['engine-code-folder-window', 'engine-arch-folder-window', 'engine-dsa-folder-window', 'networks-folder-window'].includes(app.id);
+    } else if (type === 'engine-code') {
+      return ['database', 'codeeditor', 'nocode', 'gitvisualizer', 'api-tester', 'texttohtml', 'markdowneditor', 'data-formatter', 'binary-converter', 'turing-machine'].includes(app.id);
+    } else if (type === 'engine-arch') {
+      return ['logic-gates', 'cpu-simulator', 'memory-allocator', 'pid-controller'].includes(app.id);
+    } else if (type === 'engine-dsa') {
+      return ['sortingvisualizer', 'pathfinding', 'qrcode', 'cnnvisualizer', 'tree-traversals', 'graph-algorithms', 'dp-visualizer', 'hashing-visualizer', 'memory-stack-heap', 'bigo-comparator', 'backtracking-visualizer', 'trie-segment-tree', 'complexity-analyzer'].includes(app.id);
     } else if (type === 'chemistry') {
       return ['periodictable', 'molecularviewer', 'reactionsimulator', 'equation-balancer', 'titration-simulator', 'gas-laws', 'electrochemistry', 'spectroscopy', 'nuclear-decay', 'ph-scale', 'organic-chemistry', 'polymer-builder', 'chemistry-calculator', 'flame-test'].includes(app.id);
     } else if (type === 'physics') {
@@ -39,7 +45,11 @@ export const FolderContent: React.FC<FolderContentProps> = ({ type }) => {
     } else if (type === 'earth-space') {
       return ['solar-system', 'moon-phases', 'plate-tectonics', 'atmospheric-layers', 'star-life-cycle', 'eclipse-simulator', 'seasons-earth-tilt'].includes(app.id);
     } else if (type === 'crypt') {
-      return ['base64-converter', 'regex-tester', 'password-generator', 'data-formatter', 'lorem-ipsum'].includes(app.id);
+      return ['base64-converter', 'regex-tester', 'password-generator', 'data-formatter', 'lorem-ipsum', 'token-generator', 'string-obfuscation', 'bcrypt-tool', 'uuid-generator', 'hashing-tool', 'classical-ciphers', 'aes-encryption', 'hmac-generator', 'rsa-sandbox', 'jwt-decoder'].includes(app.id);
+    } else if (type === 'networks') {
+      return ['subnet-calculator', 'ipv4-converter', 'ipv4-range-expander', 'mac-address-tool', 'ipv6-ula-generator'].includes(app.id);
+    } else if (type === 'editing') {
+      return ['image-editor', 'video-editor'].includes(app.id);
     } else if (type === 'music') {
       return ['virtual-instruments', 'beat-sequencer', 'piano-roll', 'waveform-visualizer', 'effects-rack', 'chord-helper', 'music-theory', 'arpeggiator', 'sample-pad', 'daw-studio'].includes(app.id);
     }
@@ -61,7 +71,12 @@ export const FolderContent: React.FC<FolderContentProps> = ({ type }) => {
       case 'crypt': return 'Crypt';
       case 'math': return 'Math Tools';
       case 'earth-space': return 'Earth & Space Sciences';
+      case 'engine-code': return 'Code / CS';
+      case 'engine-arch': return 'Computer Architecture';
+      case 'engine-dsa': return 'DSA Visualizers';
       case 'music': return 'Music Studio';
+      case 'networks': return 'Networks';
+      case 'editing': return 'Editing';
       default: return 'Folder';
     }
   };

@@ -41,6 +41,79 @@ const PRESETS: Record<string, boolean[][]> = {
     [4].forEach(i => (g[6][i] = true));
     return g;
   })(),
+  'Reggaeton': (() => {
+    const g = Array(8).fill(null).map(() => Array(16).fill(false));
+    [0, 3, 4, 7, 8, 11, 12, 15].forEach(i => (g[0][i] = true));
+    [4, 12].forEach(i => (g[1][i] = true));
+    [0, 2, 4, 6, 8, 10, 12, 14].forEach(i => (g[2][i] = true));
+    [2, 6, 10, 14].forEach(i => (g[3][i] = true));
+    [4, 12].forEach(i => (g[6][i] = true));
+    return g;
+  })(),
+  'Trap': (() => {
+    const g = Array(8).fill(null).map(() => Array(16).fill(false));
+    [0, 7, 14].forEach(i => (g[0][i] = true));
+    [4, 12].forEach(i => (g[1][i] = true));
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].forEach(i => (g[2][i] = true));
+    [2, 6, 10, 14].forEach(i => (g[3][i] = true));
+    [6].forEach(i => (g[6][i] = true));
+    return g;
+  })(),
+  'House': (() => {
+    const g = Array(8).fill(null).map(() => Array(16).fill(false));
+    [0, 4, 8, 12].forEach(i => (g[0][i] = true));
+    [4, 12].forEach(i => (g[1][i] = true));
+    [2, 6, 10, 14].forEach(i => (g[2][i] = true));
+    [0, 4, 8, 12].forEach(i => (g[3][i] = true));
+    [4, 12].forEach(i => (g[6][i] = true));
+    [2, 10].forEach(i => (g[7][i] = true));
+    return g;
+  })(),
+  'DnB': (() => {
+    const g = Array(8).fill(null).map(() => Array(16).fill(false));
+    [0, 10].forEach(i => (g[0][i] = true));
+    [4, 14].forEach(i => (g[1][i] = true));
+    [0, 2, 4, 6, 8, 10, 12, 14].forEach(i => (g[2][i] = true));
+    [1, 5, 9, 13].forEach(i => (g[3][i] = true));
+    [8].forEach(i => (g[7][i] = true));
+    return g;
+  })(),
+  'Bossa Nova': (() => {
+    const g = Array(8).fill(null).map(() => Array(16).fill(false));
+    [0, 6, 10].forEach(i => (g[0][i] = true));
+    [8].forEach(i => (g[1][i] = true));
+    [0, 3, 6, 8, 10, 13].forEach(i => (g[2][i] = true));
+    [2, 6, 10, 14].forEach(i => (g[7][i] = true));
+    [0, 3, 6, 10].forEach(i => (g[4][i] = true));
+    return g;
+  })(),
+  'Disco': (() => {
+    const g = Array(8).fill(null).map(() => Array(16).fill(false));
+    [0, 4, 8, 12].forEach(i => (g[0][i] = true));
+    [4, 12].forEach(i => (g[1][i] = true));
+    [0, 2, 4, 6, 8, 10, 12, 14].forEach(i => (g[3][i] = true));
+    [0, 4, 8, 12].forEach(i => (g[6][i] = true));
+    [2, 6, 10, 14].forEach(i => (g[2][i] = true));
+    return g;
+  })(),
+  'Breakbeat': (() => {
+    const g = Array(8).fill(null).map(() => Array(16).fill(false));
+    [0, 4, 9, 13].forEach(i => (g[0][i] = true));
+    [4, 10].forEach(i => (g[1][i] = true));
+    [0, 2, 4, 6, 8, 10, 12, 14].forEach(i => (g[2][i] = true));
+    [1, 7, 11, 15].forEach(i => (g[3][i] = true));
+    [12].forEach(i => (g[4][i] = true));
+    return g;
+  })(),
+  'Latin': (() => {
+    const g = Array(8).fill(null).map(() => Array(16).fill(false));
+    [0, 3, 7, 10, 12].forEach(i => (g[0][i] = true));
+    [4, 12].forEach(i => (g[1][i] = true));
+    [0, 3, 4, 6, 7, 10, 12, 14].forEach(i => (g[2][i] = true));
+    [0, 3, 6, 10].forEach(i => (g[4][i] = true));
+    [2, 8, 14].forEach(i => (g[6][i] = true));
+    return g;
+  })(),
 };
 
 export function BeatSequencer() {
