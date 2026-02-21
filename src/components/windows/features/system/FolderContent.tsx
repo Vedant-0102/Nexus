@@ -3,7 +3,7 @@ import React from 'react';
 import { useWindows } from '../../context/WindowsContext';
 
 interface FolderContentProps {
-  type: 'games' | 'utilities' | 'office' | 'converters' | 'simulators' | 'chemistry' | 'physics' | 'biology' | 'engine' | 'colors' | 'crypt' | 'math' | 'earth-space';
+  type: 'games' | 'utilities' | 'office' | 'converters' | 'simulators' | 'chemistry' | 'physics' | 'biology' | 'engine' | 'colors' | 'crypt' | 'math' | 'earth-space' | 'music';
 }
 
 export const FolderContent: React.FC<FolderContentProps> = ({ type }) => {
@@ -20,7 +20,7 @@ export const FolderContent: React.FC<FolderContentProps> = ({ type }) => {
     } else if (type === 'simulators') {
       return ['chemistry-folder-window', 'physics-folder-window', 'biology-folder-window', 'earth-space-folder-window', 'universe'].includes(app.id);
     } else if (type === 'engine') {
-      return ['database', 'codeeditor', 'nocode', 'sortingvisualizer', 'pathfinding', 'qrcode', 'cnnvisualizer', 'gitvisualizer', 'api-tester', 'texttohtml', 'markdowneditor', 'data-formatter', 'binary-converter', 'logic-gates', 'cpu-simulator', 'memory-allocator', 'turing-machine', 'pid-controller'].includes(app.id);
+      return ['database', 'codeeditor', 'nocode', 'sortingvisualizer', 'pathfinding', 'qrcode', 'cnnvisualizer', 'gitvisualizer', 'api-tester', 'texttohtml', 'markdowneditor', 'data-formatter', 'binary-converter', 'logic-gates', 'cpu-simulator', 'memory-allocator', 'turing-machine', 'pid-controller', 'tree-traversals', 'graph-algorithms', 'dp-visualizer', 'hashing-visualizer', 'memory-stack-heap', 'bigo-comparator', 'backtracking-visualizer', 'trie-segment-tree', 'complexity-analyzer'].includes(app.id);
     } else if (type === 'chemistry') {
       return ['periodictable', 'molecularviewer', 'reactionsimulator', 'equation-balancer', 'titration-simulator', 'gas-laws', 'electrochemistry', 'spectroscopy', 'nuclear-decay', 'ph-scale', 'organic-chemistry', 'polymer-builder', 'chemistry-calculator', 'flame-test'].includes(app.id);
     } else if (type === 'physics') {
@@ -40,6 +40,8 @@ export const FolderContent: React.FC<FolderContentProps> = ({ type }) => {
       return ['solar-system', 'moon-phases', 'plate-tectonics', 'atmospheric-layers', 'star-life-cycle', 'eclipse-simulator', 'seasons-earth-tilt'].includes(app.id);
     } else if (type === 'crypt') {
       return ['base64-converter', 'regex-tester', 'password-generator', 'data-formatter', 'lorem-ipsum'].includes(app.id);
+    } else if (type === 'music') {
+      return ['virtual-instruments', 'beat-sequencer', 'piano-roll', 'waveform-visualizer', 'effects-rack', 'chord-helper', 'music-theory', 'arpeggiator', 'sample-pad', 'daw-studio'].includes(app.id);
     }
     return false;
   });
@@ -59,6 +61,7 @@ export const FolderContent: React.FC<FolderContentProps> = ({ type }) => {
       case 'crypt': return 'Crypt';
       case 'math': return 'Math Tools';
       case 'earth-space': return 'Earth & Space Sciences';
+      case 'music': return 'Music Studio';
       default: return 'Folder';
     }
   };

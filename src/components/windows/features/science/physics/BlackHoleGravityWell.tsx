@@ -91,7 +91,8 @@ export const BlackHoleGravityWell: React.FC = () => {
       ctx.clearRect(0, 0, w, h);
 
       // Background - deep space
-      ctx.fillStyle = '#050510';
+      const isDark = document.documentElement.classList.contains('dark');
+      ctx.fillStyle = isDark ? '#050510' : '#f8f9fc';
       ctx.fillRect(0, 0, w, h);
 
       // Draw spacetime grid (warped)
@@ -253,14 +254,14 @@ export const BlackHoleGravityWell: React.FC = () => {
   }, [isPlaying, blackHoleMass, showGrid, showTrails, spawnParticle]);
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-gray-950 to-indigo-950 p-3 overflow-hidden">
+    <div className="h-full flex flex-col bg-gradient-to-br from-gray-100 to-indigo-100 dark:from-gray-950 dark:to-indigo-950 p-3 overflow-hidden">
       <div className="mb-2 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Circle className="h-5 w-5 text-purple-400" />
             Black Hole Gravity Well
           </h2>
-          <p className="text-[11px] text-gray-400">
+          <p className="text-[11px] text-gray-500 dark:text-gray-400">
             Spacetime curvature & gravitational lensing simulation
           </p>
         </div>
@@ -269,7 +270,7 @@ export const BlackHoleGravityWell: React.FC = () => {
             {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
             {isPlaying ? 'Pause' : 'Play'}
           </button>
-          <button onClick={resetSimulation} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 text-xs font-medium">
+          <button onClick={resetSimulation} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-medium">
             <RotateCcw className="h-3.5 w-3.5" /> Reset
           </button>
         </div>
@@ -277,51 +278,51 @@ export const BlackHoleGravityWell: React.FC = () => {
 
       <div className="flex-1 flex gap-3 min-h-0">
         <div className="flex-1 min-w-0 min-h-0">
-          <div className="rounded-lg shadow-md h-full overflow-hidden border border-gray-800">
+          <div className="rounded-lg shadow-md h-full overflow-hidden border border-gray-300 dark:border-gray-800">
             <canvas ref={canvasRef} className="w-full h-full" />
           </div>
         </div>
 
         <div className="w-[220px] flex flex-col gap-2 flex-shrink-0 overflow-y-auto">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-3">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase">Controls</h4>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-3">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Controls</h4>
             <div>
-              <label className="text-[10px] text-gray-400 block mb-1">Black Hole Mass: {blackHoleMass.toLocaleString()} M☉</label>
+              <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1">Black Hole Mass: {blackHoleMass.toLocaleString()} M☉</label>
               <input type="range" min="1000" max="15000" step="500" value={blackHoleMass} onChange={e => setBlackHoleMass(+e.target.value)} className="w-full h-1.5 rounded-full appearance-none bg-gray-700" />
             </div>
-            <label className="flex items-center gap-2 text-[10px] text-gray-300 cursor-pointer">
+            <label className="flex items-center gap-2 text-[10px] text-gray-700 dark:text-gray-300 cursor-pointer">
               <input type="checkbox" checked={showGrid} onChange={e => setShowGrid(e.target.checked)} className="rounded" />
               Show spacetime grid
             </label>
-            <label className="flex items-center gap-2 text-[10px] text-gray-300 cursor-pointer">
+            <label className="flex items-center gap-2 text-[10px] text-gray-700 dark:text-gray-300 cursor-pointer">
               <input type="checkbox" checked={showTrails} onChange={e => setShowTrails(e.target.checked)} className="rounded" />
               Show orbital trails
             </label>
           </div>
 
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-2">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase">Statistics</h4>
-            <div className="bg-red-950/40 rounded-md px-2 py-1.5">
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-2">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Statistics</h4>
+            <div className="bg-red-50 dark:bg-red-950/40 rounded-md px-2 py-1.5">
               <div className="text-[9px] text-gray-500 uppercase">Particles Swallowed</div>
               <div className="text-sm font-mono font-bold text-red-400">{particlesSwallowed}</div>
             </div>
-            <div className="bg-purple-950/40 rounded-md px-2 py-1.5">
+            <div className="bg-purple-50 dark:bg-purple-950/40 rounded-md px-2 py-1.5">
               <div className="text-[9px] text-gray-500 uppercase">Event Horizon Radius</div>
               <div className="text-sm font-mono font-bold text-purple-400">{(Math.sqrt(blackHoleMass) * 0.3 * 2).toFixed(0)} units</div>
             </div>
-            <div className="bg-amber-950/40 rounded-md px-2 py-1.5">
+            <div className="bg-amber-50 dark:bg-amber-950/40 rounded-md px-2 py-1.5">
               <div className="text-[9px] text-gray-500 uppercase">Active Particles</div>
               <div className="text-sm font-mono font-bold text-amber-400">{bodiesRef.current.length}</div>
             </div>
           </div>
 
-          <div className="bg-purple-950/30 border border-purple-800/40 rounded-lg p-2.5">
-            <h4 className="text-[10px] font-semibold text-purple-300 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+          <div className="bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/40 rounded-lg p-2.5">
+            <h4 className="text-[10px] font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wider mb-1.5 flex items-center gap-1">
               <Info className="h-3 w-3" /> General Relativity
             </h4>
-            <div className="space-y-1 text-[9px] text-gray-400">
+            <div className="space-y-1 text-[9px] text-gray-600 dark:text-gray-400">
               <p>Mass warps spacetime, causing objects to follow curved paths (geodesics).</p>
-              <p className="font-mono bg-gray-800/50 rounded px-1 py-0.5">Rs = 2GM/c²</p>
+              <p className="font-mono bg-gray-200/50 dark:bg-gray-800/50 rounded px-1 py-0.5">Rs = 2GM/c²</p>
               <p>The event horizon is the boundary beyond which nothing can escape — not even light.</p>
               <p>The grid shows the curvature of spacetime around the black hole.</p>
             </div>

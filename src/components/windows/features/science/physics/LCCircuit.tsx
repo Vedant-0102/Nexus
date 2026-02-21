@@ -47,7 +47,8 @@ export const LCCircuit: React.FC = () => {
       ctx.clearRect(0, 0, w, h);
 
       // Background
-      ctx.fillStyle = '#0c0f1a';
+      const isDark = document.documentElement.classList.contains('dark');
+      ctx.fillStyle = isDark ? '#0c0f1a' : '#f8f9fc';
       ctx.fillRect(0, 0, w, h);
 
       const L = inductance / 1000; // H
@@ -302,14 +303,14 @@ export const LCCircuit: React.FC = () => {
   }, [isPlaying, circuitType, inductance, capacitance, resistance]);
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-gray-950 to-blue-950 p-3 overflow-hidden">
+    <div className="h-full flex flex-col bg-gradient-to-br from-gray-100 to-blue-100 dark:from-gray-950 dark:to-blue-950 p-3 overflow-hidden">
       <div className="mb-2 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Zap className="h-5 w-5 text-yellow-400" />
             LC / RLC Oscillator
           </h2>
-          <p className="text-[11px] text-gray-400">
+          <p className="text-[11px] text-gray-500 dark:text-gray-400">
             Electromagnetic oscillations in resonant circuits
           </p>
         </div>
@@ -318,7 +319,7 @@ export const LCCircuit: React.FC = () => {
             {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
             {isPlaying ? 'Pause' : 'Play'}
           </button>
-          <button onClick={resetSimulation} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 text-xs font-medium">
+          <button onClick={resetSimulation} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-medium">
             <RotateCcw className="h-3.5 w-3.5" /> Reset
           </button>
         </div>
@@ -326,46 +327,46 @@ export const LCCircuit: React.FC = () => {
 
       <div className="flex-1 flex gap-3 min-h-0">
         <div className="flex-1 min-w-0 min-h-0">
-          <div className="rounded-lg shadow-md h-full overflow-hidden border border-gray-800">
+          <div className="rounded-lg shadow-md h-full overflow-hidden border border-gray-300 dark:border-gray-800">
             <canvas ref={canvasRef} className="w-full h-full" />
           </div>
         </div>
 
         <div className="w-[210px] flex flex-col gap-2 flex-shrink-0 overflow-y-auto">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-2">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase">Circuit Type</h4>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-2">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Circuit Type</h4>
             {([['lc', 'Pure LC'], ['rlc-under', 'RLC Underdamped'], ['rlc-critical', 'RLC Critical'], ['rlc-over', 'RLC Overdamped']] as [CircuitType, string][]).map(([key, label]) => (
-              <button key={key} onClick={() => { setCircuitType(key); resetSimulation(); }} className={`block w-full text-left px-2 py-1 rounded text-[10px] ${circuitType === key ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>
+              <button key={key} onClick={() => { setCircuitType(key); resetSimulation(); }} className={`block w-full text-left px-2 py-1 rounded text-[10px] ${circuitType === key ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                 {label}
               </button>
             ))}
           </div>
 
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-3">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase">Parameters</h4>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-3">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Parameters</h4>
             <div>
-              <label className="text-[10px] text-gray-400 block mb-1">Inductance: {inductance} mH</label>
+              <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1">Inductance: {inductance} mH</label>
               <input type="range" min="10" max="200" step="5" value={inductance} onChange={e => { setInductance(+e.target.value); resetSimulation(); }} className="w-full h-1.5 rounded-full appearance-none bg-gray-700" />
             </div>
             <div>
-              <label className="text-[10px] text-gray-400 block mb-1">Capacitance: {capacitance} μF</label>
+              <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1">Capacitance: {capacitance} μF</label>
               <input type="range" min="10" max="500" step="10" value={capacitance} onChange={e => { setCapacitance(+e.target.value); resetSimulation(); }} className="w-full h-1.5 rounded-full appearance-none bg-gray-700" />
             </div>
             {circuitType !== 'lc' && (
               <div>
-                <label className="text-[10px] text-gray-400 block mb-1">Resistance: {resistance} Ω</label>
+                <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1">Resistance: {resistance} Ω</label>
                 <input type="range" min="1" max="100" step="1" value={resistance} onChange={e => { setResistance(+e.target.value); resetSimulation(); }} className="w-full h-1.5 rounded-full appearance-none bg-gray-700" />
               </div>
             )}
           </div>
 
-          <div className="bg-blue-950/30 border border-blue-800/40 rounded-lg p-2.5">
-            <h4 className="text-[10px] font-semibold text-blue-300 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+          <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/40 rounded-lg p-2.5">
+            <h4 className="text-[10px] font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider mb-1.5 flex items-center gap-1">
               <Info className="h-3 w-3" /> LC Oscillation
             </h4>
-            <div className="space-y-1 text-[9px] text-gray-400">
+            <div className="space-y-1 text-[9px] text-gray-600 dark:text-gray-400">
               <p>Energy oscillates between the capacitor's electric field and the inductor's magnetic field.</p>
-              <p className="font-mono bg-gray-800/50 rounded px-1 py-0.5">f₀ = 1/(2π√LC)</p>
+              <p className="font-mono bg-gray-200/50 dark:bg-gray-800/50 rounded px-1 py-0.5">f₀ = 1/(2π√LC)</p>
               <p>Adding resistance (R) causes damping. The damping factor α = R/(2L) determines if oscillations are underdamped, critically damped, or overdamped.</p>
             </div>
           </div>

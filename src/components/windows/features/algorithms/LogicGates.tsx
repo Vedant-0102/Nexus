@@ -48,10 +48,14 @@ export const LogicGates: React.FC = () => {
       const r = canvas.getBoundingClientRect();
       const w = r.width, h = r.height;
       ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = '#0a0e1a'; ctx.fillRect(0, 0, w, h);
+      const isDark = document.documentElement.classList.contains('dark');
+      ctx.fillStyle = isDark ? '#0a0e1a' : '#f8f9fc'; ctx.fillRect(0, 0, w, h);
+      const textPrimary = isDark ? 'rgba(200,200,255,0.8)' : 'rgba(30,40,80,0.85)';
+      const textSecondary = isDark ? 'rgba(200,200,255,0.6)' : 'rgba(50,60,100,0.7)';
+      const gridStroke = isDark ? 'rgba(60,70,100,0.15)' : 'rgba(180,190,210,0.2)';
 
       // Grid
-      ctx.strokeStyle = 'rgba(60,70,100,0.15)';
+      ctx.strokeStyle = gridStroke;
       for (let x = 0; x < w; x += 20) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
       for (let y = 0; y < h; y += 20) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
 
@@ -128,7 +132,7 @@ export const LogicGates: React.FC = () => {
         }
 
         // Gate label
-        ctx.fillStyle = 'rgba(200,200,255,0.8)'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = textPrimary; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText(selectedGate, cx, cy);
 
         // Input labels
@@ -145,7 +149,7 @@ export const LogicGates: React.FC = () => {
         ctx.fillText(`Q = ${output ? '1' : '0'}`, cx + gw + 45, cy + 4);
 
         // Expression
-        ctx.fillStyle = 'rgba(200,200,255,0.6)'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillStyle = textSecondary; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
         ctx.fillText(`Q = ${gateExpressions[selectedGate]}`, cx, cy + gh / 2 + 25);
 
         // Truth table
@@ -157,7 +161,7 @@ export const LogicGates: React.FC = () => {
         // Header
         ctx.fillStyle = 'rgba(60,80,140,0.4)';
         ctx.fillRect(ttX, ttY, colW * cols.length, rowH);
-        ctx.fillStyle = 'rgba(200,200,255,0.8)'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
+        ctx.fillStyle = textPrimary; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
         cols.forEach((c, i) => ctx.fillText(c, ttX + i * colW + colW / 2, ttY + 14));
 
         // Rows
@@ -170,7 +174,7 @@ export const LogicGates: React.FC = () => {
           ctx.fillStyle = isCurrent ? 'rgba(100,160,255,0.15)' : 'rgba(30,35,60,0.3)';
           ctx.fillRect(ttX, ry, colW * cols.length, rowH);
 
-          ctx.fillStyle = 'rgba(200,200,255,0.6)'; ctx.font = '11px monospace'; ctx.textAlign = 'center';
+          ctx.fillStyle = textSecondary; ctx.font = '11px monospace'; ctx.textAlign = 'center';
           if (isUnary) {
             ctx.fillText(inp[0].toString(), ttX + colW / 2, ry + 14);
             ctx.fillStyle = q ? '#4ade80' : '#f87171';
@@ -199,45 +203,45 @@ export const LogicGates: React.FC = () => {
   }, [selectedGate, inputA, inputB, output, mode]);
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-gray-950 to-indigo-950 p-3 overflow-hidden">
+    <div className="h-full flex flex-col bg-gradient-to-br from-gray-100 to-indigo-100 dark:from-gray-950 dark:to-indigo-950 p-3 overflow-hidden">
       <div className="mb-2">
-        <h2 className="text-lg font-bold text-white">⚡ Logic Gate Simulator</h2>
-        <p className="text-[11px] text-gray-400">Boolean logic gates with truth tables</p>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">⚡ Logic Gate Simulator</h2>
+        <p className="text-[11px] text-gray-500 dark:text-gray-400">Boolean logic gates with truth tables</p>
       </div>
       <div className="flex-1 flex gap-3 min-h-0">
-        <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-800 overflow-hidden">
+        <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-300 dark:border-gray-800 overflow-hidden">
           <canvas ref={canvasRef} className="w-full h-full" />
         </div>
         <div className="w-[200px] flex flex-col gap-2 flex-shrink-0 overflow-y-auto">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-1">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase mb-1">Gate Type</h4>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-1">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Gate Type</h4>
             <div className="grid grid-cols-2 gap-1">
               {(['AND','OR','NOT','NAND','NOR','XOR','XNOR'] as GateType[]).map(g => (
-                <button key={g} onClick={() => setSelectedGate(g)} className={`px-2 py-1.5 rounded text-[9px] font-mono font-bold ${selectedGate===g?'bg-indigo-600 text-white':'bg-gray-800 text-gray-400 hover:bg-gray-750'}`}>{g}</button>
+                <button key={g} onClick={() => setSelectedGate(g)} className={`px-2 py-1.5 rounded text-[9px] font-mono font-bold ${selectedGate===g?'bg-indigo-600 text-white':'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-750'}`}>{g}</button>
               ))}
             </div>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-2">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase">Inputs</h4>
-            <button onClick={() => setInputA(!inputA)} className={`flex items-center justify-between w-full px-2 py-1.5 rounded text-[10px] ${inputA?'bg-green-700 text-white':'bg-gray-800 text-gray-400'}`}>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-2">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Inputs</h4>
+            <button onClick={() => setInputA(!inputA)} className={`flex items-center justify-between w-full px-2 py-1.5 rounded text-[10px] ${inputA?'bg-green-700 text-white':'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>
               <span>Input A</span><span className="font-mono font-bold">{inputA?'1':'0'}</span>
             </button>
             {selectedGate !== 'NOT' && (
-              <button onClick={() => setInputB(!inputB)} className={`flex items-center justify-between w-full px-2 py-1.5 rounded text-[10px] ${inputB?'bg-green-700 text-white':'bg-gray-800 text-gray-400'}`}>
+              <button onClick={() => setInputB(!inputB)} className={`flex items-center justify-between w-full px-2 py-1.5 rounded text-[10px] ${inputB?'bg-green-700 text-white':'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>
                 <span>Input B</span><span className="font-mono font-bold">{inputB?'1':'0'}</span>
               </button>
             )}
-            <div className={`flex items-center justify-between w-full px-2 py-1.5 rounded text-[10px] ${output?'bg-cyan-700 text-white':'bg-gray-800 text-gray-400'}`}>
+            <div className={`flex items-center justify-between w-full px-2 py-1.5 rounded text-[10px] ${output?'bg-cyan-700 text-white':'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>
               <span>Output Q</span><span className="font-mono font-bold">{output?'1':'0'}</span>
             </div>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
-            <div className="text-[10px] text-gray-400">Expression:</div>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3">
+            <div className="text-[10px] text-gray-500 dark:text-gray-400">Expression:</div>
             <div className="text-[12px] text-indigo-400 font-mono mt-0.5">Q = {gateExpressions[selectedGate]}</div>
           </div>
-          <div className="bg-indigo-950/30 border border-indigo-800/40 rounded-lg p-2.5">
-            <h4 className="text-[10px] font-semibold text-indigo-300 flex items-center gap-1 mb-1"><Info className="h-3 w-3" />About</h4>
-            <div className="text-[9px] text-gray-400 space-y-1">
+          <div className="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/40 rounded-lg p-2.5">
+            <h4 className="text-[10px] font-semibold text-indigo-700 dark:text-indigo-300 flex items-center gap-1 mb-1"><Info className="h-3 w-3" />About</h4>
+            <div className="text-[9px] text-gray-600 dark:text-gray-400 space-y-1">
               <p>Logic gates are the building blocks of digital circuits & CPUs.</p>
               <p>Every computation is ultimately performed by combinations of these gates.</p>
             </div>

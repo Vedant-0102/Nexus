@@ -72,13 +72,16 @@ export const SnellsLaw: React.FC = () => {
       const h = rect.height;
       ctx.clearRect(0, 0, w, h);
 
+      const isDark = document.documentElement.classList.contains('dark');
+      if (!isDark) { ctx.fillStyle = '#f8f9fc'; ctx.fillRect(0, 0, w, h); }
+
       const interfaceY = h / 2;
       const hitX = w * 0.45;
 
       // Medium 1 (top)
       ctx.fillStyle = mediumColors[medium1];
       ctx.fillRect(0, 0, w, interfaceY);
-      ctx.fillStyle = 'rgba(200, 200, 255, 0.4)';
+      ctx.fillStyle = isDark ? 'rgba(200, 200, 255, 0.4)' : 'rgba(30, 40, 80, 0.6)';
       ctx.font = '11px sans-serif';
       ctx.textAlign = 'left';
       ctx.fillText(`${medium1.charAt(0).toUpperCase() + medium1.slice(1)} (n = ${n1.toFixed(3)})`, 10, 20);
@@ -86,7 +89,7 @@ export const SnellsLaw: React.FC = () => {
       // Medium 2 (bottom)
       ctx.fillStyle = mediumColors[medium2];
       ctx.fillRect(0, interfaceY, w, h - interfaceY);
-      ctx.fillStyle = 'rgba(200, 200, 255, 0.4)';
+      ctx.fillStyle = isDark ? 'rgba(200, 200, 255, 0.4)' : 'rgba(30, 40, 80, 0.6)';
       ctx.fillText(`${medium2.charAt(0).toUpperCase() + medium2.slice(1)} (n = ${n2.toFixed(3)})`, 10, interfaceY + 20);
 
       // Interface line
@@ -280,14 +283,14 @@ export const SnellsLaw: React.FC = () => {
   }, [isPlaying, incidentAngle, medium1, medium2, n1, n2, thetaI, thetaR, isTIR, showNormal, showProtractor]);
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-gray-950 to-blue-950 p-3 overflow-hidden">
+    <div className="h-full flex flex-col bg-gradient-to-br from-gray-100 to-blue-100 dark:from-gray-950 dark:to-blue-950 p-3 overflow-hidden">
       <div className="mb-2 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Lightbulb className="h-5 w-5 text-yellow-400" />
             Snell's Law — Refraction
           </h2>
-          <p className="text-[11px] text-gray-400">Interactive light refraction at media interfaces</p>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400">Interactive light refraction at media interfaces</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setIsPlaying(!isPlaying)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-900/50 text-blue-300 text-xs font-medium">
@@ -299,21 +302,21 @@ export const SnellsLaw: React.FC = () => {
 
       <div className="flex-1 flex gap-3 min-h-0">
         <div className="flex-1 min-w-0 min-h-0">
-          <div className="rounded-lg shadow-md h-full overflow-hidden border border-gray-800">
+          <div className="rounded-lg shadow-md h-full overflow-hidden border border-gray-300 dark:border-gray-800">
             <canvas ref={canvasRef} className="w-full h-full" />
           </div>
         </div>
 
         <div className="w-[210px] flex flex-col gap-2 flex-shrink-0 overflow-y-auto">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-3">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase">Controls</h4>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-3">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Controls</h4>
             <div>
-              <label className="text-[10px] text-gray-400 block mb-1">Incident Angle: {incidentAngle}°</label>
+              <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1">Incident Angle: {incidentAngle}°</label>
               <input type="range" min="0" max="89" step="1" value={incidentAngle} onChange={e => setIncidentAngle(+e.target.value)} className="w-full h-1.5 rounded-full appearance-none bg-gray-700" />
             </div>
             <div>
-              <label className="text-[10px] text-gray-400 block mb-1">Medium 1 (top):</label>
-              <select value={medium1} onChange={e => setMedium1(e.target.value as any)} className="w-full bg-gray-800 text-gray-300 text-[10px] rounded px-2 py-1 border border-gray-700">
+              <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1">Medium 1 (top):</label>
+              <select value={medium1} onChange={e => setMedium1(e.target.value as any)} className="w-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-[10px] rounded px-2 py-1 border border-gray-300 dark:border-gray-700">
                 <option value="air">Air (n=1.000)</option>
                 <option value="water">Water (n=1.333)</option>
                 <option value="glass">Glass (n=1.520)</option>
@@ -321,48 +324,48 @@ export const SnellsLaw: React.FC = () => {
               </select>
             </div>
             <div>
-              <label className="text-[10px] text-gray-400 block mb-1">Medium 2 (bottom):</label>
-              <select value={medium2} onChange={e => setMedium2(e.target.value as any)} className="w-full bg-gray-800 text-gray-300 text-[10px] rounded px-2 py-1 border border-gray-700">
+              <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1">Medium 2 (bottom):</label>
+              <select value={medium2} onChange={e => setMedium2(e.target.value as any)} className="w-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-[10px] rounded px-2 py-1 border border-gray-300 dark:border-gray-700">
                 <option value="air">Air (n=1.000)</option>
                 <option value="water">Water (n=1.333)</option>
                 <option value="glass">Glass (n=1.520)</option>
                 <option value="diamond">Diamond (n=2.417)</option>
               </select>
             </div>
-            <label className="flex items-center gap-2 text-[10px] text-gray-300 cursor-pointer">
+            <label className="flex items-center gap-2 text-[10px] text-gray-700 dark:text-gray-300 cursor-pointer">
               <input type="checkbox" checked={showNormal} onChange={e => setShowNormal(e.target.checked)} className="rounded" />
               Show normal line
             </label>
-            <label className="flex items-center gap-2 text-[10px] text-gray-300 cursor-pointer">
+            <label className="flex items-center gap-2 text-[10px] text-gray-700 dark:text-gray-300 cursor-pointer">
               <input type="checkbox" checked={showProtractor} onChange={e => setShowProtractor(e.target.checked)} className="rounded" />
               Show protractor
             </label>
           </div>
 
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-2">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase">Measurements</h4>
-            <div className="bg-yellow-950/40 rounded-md px-2 py-1.5">
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-2">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Measurements</h4>
+            <div className="bg-yellow-50 dark:bg-yellow-950/40 rounded-md px-2 py-1.5">
               <div className="text-[9px] text-gray-500 uppercase">Incident Angle (θ₁)</div>
               <div className="text-sm font-mono font-bold text-yellow-400">{incidentAngle}°</div>
             </div>
-            <div className="bg-blue-950/40 rounded-md px-2 py-1.5">
+            <div className="bg-blue-50 dark:bg-blue-950/40 rounded-md px-2 py-1.5">
               <div className="text-[9px] text-gray-500 uppercase">Refracted Angle (θ₂)</div>
               <div className="text-sm font-mono font-bold text-blue-400">{isTIR ? 'TIR' : `${((thetaR * 180) / Math.PI).toFixed(1)}°`}</div>
             </div>
             {criticalAngleFromDenser !== null && (
-              <div className="bg-red-950/40 rounded-md px-2 py-1.5">
+              <div className="bg-red-50 dark:bg-red-950/40 rounded-md px-2 py-1.5">
                 <div className="text-[9px] text-gray-500 uppercase">Critical Angle</div>
                 <div className="text-sm font-mono font-bold text-red-400">{criticalAngleFromDenser.toFixed(1)}°</div>
               </div>
             )}
           </div>
 
-          <div className="bg-yellow-950/30 border border-yellow-800/40 rounded-lg p-2.5">
-            <h4 className="text-[10px] font-semibold text-yellow-300 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+          <div className="bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800/40 rounded-lg p-2.5">
+            <h4 className="text-[10px] font-semibold text-yellow-700 dark:text-yellow-300 uppercase tracking-wider mb-1.5 flex items-center gap-1">
               <Info className="h-3 w-3" /> Snell's Law
             </h4>
-            <div className="space-y-1 text-[9px] text-gray-400">
-              <p className="font-mono bg-gray-800/50 rounded px-1 py-0.5">n₁ sin(θ₁) = n₂ sin(θ₂)</p>
+            <div className="space-y-1 text-[9px] text-gray-600 dark:text-gray-400">
+              <p className="font-mono bg-gray-200/50 dark:bg-gray-800/50 rounded px-1 py-0.5">n₁ sin(θ₁) = n₂ sin(θ₂)</p>
               <p>When light passes from a denser to a less dense medium, total internal reflection occurs beyond the critical angle.</p>
               <p>θc = arcsin(n₂/n₁) — only when n₁ {">"} n₂</p>
             </div>

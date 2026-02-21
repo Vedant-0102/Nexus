@@ -18,6 +18,24 @@ export const ElectricFieldVisualizer = () => {
   const animationRef = useRef<number>();
 
   useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const resize = () => {
+      const r = canvas.getBoundingClientRect();
+      const d = window.devicePixelRatio || 1;
+      canvas.width = r.width * d;
+      canvas.height = r.height * d;
+      ctx.scale(d, d);
+    };
+    resize();
+    const obs = new ResizeObserver(resize);
+    obs.observe(canvas);
+    return () => obs.disconnect();
+  }, []);
+
+  useEffect(() => {
     const animate = () => {
       draw();
       animationRef.current = requestAnimationFrame(animate);
@@ -36,8 +54,8 @@ export const ElectricFieldVisualizer = () => {
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-    const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
 
     const newCharge: Charge = {
       x,
@@ -56,11 +74,12 @@ export const ElectricFieldVisualizer = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const width = canvas.width;
-    const height = canvas.height;
+    const width = canvas.getBoundingClientRect().width;
+    const height = canvas.getBoundingClientRect().height;
+    const isDark = document.documentElement.classList.contains('dark');
 
     // Clear canvas
-    ctx.fillStyle = '#000';
+    ctx.fillStyle = isDark ? '#000' : '#f8f9fc';
     ctx.fillRect(0, 0, width, height);
 
     // Draw potential heatmap if enabled

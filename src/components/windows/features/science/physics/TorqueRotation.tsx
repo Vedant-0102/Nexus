@@ -49,7 +49,8 @@ export const TorqueRotation: React.FC = () => {
       ctx.clearRect(0, 0, w, h);
 
       // Background
-      ctx.fillStyle = '#0a0f1a';
+      const isDark = document.documentElement.classList.contains('dark');
+      ctx.fillStyle = isDark ? '#0a0f1a' : '#f8f9fc';
       ctx.fillRect(0, 0, w, h);
 
       const cx = w * 0.45;
@@ -164,7 +165,7 @@ export const TorqueRotation: React.FC = () => {
         ctx.font = 'bold 12px monospace';
         ctx.fillText(`τ = ${torque.toFixed(1)} N·m`, cx, 25);
         ctx.font = '10px monospace';
-        ctx.fillStyle = 'rgba(200, 200, 255, 0.5)';
+        ctx.fillStyle = isDark ? 'rgba(200, 200, 255, 0.5)' : 'rgba(80, 90, 130, 0.7)';
         ctx.fillText('τ = F × r', cx, 42);
       } else if (mode === 'angular-momentum') {
         // Spinning figure skater analogy
@@ -230,7 +231,7 @@ export const TorqueRotation: React.FC = () => {
         }
 
         // Labels
-        ctx.fillStyle = 'rgba(200, 200, 255, 0.8)';
+        ctx.fillStyle = isDark ? 'rgba(200, 200, 255, 0.8)' : 'rgba(30, 40, 80, 0.8)';
         ctx.font = 'bold 12px monospace';
         ctx.textAlign = 'center';
         ctx.fillText(`L = Iω = ${L.toFixed(0)} (conserved)`, cx, 25);
@@ -343,12 +344,12 @@ export const TorqueRotation: React.FC = () => {
         });
 
         // Title
-        ctx.fillStyle = 'rgba(200, 200, 255, 0.8)';
+        ctx.fillStyle = isDark ? 'rgba(200, 200, 255, 0.8)' : 'rgba(30, 40, 80, 0.8)';
         ctx.font = 'bold 12px monospace';
         ctx.textAlign = 'center';
         ctx.fillText('Race Down the Ramp!', w / 2, 20);
         ctx.font = '9px sans-serif';
-        ctx.fillStyle = 'rgba(200, 200, 255, 0.5)';
+        ctx.fillStyle = isDark ? 'rgba(200, 200, 255, 0.5)' : 'rgba(80, 90, 130, 0.7)';
         ctx.fillText('Lower I/MR² → reaches bottom first', w / 2, 36);
       }
     };
@@ -361,21 +362,21 @@ export const TorqueRotation: React.FC = () => {
   }, [isPlaying, mode, appliedForce, leverArm, massDistribution]);
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-gray-950 to-orange-950/30 p-3 overflow-hidden">
+    <div className="h-full flex flex-col bg-gradient-to-br from-gray-100 to-orange-100 dark:from-gray-950 dark:to-orange-950/30 p-3 overflow-hidden">
       <div className="mb-2 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Settings className="h-5 w-5 text-orange-400" />
             Torque & Rotational Motion
           </h2>
-          <p className="text-[11px] text-gray-400">Torque, angular momentum & moment of inertia</p>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400">Torque, angular momentum & moment of inertia</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setIsPlaying(!isPlaying)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-900/50 text-orange-300 text-xs font-medium">
             {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
             {isPlaying ? 'Pause' : 'Play'}
           </button>
-          <button onClick={resetSimulation} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 text-xs font-medium">
+          <button onClick={resetSimulation} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-medium">
             <RotateCcw className="h-3.5 w-3.5" /> Reset
           </button>
         </div>
@@ -383,54 +384,54 @@ export const TorqueRotation: React.FC = () => {
 
       <div className="flex-1 flex gap-3 min-h-0">
         <div className="flex-1 min-w-0 min-h-0">
-          <div className="rounded-lg shadow-md h-full overflow-hidden border border-gray-800">
+          <div className="rounded-lg shadow-md h-full overflow-hidden border border-gray-300 dark:border-gray-800">
             <canvas ref={canvasRef} className="w-full h-full" />
           </div>
         </div>
 
         <div className="w-[210px] flex flex-col gap-2 flex-shrink-0 overflow-y-auto">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-2">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase">Demo Mode</h4>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-2">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Demo Mode</h4>
             {([['torque', 'Torque & Lever'], ['angular-momentum', 'Angular Momentum'], ['moment-of-inertia', 'Moment of Inertia']] as [DemoMode, string][]).map(([key, label]) => (
-              <button key={key} onClick={() => { setMode(key); resetSimulation(); }} className={`block w-full text-left px-2 py-1 rounded text-[10px] ${mode === key ? 'bg-orange-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>
+              <button key={key} onClick={() => { setMode(key); resetSimulation(); }} className={`block w-full text-left px-2 py-1 rounded text-[10px] ${mode === key ? 'bg-orange-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                 {label}
               </button>
             ))}
           </div>
 
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-3">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase">Controls</h4>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-3">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Controls</h4>
             {mode === 'torque' && (
               <>
                 <div>
-                  <label className="text-[10px] text-gray-400 block mb-1">Applied Force: {appliedForce} N</label>
+                  <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1">Applied Force: {appliedForce} N</label>
                   <input type="range" min="10" max="100" step="5" value={appliedForce} onChange={e => setAppliedForce(+e.target.value)} className="w-full h-1.5 rounded-full appearance-none bg-gray-700" />
                 </div>
                 <div>
-                  <label className="text-[10px] text-gray-400 block mb-1">Lever Arm: {leverArm}%</label>
+                  <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1">Lever Arm: {leverArm}%</label>
                   <input type="range" min="10" max="100" step="5" value={leverArm} onChange={e => setLeverArm(+e.target.value)} className="w-full h-1.5 rounded-full appearance-none bg-gray-700" />
                 </div>
               </>
             )}
             {mode === 'angular-momentum' && (
               <div>
-                <label className="text-[10px] text-gray-400 block mb-1">Arm Extension: {massDistribution}%</label>
+                <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1">Arm Extension: {massDistribution}%</label>
                 <input type="range" min="5" max="100" step="5" value={massDistribution} onChange={e => setMassDistribution(+e.target.value)} className="w-full h-1.5 rounded-full appearance-none bg-gray-700" />
                 <p className="text-[8px] text-gray-500 mt-1">Pull arms in to spin faster — angular momentum is conserved!</p>
               </div>
             )}
             {mode === 'moment-of-inertia' && (
-              <p className="text-[9px] text-gray-400">Watch different shapes race down the ramp. Objects with lower moment of inertia ratio (I/MR²) accelerate faster!</p>
+              <p className="text-[9px] text-gray-600 dark:text-gray-400">Watch different shapes race down the ramp. Objects with lower moment of inertia ratio (I/MR²) accelerate faster!</p>
             )}
           </div>
 
-          <div className="bg-orange-950/30 border border-orange-800/40 rounded-lg p-2.5">
-            <h4 className="text-[10px] font-semibold text-orange-300 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+          <div className="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800/40 rounded-lg p-2.5">
+            <h4 className="text-[10px] font-semibold text-orange-700 dark:text-orange-300 uppercase tracking-wider mb-1.5 flex items-center gap-1">
               <Info className="h-3 w-3" /> Rotational Dynamics
             </h4>
-            <div className="space-y-1 text-[9px] text-gray-400">
-              <p className="font-mono bg-gray-800/50 rounded px-1 py-0.5">τ = r × F = Iα</p>
-              <p className="font-mono bg-gray-800/50 rounded px-1 py-0.5">L = Iω (conserved)</p>
+            <div className="space-y-1 text-[9px] text-gray-600 dark:text-gray-400">
+              <p className="font-mono bg-gray-200/50 dark:bg-gray-800/50 rounded px-1 py-0.5">τ = r × F = Iα</p>
+              <p className="font-mono bg-gray-200/50 dark:bg-gray-800/50 rounded px-1 py-0.5">L = Iω (conserved)</p>
               <p>Torque causes angular acceleration. Angular momentum is conserved when no external torque acts — reducing I increases ω.</p>
             </div>
           </div>

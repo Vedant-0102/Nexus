@@ -30,7 +30,12 @@ export const CalculusVisualizer: React.FC = () => {
   };
 
   useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
     draw();
+    const obs = new ResizeObserver(() => draw());
+    obs.observe(canvas);
+    return () => obs.disconnect();
   }, [mode, xPoint, numRectangles, func]);
 
   const draw = () => {
@@ -39,14 +44,21 @@ export const CalculusVisualizer: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.fillStyle = '#f8f9fa';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
 
-    const width = canvas.width;
-    const height = canvas.height;
+    const width = rect.width;
+    const height = rect.height;
     const centerX = width / 2;
     const centerY = height / 2;
     const scale = 40;
+
+    const isDark = document.documentElement.classList.contains('dark');
+    ctx.fillStyle = isDark ? '#0a0e1a' : '#f8f9fa';
+    ctx.fillRect(0, 0, width, height);
 
     // Draw grid
     ctx.strokeStyle = '#e0e0e0';
@@ -110,7 +122,7 @@ export const CalculusVisualizer: React.FC = () => {
       ctx.fill();
 
       // Label
-      ctx.fillStyle = '#000';
+      ctx.fillStyle = isDark ? '#fff' : '#000';
       ctx.font = '14px sans-serif';
       ctx.fillText(`f'(${xPoint.toFixed(1)}) = ${slope.toFixed(2)}`, px + 10, py - 10);
     } else {
@@ -138,7 +150,7 @@ export const CalculusVisualizer: React.FC = () => {
       }
 
       // Display area
-      ctx.fillStyle = '#000';
+      ctx.fillStyle = isDark ? '#fff' : '#000';
       ctx.font = '16px sans-serif';
       ctx.fillText(`Area ≈ ${area.toFixed(2)}`, 20, 30);
     }
@@ -166,7 +178,7 @@ export const CalculusVisualizer: React.FC = () => {
       <div className="flex-1 flex gap-6">
         <div className="flex-1">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg">
-            <canvas ref={canvasRef} width={600} height={500} className="w-full" />
+            <canvas ref={canvasRef} className="w-full" style={{ height: 500 }} />
           </div>
         </div>
 

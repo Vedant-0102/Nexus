@@ -65,7 +65,9 @@ export const NaturalSelection: React.FC = () => {
       const r = canvas.getBoundingClientRect();
       const w = r.width, h = r.height;
       ctx.clearRect(0,0,w,h);
-      ctx.fillStyle = envColors[envColor]; ctx.fillRect(0,0,w,h);
+      const isDark = document.documentElement.classList.contains('dark');
+      const lightEnvColors: Record<string, string> = { green: '#d4f0d4', sand: '#f5e8d0', snow: '#e8ecf0', dark: '#d0d0e0' };
+      ctx.fillStyle = isDark ? envColors[envColor] : lightEnvColors[envColor]; ctx.fillRect(0,0,w,h);
 
       if (!isPlaying) return;
       timeRef.current += 0.016;
@@ -181,47 +183,47 @@ export const NaturalSelection: React.FC = () => {
   }, [isPlaying, envColor, predatorSpeed, mutationRate, generation]);
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-gray-950 to-emerald-950 p-3 overflow-hidden">
+    <div className="h-full flex flex-col bg-gradient-to-br from-gray-100 to-emerald-100 dark:from-gray-950 dark:to-emerald-950 p-3 overflow-hidden">
       <div className="mb-2 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-white">🧬 Natural Selection Simulator</h2>
-          <p className="text-[11px] text-gray-400">Generation {generation} — Camouflage evolution</p>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">🧬 Natural Selection Simulator</h2>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400">Generation {generation} — Camouflage evolution</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setIsPlaying(!isPlaying)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-900/50 text-emerald-300 text-xs font-medium">
             {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
           </button>
-          <button onClick={initCreatures} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 text-xs font-medium">
+          <button onClick={initCreatures} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs font-medium">
             <RotateCcw className="h-3.5 w-3.5" /> Reset
           </button>
         </div>
       </div>
       <div className="flex-1 flex gap-3 min-h-0">
-        <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-800 overflow-hidden">
+        <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-300 dark:border-gray-800 overflow-hidden">
           <canvas ref={canvasRef} className="w-full h-full" />
         </div>
         <div className="w-[200px] flex flex-col gap-2 flex-shrink-0 overflow-y-auto">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-2">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase">Environment</h4>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-2">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Environment</h4>
             {(['green','sand','snow','dark'] as const).map(e => (
-              <button key={e} onClick={() => setEnvColor(e)} className={`block w-full text-left px-2 py-1 rounded text-[10px] ${envColor===e?'bg-emerald-600 text-white':'bg-gray-800 text-gray-400'}`}>
+              <button key={e} onClick={() => setEnvColor(e)} className={`block w-full text-left px-2 py-1 rounded text-[10px] ${envColor===e?'bg-emerald-600 text-white':'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>
                 {e.charAt(0).toUpperCase()+e.slice(1)}
               </button>
             ))}
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-3">
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-3">
             <div>
-              <label className="text-[10px] text-gray-400 block mb-1">Predator Pressure: {predatorSpeed}</label>
+              <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1">Predator Pressure: {predatorSpeed}</label>
               <input type="range" min="0" max="5" step="0.5" value={predatorSpeed} onChange={e => setPredatorSpeed(+e.target.value)} className="w-full h-1.5 rounded-full appearance-none bg-gray-700" />
             </div>
             <div>
-              <label className="text-[10px] text-gray-400 block mb-1">Mutation Rate: {mutationRate}%</label>
+              <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1">Mutation Rate: {mutationRate}%</label>
               <input type="range" min="1" max="50" step="1" value={mutationRate} onChange={e => setMutationRate(+e.target.value)} className="w-full h-1.5 rounded-full appearance-none bg-gray-700" />
             </div>
           </div>
-          <div className="bg-emerald-950/30 border border-emerald-800/40 rounded-lg p-2.5">
-            <h4 className="text-[10px] font-semibold text-emerald-300 flex items-center gap-1 mb-1"><Info className="h-3 w-3" /> Evolution</h4>
-            <p className="text-[9px] text-gray-400">Organisms that blend with the environment survive longer. Over generations, the population evolves to match the background color through natural selection. Change the environment to see re-adaptation!</p>
+          <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 rounded-lg p-2.5">
+            <h4 className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 flex items-center gap-1 mb-1"><Info className="h-3 w-3" /> Evolution</h4>
+            <p className="text-[9px] text-gray-600 dark:text-gray-400">Organisms that blend with the environment survive longer. Over generations, the population evolves to match the background color through natural selection. Change the environment to see re-adaptation!</p>
           </div>
         </div>
       </div>

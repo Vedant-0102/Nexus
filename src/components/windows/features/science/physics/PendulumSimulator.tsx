@@ -19,12 +19,31 @@ export const PendulumSimulator: React.FC = () => {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const resize = () => {
+      const r = canvas.getBoundingClientRect();
+      const d = window.devicePixelRatio || 1;
+      canvas.width = r.width * d;
+      canvas.height = r.height * d;
+      ctx.scale(d, d);
+    };
+    resize();
+    const obs = new ResizeObserver(resize);
+    obs.observe(canvas);
+    return () => obs.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     const draw = (currentTime: number) => {
       if (!isRunning) return;
+      const { width: W, height: H } = canvas.getBoundingClientRect();
 
       if (startTimeRef.current === 0) {
         startTimeRef.current = currentTime;
@@ -44,12 +63,15 @@ export const PendulumSimulator: React.FC = () => {
       setAngle(newAngle);
 
       // Clear canvas
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const isDark = document.documentElement.classList.contains('dark');
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = isDark ? '#080c18' : '#f8f9fc';
+      ctx.fillRect(0, 0, W, H);
 
       // Draw pivot
-      const pivotX = canvas.width / 2;
+      const pivotX = W / 2;
       const pivotY = 50;
-      ctx.fillStyle = '#666';
+      ctx.fillStyle = isDark ? '#999' : '#666';
       ctx.beginPath();
       ctx.arc(pivotX, pivotY, 5, 0, Math.PI * 2);
       ctx.fill();
@@ -59,7 +81,7 @@ export const PendulumSimulator: React.FC = () => {
       const bobY = pivotY + (length * Math.cos((newAngle * Math.PI) / 180));
 
       // Draw string
-      ctx.strokeStyle = '#333';
+      ctx.strokeStyle = isDark ? '#888' : '#333';
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(pivotX, pivotY);

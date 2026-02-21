@@ -1,0 +1,10 @@
+export { VirtualInstruments } from './VirtualInstruments';
+export { BeatSequencer } from './BeatSequencer';
+export { WaveformVisualizer } from './WaveformVisualizer';
+export { EffectsRack } from './EffectsRack';
+export { PianoRoll } from './PianoRoll';
+export { ChordProgressionHelper } from './ChordProgressionHelper';
+export { MusicTheoryHelper } from './MusicTheoryHelper';
+export { Arpeggiator } from './Arpeggiator';
+export { SamplePad } from './SamplePad';
+export { DAWStudio } from './DAWStudio';

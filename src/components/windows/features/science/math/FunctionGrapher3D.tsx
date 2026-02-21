@@ -46,8 +46,9 @@ export const FunctionGrapher3D: React.FC = () => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
 
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
+    const rect = canvas.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
 
     // Rotation matrices
     const radX = (rotationX * Math.PI) / 180;
@@ -93,9 +94,17 @@ export const FunctionGrapher3D: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    const draw = () => {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
     // Clear canvas
-    ctx.fillStyle = '#f8f9fa';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const isDark = document.documentElement.classList.contains('dark');
+    ctx.fillStyle = isDark ? '#0a0e1a' : '#f8f9fa';
+    ctx.fillRect(0, 0, rect.width, rect.height);
 
     const range = 3;
     const step = 0.2;
@@ -189,6 +198,11 @@ export const FunctionGrapher3D: React.FC = () => {
     ctx.lineTo(zEnd.x, zEnd.y);
     ctx.stroke();
 
+    };
+    draw();
+    const obs = new ResizeObserver(draw);
+    obs.observe(canvas);
+    return () => obs.disconnect();
   }, [equation, rotationX, rotationZ, zoom, showGrid, colorMode]);
 
   return (
@@ -209,8 +223,6 @@ export const FunctionGrapher3D: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg flex-1">
             <canvas
               ref={canvasRef}
-              width={600}
-              height={500}
               className="w-full h-full"
             />
           </div>

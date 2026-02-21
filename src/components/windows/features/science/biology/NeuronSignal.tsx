@@ -9,11 +9,13 @@ export const NeuronSignal: React.FC = () => {
   const [voltage, setVoltage] = useState(-70);
 
   useEffect(() => {
-    if (!isPlaying) return;
+    let animId: number;
 
-    const interval = setInterval(() => {
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+      if (!isPlaying) return;
       setProgress(p => {
-        const newProgress = p + 1 * speed;
+        const newProgress = p + 0.4 * speed;
         if (newProgress >= 100) {
           setIsPlaying(false);
           return 100;
@@ -35,9 +37,10 @@ export const NeuronSignal: React.FC = () => {
 
         return newProgress;
       });
-    }, 40);
+    };
+    animId = requestAnimationFrame(animate);
 
-    return () => clearInterval(interval);
+    return () => cancelAnimationFrame(animId);
   }, [isPlaying, speed]);
 
   const reset = () => {

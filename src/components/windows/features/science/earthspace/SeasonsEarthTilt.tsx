@@ -32,7 +32,8 @@ export const SeasonsEarthTilt: React.FC = () => {
       const r = canvas.getBoundingClientRect();
       const w = r.width, h = r.height;
       ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = '#050810'; ctx.fillRect(0, 0, w, h);
+      const isDark = document.documentElement.classList.contains('dark');
+      ctx.fillStyle = isDark ? '#050810' : '#f8f9fc'; ctx.fillRect(0, 0, w, h);
 
       if (running) timeRef.current += 0.005 * speed;
       const t = timeRef.current;
@@ -140,7 +141,7 @@ export const SeasonsEarthTilt: React.FC = () => {
       ctx.strokeStyle = 'rgba(100,130,200,0.3)'; ctx.lineWidth = 1;
       ctx.strokeRect(20, infoY, w - 40, h - infoY - 10);
 
-      ctx.fillStyle = 'rgba(200,200,255,0.8)'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillStyle = isDark ? 'rgba(200,200,255,0.8)' : 'rgba(30,40,80,0.8)'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center';
       ctx.fillText(`${currentSeason.name} (${hemisphere === 'north' ? 'Northern' : 'Southern'} Hemisphere)`, cx, infoY + 18);
 
       // Sunlight intensity visualization
@@ -171,13 +172,13 @@ export const SeasonsEarthTilt: React.FC = () => {
   }, [running, speed, hemisphere]);
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-gray-950 to-green-950 p-3 overflow-hidden">
+    <div className="h-full flex flex-col bg-gradient-to-br from-gray-100 to-green-100 dark:from-gray-950 dark:to-green-950 p-3 overflow-hidden">
       <div className="mb-2">
-        <h2 className="text-lg font-bold text-white">🌎 Seasons & Earth Tilt</h2>
-        <p className="text-[11px] text-gray-400">Axial tilt and seasonal changes</p>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">🌎 Seasons & Earth Tilt</h2>
+        <p className="text-[11px] text-gray-500 dark:text-gray-400">Axial tilt and seasonal changes</p>
       </div>
       <div className="flex-1 flex gap-3 min-h-0">
-        <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-800 overflow-hidden">
+        <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-300 dark:border-gray-800 overflow-hidden">
           <canvas ref={canvasRef} className="w-full h-full" />
         </div>
         <div className="w-[200px] flex flex-col gap-2 flex-shrink-0 overflow-y-auto">
@@ -186,18 +187,18 @@ export const SeasonsEarthTilt: React.FC = () => {
               {running?<><Pause className="h-3 w-3"/>Pause</>:<><Play className="h-3 w-3"/>Play</>}
             </button>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-1.5">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase">Hemisphere</h4>
-            <button onClick={() => setHemisphere('north')} className={`block w-full text-left px-2 py-1.5 rounded text-[10px] ${hemisphere==='north'?'bg-green-700 text-white':'bg-gray-800 text-gray-400'}`}>🌐 Northern</button>
-            <button onClick={() => setHemisphere('south')} className={`block w-full text-left px-2 py-1.5 rounded text-[10px] ${hemisphere==='south'?'bg-green-700 text-white':'bg-gray-800 text-gray-400'}`}>🌏 Southern</button>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-1.5">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Hemisphere</h4>
+            <button onClick={() => setHemisphere('north')} className={`block w-full text-left px-2 py-1.5 rounded text-[10px] ${hemisphere==='north'?'bg-green-700 text-white':'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>🌐 Northern</button>
+            <button onClick={() => setHemisphere('south')} className={`block w-full text-left px-2 py-1.5 rounded text-[10px] ${hemisphere==='south'?'bg-green-700 text-white':'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>🌏 Southern</button>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
-            <label className="text-[10px] text-gray-400 flex justify-between"><span>Speed</span><span>{speed}x</span></label>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3">
+            <label className="text-[10px] text-gray-500 dark:text-gray-400 flex justify-between"><span>Speed</span><span>{speed}x</span></label>
             <input type="range" min={0.5} max={5} step={0.5} value={speed} onChange={e=>setSpeed(+e.target.value)} className="w-full h-1 accent-green-500"/>
           </div>
-          <div className="bg-green-950/30 border border-green-800/40 rounded-lg p-2.5">
-            <h4 className="text-[10px] font-semibold text-green-300 flex items-center gap-1 mb-1"><Info className="h-3 w-3"/> Why Seasons?</h4>
-            <div className="text-[9px] text-gray-400 space-y-1">
+          <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800/40 rounded-lg p-2.5">
+            <h4 className="text-[10px] font-semibold text-green-700 dark:text-green-300 flex items-center gap-1 mb-1"><Info className="h-3 w-3"/> Why Seasons?</h4>
+            <div className="text-[9px] text-gray-600 dark:text-gray-400 space-y-1">
               <p>Earth's axis is tilted 23.5° relative to its orbital plane.</p>
               <p>When a hemisphere tilts toward the Sun, it receives more direct sunlight → <strong>summer</strong>.</p>
               <p>When tilted away → less direct light, shorter days → <strong>winter</strong>.</p>

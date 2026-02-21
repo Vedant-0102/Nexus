@@ -11,7 +11,12 @@ export const ProbabilityDistributions: React.FC = () => {
   const [lambda, setLambda] = useState(3);
 
   useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
     draw();
+    const obs = new ResizeObserver(() => draw());
+    obs.observe(canvas);
+    return () => obs.disconnect();
   }, [distribution, mean, stdDev, n, p, lambda]);
 
   const factorial = (n: number): number => {
@@ -42,12 +47,19 @@ export const ProbabilityDistributions: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.fillStyle = '#f8f9fa';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
 
-    const width = canvas.width;
-    const height = canvas.height;
+    const width = rect.width;
+    const height = rect.height;
     const padding = 40;
+
+    const isDark = document.documentElement.classList.contains('dark');
+    ctx.fillStyle = isDark ? '#0a0e1a' : '#f8f9fa';
+    ctx.fillRect(0, 0, width, height);
 
     // Draw axes
     ctx.strokeStyle = '#666';
@@ -132,7 +144,7 @@ export const ProbabilityDistributions: React.FC = () => {
       <div className="flex-1 flex gap-6">
         <div className="flex-1">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg">
-            <canvas ref={canvasRef} width={600} height={400} className="w-full" />
+            <canvas ref={canvasRef} className="w-full" style={{ height: 400 }} />
           </div>
         </div>
 

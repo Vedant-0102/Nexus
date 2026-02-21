@@ -141,7 +141,8 @@ export const SimpleMachines: React.FC = () => {
       const r = canvas.getBoundingClientRect();
       const w = r.width, h = r.height;
       ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = '#080c18'; ctx.fillRect(0, 0, w, h);
+      const isDark = document.documentElement.classList.contains('dark');
+      ctx.fillStyle = isDark ? '#080c18' : '#f8f9fc'; ctx.fillRect(0, 0, w, h);
       if (running) phaseRef.current += dt;
       const phase = phaseRef.current;
       const cx = w / 2, cy = h * 0.45;
@@ -238,7 +239,7 @@ export const SimpleMachines: React.FC = () => {
         ctx.beginPath(); ctx.moveTo(leftEnd, 0); ctx.lineTo(rightEnd, 0); ctx.stroke();
 
         // Tick marks on beam edges
-        ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 1;
+        ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(20,20,40,0.3)'; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.moveTo(leftEnd, -6); ctx.lineTo(leftEnd, 6); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(rightEnd, -6); ctx.lineTo(rightEnd, 6); ctx.stroke();
 
@@ -309,15 +310,15 @@ export const SimpleMachines: React.FC = () => {
 
         // Class label and arrangement
         const info = leverClassInfo[leverClass];
-        ctx.fillStyle = 'rgba(20,25,50,0.6)'; ctx.fillRect(10, 8, w - 20, 38);
+        ctx.fillStyle = isDark ? 'rgba(20,25,50,0.6)' : 'rgba(230,235,245,0.8)'; ctx.fillRect(10, 8, w - 20, 38);
         ctx.fillStyle = info.color; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
         ctx.fillText(info.name, w / 2, 22);
-        ctx.fillStyle = 'rgba(200,200,255,0.5)'; ctx.font = '9px monospace';
+        ctx.fillStyle = isDark ? 'rgba(200,200,255,0.5)' : 'rgba(30,40,80,0.5)'; ctx.font = '9px monospace';
         ctx.fillText(`[ ${info.arrangement} ]  —  Examples: ${info.examples}`, w / 2, 38);
 
         // Bottom info bar
-        ctx.fillStyle = 'rgba(20,25,50,0.5)'; ctx.fillRect(10, h - 55, w - 20, 48);
-        ctx.fillStyle = 'rgba(200,200,255,0.7)'; ctx.font = '10px monospace'; ctx.textAlign = 'left';
+        ctx.fillStyle = isDark ? 'rgba(20,25,50,0.5)' : 'rgba(230,235,245,0.8)'; ctx.fillRect(10, h - 55, w - 20, 48);
+        ctx.fillStyle = isDark ? 'rgba(200,200,255,0.7)' : 'rgba(30,40,80,0.7)'; ctx.font = '10px monospace'; ctx.textAlign = 'left';
         ctx.fillText(`Effort × Effort Arm = Load × Load Arm  (Principle of Moments)`, 20, h - 38);
         ctx.fillText(`${effort}N × ${effortArm.toFixed(0)} = ${loadForce.toFixed(1)}N × ${loadArm.toFixed(0)}`, 20, h - 24);
         ctx.fillStyle = ma >= 1 ? 'rgba(100,255,150,0.7)' : 'rgba(255,200,80,0.7)';
@@ -357,7 +358,7 @@ export const SimpleMachines: React.FC = () => {
           ctx.fillStyle = 'rgba(120,120,140,0.6)'; ctx.fill();
 
           // Label
-          ctx.fillStyle = 'rgba(200,200,255,0.4)'; ctx.font = '7px sans-serif'; ctx.textAlign = 'center';
+          ctx.fillStyle = isDark ? 'rgba(200,200,255,0.4)' : 'rgba(30,40,80,0.4)'; ctx.font = '7px sans-serif'; ctx.textAlign = 'center';
           ctx.fillText(isFixed ? 'Fixed' : 'Movable', px, py - 18);
         }
 
@@ -388,8 +389,8 @@ export const SimpleMachines: React.FC = () => {
         ctx.fillText('EFFORT', effortX, topY + 65 + ropeDisp / nPulleys);
 
         // Info
-        ctx.fillStyle = 'rgba(20,25,50,0.5)'; ctx.fillRect(10, h - 42, w - 20, 35);
-        ctx.fillStyle = 'rgba(200,200,255,0.6)'; ctx.font = '9px monospace'; ctx.textAlign = 'left';
+        ctx.fillStyle = isDark ? 'rgba(20,25,50,0.5)' : 'rgba(230,235,245,0.8)'; ctx.fillRect(10, h - 42, w - 20, 35);
+        ctx.fillStyle = isDark ? 'rgba(200,200,255,0.6)' : 'rgba(30,40,80,0.6)'; ctx.font = '9px monospace'; ctx.textAlign = 'left';
         ctx.fillText(`Pulleys: ${nPulleys} | MA = ${nPulleys} | Effort = Load / ${nPulleys} = ${(effort / nPulleys).toFixed(1)}N`, 20, h - 24);
         ctx.fillText(`Rope pulled: ${nPulleys}× the distance load moves   (Trade-off: distance for force)`, 20, h - 12);
 
@@ -440,15 +441,15 @@ export const SimpleMachines: React.FC = () => {
         drawArrow(objX - 3 * Math.cos(realAngle), objY + 3 * Math.sin(realAngle), ex2, ey2, 'rgba(80,180,255,0.8)', `E = ${(effort / ma).toFixed(1)}N`, 'top');
 
         // Dimension labels
-        ctx.fillStyle = 'rgba(200,200,255,0.5)'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillStyle = isDark ? 'rgba(200,200,255,0.5)' : 'rgba(30,40,80,0.5)'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
         ctx.fillText(`θ = ${angle.toFixed(0)}°`, rampStartX + baseW - 15, baseY + 18);
         ctx.fillText(`Length (L) = ${baseW.toFixed(0)}`, cx, baseY + 30);
         ctx.textAlign = 'right';
         ctx.fillText(`Height (h) = ${rampH.toFixed(0)}`, rampStartX - 5, baseY - rampH / 2);
 
         // Info bar
-        ctx.fillStyle = 'rgba(20,25,50,0.5)'; ctx.fillRect(10, h - 42, w - 20, 35);
-        ctx.fillStyle = 'rgba(200,200,255,0.6)'; ctx.font = '9px monospace'; ctx.textAlign = 'left';
+        ctx.fillStyle = isDark ? 'rgba(20,25,50,0.5)' : 'rgba(230,235,245,0.8)'; ctx.fillRect(10, h - 42, w - 20, 35);
+        ctx.fillStyle = isDark ? 'rgba(200,200,255,0.6)' : 'rgba(30,40,80,0.6)'; ctx.font = '9px monospace'; ctx.textAlign = 'left';
         ctx.fillText(`MA = L/h = 1/sin(${angle.toFixed(0)}°) = ${ma.toFixed(2)}x | Effort = Weight / MA = ${(effort / ma).toFixed(1)}N`, 20, h - 24);
         ctx.fillText(`Push ${ma.toFixed(1)}× farther up the ramp, but with ${(100 / ma).toFixed(0)}% of the force`, 20, h - 12);
 
@@ -472,11 +473,11 @@ export const SimpleMachines: React.FC = () => {
         ctx.strokeStyle = 'rgba(200,200,255,0.3)'; ctx.lineWidth = 1;
         // Height
         ctx.beginPath(); ctx.moveTo(cx + wedgeW + 15, tip.y); ctx.lineTo(cx + wedgeW + 15, tip.y + wedgeH); ctx.stroke();
-        ctx.fillStyle = 'rgba(200,200,255,0.4)'; ctx.font = '8px sans-serif'; ctx.textAlign = 'left';
+        ctx.fillStyle = isDark ? 'rgba(200,200,255,0.4)' : 'rgba(30,40,80,0.4)'; ctx.font = '8px sans-serif'; ctx.textAlign = 'left';
         ctx.fillText(`L = ${wedgeH.toFixed(0)}`, cx + wedgeW + 18, tip.y + wedgeH / 2);
         // Width
         ctx.beginPath(); ctx.moveTo(cx - wedgeW, tip.y + wedgeH + 12); ctx.lineTo(cx + wedgeW, tip.y + wedgeH + 12); ctx.stroke();
-        ctx.fillStyle = 'rgba(200,200,255,0.4)'; ctx.textAlign = 'center';
+        ctx.fillStyle = isDark ? 'rgba(200,200,255,0.4)' : 'rgba(30,40,80,0.4)'; ctx.textAlign = 'center';
         ctx.fillText(`w = ${(wedgeW * 2).toFixed(0)}`, cx, tip.y + wedgeH + 24);
         ctx.setLineDash([]);
 
@@ -493,8 +494,8 @@ export const SimpleMachines: React.FC = () => {
         ctx.fillRect(cx - wedgeW - 30, tip.y, -25, wedgeH); ctx.fillRect(cx + wedgeW, tip.y, 55, wedgeH);
 
         // Info
-        ctx.fillStyle = 'rgba(20,25,50,0.5)'; ctx.fillRect(10, h - 42, w - 20, 35);
-        ctx.fillStyle = 'rgba(200,200,255,0.6)'; ctx.font = '9px monospace'; ctx.textAlign = 'left';
+        ctx.fillStyle = isDark ? 'rgba(20,25,50,0.5)' : 'rgba(230,235,245,0.8)'; ctx.fillRect(10, h - 42, w - 20, 35);
+        ctx.fillStyle = isDark ? 'rgba(200,200,255,0.6)' : 'rgba(30,40,80,0.6)'; ctx.font = '9px monospace'; ctx.textAlign = 'left';
         ctx.fillText(`MA = Length / Width = ${wedgeH.toFixed(0)} / ${(wedgeW * 2).toFixed(0)} = ${ma.toFixed(2)}x`, 20, h - 24);
         ctx.fillText(`Thinner wedge → more splitting force. Examples: axe, knife, nail, chisel`, 20, h - 12);
 
@@ -550,8 +551,8 @@ export const SimpleMachines: React.FC = () => {
         drawArrow(screwX - screwR - 25, screwTop + 20, screwX - screwR - 25, screwTop + 20 + pitch, 'rgba(255,150,80,0.7)', `${pitch.toFixed(1)}mm/turn`, 'left');
 
         // Info
-        ctx.fillStyle = 'rgba(20,25,50,0.5)'; ctx.fillRect(10, h - 42, w - 20, 35);
-        ctx.fillStyle = 'rgba(200,200,255,0.6)'; ctx.font = '9px monospace'; ctx.textAlign = 'left';
+        ctx.fillStyle = isDark ? 'rgba(20,25,50,0.5)' : 'rgba(230,235,245,0.8)'; ctx.fillRect(10, h - 42, w - 20, 35);
+        ctx.fillStyle = isDark ? 'rgba(200,200,255,0.6)' : 'rgba(30,40,80,0.6)'; ctx.font = '9px monospace'; ctx.textAlign = 'left';
         ctx.fillText(`MA = 2πr / pitch = ${(2 * Math.PI * screwR).toFixed(1)} / ${pitch.toFixed(1)} = ${ma.toFixed(2)}x`, 20, h - 24);
         ctx.fillText(`One full rotation → screw advances ${pitch.toFixed(1)}mm. Finer thread = more MA`, 20, h - 12);
 
@@ -600,8 +601,8 @@ export const SimpleMachines: React.FC = () => {
         drawArrow(cx, cy + axleR + 5, cx, cy + axleR + 45, 'rgba(255,100,80,0.8)', `Load: ${effort}N`, 'right');
 
         // Info
-        ctx.fillStyle = 'rgba(20,25,50,0.5)'; ctx.fillRect(10, h - 42, w - 20, 35);
-        ctx.fillStyle = 'rgba(200,200,255,0.6)'; ctx.font = '9px monospace'; ctx.textAlign = 'left';
+        ctx.fillStyle = isDark ? 'rgba(20,25,50,0.5)' : 'rgba(230,235,245,0.8)'; ctx.fillRect(10, h - 42, w - 20, 35);
+        ctx.fillStyle = isDark ? 'rgba(200,200,255,0.6)' : 'rgba(30,40,80,0.6)'; ctx.font = '9px monospace'; ctx.textAlign = 'left';
         ctx.fillText(`MA = R / r = ${wheelR.toFixed(0)} / ${axleR} = ${ma.toFixed(2)}x | Effort = ${(effort / ma).toFixed(1)}N`, 20, h - 24);
         ctx.fillText(`Examples: Steering wheel, doorknob, screwdriver, gear systems`, 20, h - 12);
       }
@@ -615,50 +616,50 @@ export const SimpleMachines: React.FC = () => {
   const info = machineLearnContent[machine];
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-gray-950 to-emerald-950 p-3 overflow-hidden">
+    <div className="h-full flex flex-col bg-gradient-to-br from-gray-100 to-emerald-100 dark:from-gray-950 dark:to-emerald-950 p-3 overflow-hidden">
       <div className="mb-2 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-white">🔩 Simple Machines</h2>
-          <p className="text-[11px] text-gray-400">Mechanical advantage, levers, pulleys & more</p>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">🔩 Simple Machines</h2>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400">Mechanical advantage, levers, pulleys & more</p>
         </div>
         <div className="flex gap-1">
-          <button onClick={() => setShowTab('sim')} className={`px-3 py-1 rounded text-[10px] font-medium ${showTab === 'sim' ? 'bg-emerald-700 text-white' : 'bg-gray-800 text-gray-400'}`}>Simulation</button>
-          <button onClick={() => setShowTab('learn')} className={`px-3 py-1 rounded text-[10px] font-medium ${showTab === 'learn' ? 'bg-emerald-700 text-white' : 'bg-gray-800 text-gray-400'}`}>Learn</button>
+          <button onClick={() => setShowTab('sim')} className={`px-3 py-1 rounded text-[10px] font-medium ${showTab === 'sim' ? 'bg-emerald-700 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>Simulation</button>
+          <button onClick={() => setShowTab('learn')} className={`px-3 py-1 rounded text-[10px] font-medium ${showTab === 'learn' ? 'bg-emerald-700 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>Learn</button>
         </div>
       </div>
       <div className="flex-1 flex gap-3 min-h-0">
         {showTab === 'sim' ? (
-          <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-800 overflow-hidden">
+          <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-300 dark:border-gray-800 overflow-hidden">
             <canvas ref={canvasRef} className="w-full h-full" />
           </div>
         ) : (
-          <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-800 overflow-y-auto bg-gray-900/50 p-4 space-y-4">
-            <h3 className="text-sm font-bold text-white">{info.title}</h3>
-            <div className="bg-emerald-950/40 border border-emerald-800/30 rounded p-3">
-              <p className="text-[10px] font-semibold text-emerald-300 mb-1">Formula</p>
+          <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-300 dark:border-gray-800 overflow-y-auto bg-white/50 dark:bg-gray-900/50 p-4 space-y-4">
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white">{info.title}</h3>
+            <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/30 rounded p-3">
+              <p className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 mb-1">Formula</p>
               <p className="text-xs text-white font-mono">{info.formula}</p>
             </div>
-            <div className="bg-blue-950/30 border border-blue-800/30 rounded p-3">
-              <p className="text-[10px] font-semibold text-blue-300 mb-1">Principle</p>
-              <p className="text-[11px] text-gray-300">{info.principle}</p>
+            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/30 rounded p-3">
+              <p className="text-[10px] font-semibold text-blue-700 dark:text-blue-300 mb-1">Principle</p>
+              <p className="text-[11px] text-gray-700 dark:text-gray-300">{info.principle}</p>
             </div>
             <div className="space-y-1.5">
-              <p className="text-[10px] font-semibold text-gray-400 uppercase">Key Points</p>
+              <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Key Points</p>
               {info.points.map((pt, i) => (
                 <div key={i} className="flex gap-2 items-start">
                   <span className="text-emerald-400 text-[9px] mt-0.5">●</span>
-                  <p className="text-[10px] text-gray-300 leading-relaxed">{pt}</p>
+                  <p className="text-[10px] text-gray-700 dark:text-gray-300 leading-relaxed">{pt}</p>
                 </div>
               ))}
             </div>
             {machine === 'lever' && (
               <div className="space-y-2 mt-3">
-                <p className="text-[10px] font-semibold text-gray-400 uppercase">Lever Classes Comparison</p>
+                <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Lever Classes Comparison</p>
                 {([1, 2, 3] as const).map(cls => (
                   <div key={cls} className="rounded p-2.5 border" style={{ borderColor: leverClassInfo[cls].color + '40', backgroundColor: leverClassInfo[cls].color + '10' }}>
                     <p className="text-[10px] font-bold" style={{ color: leverClassInfo[cls].color }}>{leverClassInfo[cls].name}</p>
-                    <p className="text-[9px] text-gray-400 font-mono mt-0.5">{leverClassInfo[cls].arrangement}</p>
-                    <p className="text-[9px] text-gray-400 mt-0.5">{leverClassInfo[cls].desc}</p>
+                    <p className="text-[9px] text-gray-600 dark:text-gray-400 font-mono mt-0.5">{leverClassInfo[cls].arrangement}</p>
+                    <p className="text-[9px] text-gray-600 dark:text-gray-400 mt-0.5">{leverClassInfo[cls].desc}</p>
                     <p className="text-[9px] text-gray-500 mt-0.5">📌 {leverClassInfo[cls].examples}</p>
                     <p className="text-[9px] text-gray-500">📐 {leverClassInfo[cls].maNote}</p>
                   </div>
@@ -673,19 +674,19 @@ export const SimpleMachines: React.FC = () => {
               {running ? <><Pause className="h-3 w-3" />Pause</> : <><Play className="h-3 w-3" />Run</>}
             </button>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-1">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase mb-1">Machine Type</h4>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-1">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Machine Type</h4>
             {(['lever', 'pulley', 'inclined-plane', 'wedge', 'screw', 'wheel-axle'] as MachineType[]).map(m => (
-              <button key={m} onClick={() => { setMachine(m); setParam(0.5); }} className={`block w-full text-left px-2 py-1 rounded text-[10px] ${machine === m ? 'bg-emerald-700 text-white' : 'bg-gray-800 text-gray-400'}`}>
+              <button key={m} onClick={() => { setMachine(m); setParam(0.5); }} className={`block w-full text-left px-2 py-1 rounded text-[10px] ${machine === m ? 'bg-emerald-700 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>
                 {m === 'lever' ? '🔧 Lever' : m === 'pulley' ? '🏗️ Pulley' : m === 'inclined-plane' ? '📐 Inclined Plane' : m === 'wedge' ? '🪓 Wedge' : m === 'screw' ? '🔩 Screw' : '☸️ Wheel & Axle'}
               </button>
             ))}
           </div>
           {machine === 'lever' && (
-            <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-1">
-              <h4 className="text-[11px] font-semibold text-gray-400 uppercase mb-1">Lever Class</h4>
+            <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-1">
+              <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Lever Class</h4>
               {([1, 2, 3] as const).map(cls => (
-                <button key={cls} onClick={() => { setLeverClass(cls); setParam(0.5); }} className={`block w-full text-left px-2 py-1.5 rounded text-[10px] ${leverClass === cls ? 'text-white' : 'bg-gray-800 text-gray-400'}`} style={leverClass === cls ? { backgroundColor: leverClassInfo[cls].color + 'cc' } : {}}>
+                <button key={cls} onClick={() => { setLeverClass(cls); setParam(0.5); }} className={`block w-full text-left px-2 py-1.5 rounded text-[10px] ${leverClass === cls ? 'text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`} style={leverClass === cls ? { backgroundColor: leverClassInfo[cls].color + 'cc' } : {}}>
                   <span className="font-bold">Class {cls}</span>
                   <span className="ml-1 text-[9px] opacity-80">
                     {cls === 1 ? '(F between E & L)' : cls === 2 ? '(L between F & E)' : '(E between F & L)'}
@@ -694,18 +695,18 @@ export const SimpleMachines: React.FC = () => {
               ))}
             </div>
           )}
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-2">
-            <label className="text-[9px] text-gray-400 flex justify-between"><span>Load Force (N)</span><span className="font-mono">{effort}N</span></label>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-2">
+            <label className="text-[9px] text-gray-500 dark:text-gray-400 flex justify-between"><span>Load Force (N)</span><span className="font-mono">{effort}N</span></label>
             <input type="range" min={10} max={200} step={5} value={effort} onChange={e => setEffort(+e.target.value)} className="w-full h-1 accent-emerald-500" />
-            <label className="text-[9px] text-gray-400 flex justify-between">
+            <label className="text-[9px] text-gray-500 dark:text-gray-400 flex justify-between">
               <span>{machine === 'lever' ? (leverClass === 1 ? 'Fulcrum Position' : leverClass === 2 ? 'Load Position' : 'Effort Position') : machine === 'pulley' ? 'Pulleys' : machine === 'inclined-plane' ? 'Ramp Angle' : machine === 'wedge' ? 'Wedge Angle' : machine === 'screw' ? 'Thread Pitch' : 'Wheel Size'}</span>
               <span className="font-mono">{param.toFixed(2)}</span>
             </label>
             <input type="range" min={0.1} max={0.9} step={0.01} value={param} onChange={e => setParam(+e.target.value)} className="w-full h-1 accent-emerald-500" />
           </div>
-          <div className="bg-emerald-950/30 border border-emerald-800/40 rounded-lg p-2.5">
-            <h4 className="text-[10px] font-semibold text-emerald-300 flex items-center gap-1 mb-1"><Info className="h-3 w-3" />Key Concept</h4>
-            <p className="text-[9px] text-gray-400">
+          <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 rounded-lg p-2.5">
+            <h4 className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 flex items-center gap-1 mb-1"><Info className="h-3 w-3" />Key Concept</h4>
+            <p className="text-[9px] text-gray-600 dark:text-gray-400">
               {machine === 'lever'
                 ? leverClassInfo[leverClass].desc
                 : machine === 'pulley'

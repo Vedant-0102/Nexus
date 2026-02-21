@@ -41,7 +41,8 @@ export const HydraulicSystem: React.FC = () => {
       const r = canvas.getBoundingClientRect();
       const w = r.width, h = r.height;
       ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = '#080c18'; ctx.fillRect(0, 0, w, h);
+      const isDark = document.documentElement.classList.contains('dark');
+      ctx.fillStyle = isDark ? '#080c18' : '#f8f9fc'; ctx.fillRect(0, 0, w, h);
 
       if (running) phaseRef.current = (phaseRef.current + dt * 0.5) % (Math.PI * 2);
       const phase = phaseRef.current;
@@ -121,7 +122,7 @@ export const HydraulicSystem: React.FC = () => {
         ctx.fillStyle = isInput ? 'rgba(100,200,255,0.8)' : 'rgba(255,150,100,0.8)';
         ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
         ctx.fillText(label, cx, arrowY - 32);
-        ctx.fillStyle = 'rgba(200,200,255,0.5)'; ctx.font = '8px monospace';
+        ctx.fillStyle = isDark ? 'rgba(200,200,255,0.5)' : 'rgba(30,40,80,0.5)'; ctx.font = '8px monospace';
         ctx.fillText(`F = ${force.toFixed(1)} N`, cx, arrowY - 42);
         ctx.fillText(`A = ${(Math.PI*(cw/(2*1.2)/100)**2*1e4).toFixed(1)} cm²`, cx, botY + 25);
         ctx.fillText(`⌀ ${(cw/1.2).toFixed(0)} mm`, cx, botY + 38);
@@ -131,13 +132,13 @@ export const HydraulicSystem: React.FC = () => {
       drawCylinder(largePistonX, largeW, largeDisp, outputForce, 'Output', false);
 
       // Pascal's Law equation
-      ctx.fillStyle = 'rgba(20,25,50,0.5)'; ctx.fillRect(w * 0.3, h * 0.08, w * 0.4, 28);
-      ctx.fillStyle = 'rgba(200,200,255,0.5)'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillStyle = isDark ? 'rgba(20,25,50,0.5)' : 'rgba(230,235,245,0.8)'; ctx.fillRect(w * 0.3, h * 0.08, w * 0.4, 28);
+      ctx.fillStyle = isDark ? 'rgba(200,200,255,0.5)' : 'rgba(30,40,80,0.5)'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
       ctx.fillText("Pascal's Law: P₁ = P₂ → F₁/A₁ = F₂/A₂", w / 2, h * 0.08 + 18);
 
       // Info panel
-      ctx.fillStyle = 'rgba(20,25,50,0.4)'; ctx.fillRect(10, h - 50, w - 20, 42);
-      ctx.fillStyle = 'rgba(200,200,255,0.5)'; ctx.font = '9px monospace'; ctx.textAlign = 'left';
+      ctx.fillStyle = isDark ? 'rgba(20,25,50,0.4)' : 'rgba(230,235,245,0.8)'; ctx.fillRect(10, h - 50, w - 20, 42);
+      ctx.fillStyle = isDark ? 'rgba(200,200,255,0.5)' : 'rgba(30,40,80,0.5)'; ctx.font = '9px monospace'; ctx.textAlign = 'left';
       ctx.fillText(`Pressure: ${pressure.toFixed(1)} Pa | Ratio: ${ratio.label} | Area Ratio: 1:${areaRatio.toFixed(1)}`, 20, h - 32);
       ctx.fillText(`Input: ${inputForce} N → Output: ${outputForce.toFixed(1)} N | Mech. Advantage: ${areaRatio.toFixed(1)}x`, 20, h - 18);
       ctx.fillStyle = 'rgba(100,200,100,0.4)'; ctx.fillText(`Fluid: ${fluid.name} (ρ=${fluid.density} kg/m³)`, w * 0.65, h - 32);
@@ -149,13 +150,13 @@ export const HydraulicSystem: React.FC = () => {
   }, [running, inputForce, pistonRatioIdx, fluidType]);
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-gray-950 to-cyan-950 p-3 overflow-hidden">
+    <div className="h-full flex flex-col bg-gradient-to-br from-gray-100 to-cyan-100 dark:from-gray-950 dark:to-cyan-950 p-3 overflow-hidden">
       <div className="mb-2">
-        <h2 className="text-lg font-bold text-white">🔧 Hydraulic System</h2>
-        <p className="text-[11px] text-gray-400">Pascal's Law & fluid power</p>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">🔧 Hydraulic System</h2>
+        <p className="text-[11px] text-gray-500 dark:text-gray-400">Pascal's Law & fluid power</p>
       </div>
       <div className="flex-1 flex gap-3 min-h-0">
-        <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-800 overflow-hidden">
+        <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-300 dark:border-gray-800 overflow-hidden">
           <canvas ref={canvasRef} className="w-full h-full" />
         </div>
         <div className="w-[190px] flex flex-col gap-2 flex-shrink-0 overflow-y-auto">
@@ -163,27 +164,27 @@ export const HydraulicSystem: React.FC = () => {
             <button onClick={() => setRunning(!running)} className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded text-[10px] font-medium ${running?'bg-amber-600 text-white':'bg-green-600 text-white'}`}>
               {running?<><Pause className="h-3 w-3"/>Pause</>:<><Play className="h-3 w-3"/>Run</>}
             </button>
-            <button onClick={() => phaseRef.current = 0} className="px-2 py-1.5 rounded bg-gray-700 text-white text-[10px]"><RotateCcw className="h-3 w-3"/></button>
+            <button onClick={() => phaseRef.current = 0} className="px-2 py-1.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white text-[10px]"><RotateCcw className="h-3 w-3"/></button>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-2">
-            <label className="text-[9px] text-gray-400 flex justify-between"><span>Input Force (N)</span><span>{inputForce}</span></label>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-2">
+            <label className="text-[9px] text-gray-500 dark:text-gray-400 flex justify-between"><span>Input Force (N)</span><span>{inputForce}</span></label>
             <input type="range" min={5} max={100} step={1} value={inputForce} onChange={e=>setInputForce(+e.target.value)} className="w-full h-1 accent-cyan-500"/>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-1">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase mb-1">Piston Ratio</h4>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-1">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Piston Ratio</h4>
             {pistonRatios.map((p, i) => (
-              <button key={i} onClick={() => setPistonRatioIdx(i)} className={`block w-full text-left px-2 py-1 rounded text-[10px] ${pistonRatioIdx===i?'bg-cyan-700 text-white':'bg-gray-800 text-gray-400'}`}>{p.label} (⌀{p.small}:{p.large}mm)</button>
+              <button key={i} onClick={() => setPistonRatioIdx(i)} className={`block w-full text-left px-2 py-1 rounded text-[10px] ${pistonRatioIdx===i?'bg-cyan-700 text-white':'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>{p.label} (⌀{p.small}:{p.large}mm)</button>
             ))}
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-1">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase mb-1">Fluid</h4>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-1">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Fluid</h4>
             {(Object.keys(fluids) as Array<'oil'|'water'|'glycol'>).map(f => (
-              <button key={f} onClick={() => setFluidType(f)} className={`block w-full text-left px-2 py-1 rounded text-[10px] ${fluidType===f?'bg-cyan-700 text-white':'bg-gray-800 text-gray-400'}`}>{fluids[f].name}</button>
+              <button key={f} onClick={() => setFluidType(f)} className={`block w-full text-left px-2 py-1 rounded text-[10px] ${fluidType===f?'bg-cyan-700 text-white':'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>{fluids[f].name}</button>
             ))}
           </div>
-          <div className="bg-cyan-950/30 border border-cyan-800/40 rounded-lg p-2.5">
-            <h4 className="text-[10px] font-semibold text-cyan-300 flex items-center gap-1 mb-1"><Info className="h-3 w-3"/>Pascal's Law</h4>
-            <p className="text-[9px] text-gray-400">Pressure applied to a confined fluid is transmitted equally in all directions. Larger piston area = more output force.</p>
+          <div className="bg-cyan-50 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-800/40 rounded-lg p-2.5">
+            <h4 className="text-[10px] font-semibold text-cyan-700 dark:text-cyan-300 flex items-center gap-1 mb-1"><Info className="h-3 w-3"/>Pascal's Law</h4>
+            <p className="text-[9px] text-gray-600 dark:text-gray-400">Pressure applied to a confined fluid is transmitted equally in all directions. Larger piston area = more output force.</p>
           </div>
         </div>
       </div>

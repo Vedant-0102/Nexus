@@ -39,8 +39,14 @@ export const FractalGenerator: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const width = canvas.width;
-    const height = canvas.height;
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const width = rect.width;
+    const height = rect.height;
 
     const minReal = -2.5 / zoom + offsetX;
     const maxReal = 1.5 / zoom + offsetX;
@@ -84,7 +90,12 @@ export const FractalGenerator: React.FC = () => {
   };
 
   useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
     generateFractal();
+    const obs = new ResizeObserver(() => generateFractal());
+    obs.observe(canvas);
+    return () => obs.disconnect();
   }, [fractalType, maxIterations, zoom, offsetX, offsetY, juliaC, colorScheme]);
 
   const presets = {
@@ -120,9 +131,8 @@ export const FractalGenerator: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-lg">
             <canvas
               ref={canvasRef}
-              width={600}
-              height={500}
               className="w-full border border-gray-300 dark:border-gray-600 rounded"
+              style={{ height: 500 }}
             />
             {isGenerating && (
               <div className="text-center mt-2 text-sm text-gray-600 dark:text-gray-400">

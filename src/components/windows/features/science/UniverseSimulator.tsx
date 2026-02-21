@@ -352,7 +352,8 @@ export const UniverseSimulator: React.FC = () => {
     if (!containerRef.current) return;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x000814);
+    const isDark = document.documentElement.classList.contains('dark');
+    scene.background = new THREE.Color(isDark ? 0x000814 : 0xf0f2f5);
     sceneRef.current = scene;
 
     const starsGeometry = new THREE.BufferGeometry();
@@ -681,7 +682,7 @@ export const UniverseSimulator: React.FC = () => {
   const selectedColor = selectedPlanet ? `#${selectedPlanet.color.toString(16).padStart(6, '0')}` : '#fff';
 
   return (
-    <div className="h-full flex bg-[#0a0e1a] overflow-hidden">
+    <div className="h-full flex bg-[#f0f2f5] dark:bg-[#0a0e1a] overflow-hidden">
       {/* Left: 3D Scene */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Controls bar */}

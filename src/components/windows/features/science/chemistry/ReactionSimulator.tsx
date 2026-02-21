@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Play, RotateCcw, Flame, Droplet, Zap, Leaf, Beaker, FlaskConical } from 'lucide-react';
 
 interface Reaction {
@@ -120,33 +120,32 @@ export const ReactionSimulator: React.FC = () => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [speed, setSpeed] = useState(2);
-  const intervalRef = useRef<number | undefined>();
 
   useEffect(() => {
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+    let animId: number;
+
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+      if (!isAnimating) return;
+      setProgress(prev => {
+        const next = Math.min(prev + speed * 0.32, 100);
+        if (next >= 100) {
+          setIsAnimating(false);
+        }
+        return next;
+      });
     };
-  }, []);
+    animId = requestAnimationFrame(animate);
 
-  useEffect(() => {
-    if (isAnimating && progress >= 100) {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      setIsAnimating(false);
-    }
-  }, [progress, isAnimating]);
+    return () => cancelAnimationFrame(animId);
+  }, [isAnimating, speed]);
 
   const runReaction = () => {
-    setIsAnimating(true);
     setProgress(0);
-    
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    intervalRef.current = window.setInterval(() => {
-      setProgress((prev) => Math.min(prev + speed, 100));
-    }, 50);
+    setIsAnimating(true);
   };
 
   const resetReaction = () => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
     setProgress(0);
     setIsAnimating(false);
   };

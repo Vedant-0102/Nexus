@@ -11,7 +11,8 @@ import {
   Newspaper,
   Cpu,
   Sigma,
-  Shield
+  Shield,
+  Music
 } from 'lucide-react';
 
 export const DesktopIcons: React.FC = () => {
@@ -36,6 +37,7 @@ export const DesktopIcons: React.FC = () => {
       'virtual-engine-folder': 'virtual-engine-folder-window',
       'math-folder': 'math-folder-window',
       'crypt-folder': 'crypt-folder-window',
+      'music-folder': 'music-folder-window',
     };
 
     const windowId = folderMap[folderId];
@@ -53,6 +55,7 @@ export const DesktopIcons: React.FC = () => {
     { id: 'math-folder', label: 'Math', icon: <Sigma />, row: 1, col: 3 },
     { id: 'simulators-folder', label: 'Simulators', icon: <FlaskConical />, row: 2, col: 0 },
     { id: 'crypt-folder', label: 'Crypt', icon: <Shield />, row: 2, col: 1 },
+    { id: 'music-folder', label: 'Music', icon: <Music />, row: 2, col: 2 },
   ];
 
   return (

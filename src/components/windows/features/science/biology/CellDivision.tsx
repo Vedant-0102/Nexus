@@ -43,14 +43,15 @@ export const CellDivision: React.FC = () => {
   const phases = divisionType === 'mitosis' ? mitosisPhases : meiosisPhases;
 
   useEffect(() => {
-    if (!isPlaying) return;
-
     const currentIndex = phases.findIndex(p => p.phase === currentPhase);
     const currentPhaseDuration = phases[currentIndex].duration;
-    const stepInterval = 30;
-    const progressIncrement = (stepInterval / currentPhaseDuration) * 100;
+    const dt = 16; // ~60fps frame time
+    const progressIncrement = (dt / currentPhaseDuration) * 100;
+    let animId: number;
 
-    const interval = setInterval(() => {
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+      if (!isPlaying) return;
       setPhaseProgress(prev => {
         const next = prev + progressIncrement;
         if (next >= 100) {
@@ -60,9 +61,10 @@ export const CellDivision: React.FC = () => {
         }
         return next;
       });
-    }, stepInterval);
+    };
+    animId = requestAnimationFrame(animate);
 
-    return () => clearInterval(interval);
+    return () => cancelAnimationFrame(animId);
   }, [isPlaying, currentPhase, divisionType]);
 
   const switchType = useCallback((type: 'mitosis' | 'meiosis') => {

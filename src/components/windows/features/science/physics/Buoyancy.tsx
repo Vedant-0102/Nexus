@@ -110,9 +110,10 @@ export const Buoyancy: React.FC = () => {
       objY = objectYRef.current;
 
       // Background (sky)
+      const isDark = document.documentElement.classList.contains('dark');
       const skyGrad = ctx.createLinearGradient(0, 0, 0, waterlineY);
-      skyGrad.addColorStop(0, '#1a2a4a');
-      skyGrad.addColorStop(1, '#2a3a5a');
+      skyGrad.addColorStop(0, isDark ? '#1a2a4a' : '#c8daf0');
+      skyGrad.addColorStop(1, isDark ? '#2a3a5a' : '#e0eaf8');
       ctx.fillStyle = skyGrad;
       ctx.fillRect(0, 0, w, waterlineY);
 
@@ -245,13 +246,13 @@ export const Buoyancy: React.FC = () => {
       ctx.fillText(status, w * 0.4, 18);
 
       // Fluid density indicator
-      ctx.fillStyle = 'rgba(200, 200, 255, 0.5)';
+      ctx.fillStyle = isDark ? 'rgba(200, 200, 255, 0.5)' : 'rgba(80, 90, 130, 0.7)';
       ctx.font = '9px monospace';
       ctx.textAlign = 'left';
       ctx.fillText(`Fluid: ${fluidDensity} kg/m³`, w * 0.1, waterlineY + 15);
 
       // Submerged percentage
-      ctx.fillStyle = 'rgba(200, 200, 255, 0.5)';
+      ctx.fillStyle = isDark ? 'rgba(200, 200, 255, 0.5)' : 'rgba(80, 90, 130, 0.7)';
       ctx.textAlign = 'right';
       ctx.fillText(`Submerged: ${(submergedFraction * 100).toFixed(0)}%`, w * 0.7, waterlineY + 15);
 
@@ -295,21 +296,21 @@ export const Buoyancy: React.FC = () => {
   }, [isPlaying, objectDensity, fluidDensity, objectVolume, showForces]);
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-gray-950 to-cyan-950 p-3 overflow-hidden">
+    <div className="h-full flex flex-col bg-gradient-to-br from-gray-100 to-cyan-100 dark:from-gray-950 dark:to-cyan-950 p-3 overflow-hidden">
       <div className="mb-2 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Waves className="h-5 w-5 text-cyan-400" />
             Buoyancy & Archimedes' Principle
           </h2>
-          <p className="text-[11px] text-gray-400">Floating, sinking, and displaced fluid dynamics</p>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400">Floating, sinking, and displaced fluid dynamics</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setIsPlaying(!isPlaying)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-900/50 text-cyan-300 text-xs font-medium">
             {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
             {isPlaying ? 'Pause' : 'Play'}
           </button>
-          <button onClick={resetSimulation} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 text-xs font-medium">
+          <button onClick={resetSimulation} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-medium">
             <RotateCcw className="h-3.5 w-3.5" /> Reset
           </button>
         </div>
@@ -317,47 +318,47 @@ export const Buoyancy: React.FC = () => {
 
       <div className="flex-1 flex gap-3 min-h-0">
         <div className="flex-1 min-w-0 min-h-0">
-          <div className="rounded-lg shadow-md h-full overflow-hidden border border-gray-800">
+          <div className="rounded-lg shadow-md h-full overflow-hidden border border-gray-300 dark:border-gray-800">
             <canvas ref={canvasRef} className="w-full h-full" />
           </div>
         </div>
 
         <div className="w-[210px] flex flex-col gap-2 flex-shrink-0 overflow-y-auto">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-2">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase">Presets</h4>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-2">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Presets</h4>
             {presets.map(p => (
-              <button key={p.name} onClick={() => { setObjectDensity(p.od); setFluidDensity(p.fd); resetSimulation(); }} className="block w-full text-left px-2 py-1 rounded text-[10px] bg-gray-800 text-gray-400 hover:bg-gray-700">
+              <button key={p.name} onClick={() => { setObjectDensity(p.od); setFluidDensity(p.fd); resetSimulation(); }} className="block w-full text-left px-2 py-1 rounded text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700">
                 {p.name}
               </button>
             ))}
           </div>
 
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-3">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase">Parameters</h4>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-3">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Parameters</h4>
             <div>
-              <label className="text-[10px] text-gray-400 block mb-1">Object Density: {objectDensity} kg/m³</label>
+              <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1">Object Density: {objectDensity} kg/m³</label>
               <input type="range" min="50" max="15000" step="50" value={objectDensity} onChange={e => { setObjectDensity(+e.target.value); resetSimulation(); }} className="w-full h-1.5 rounded-full appearance-none bg-gray-700" />
             </div>
             <div>
-              <label className="text-[10px] text-gray-400 block mb-1">Fluid Density: {fluidDensity} kg/m³</label>
+              <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1">Fluid Density: {fluidDensity} kg/m³</label>
               <input type="range" min="500" max="14000" step="100" value={fluidDensity} onChange={e => { setFluidDensity(+e.target.value); resetSimulation(); }} className="w-full h-1.5 rounded-full appearance-none bg-gray-700" />
             </div>
             <div>
-              <label className="text-[10px] text-gray-400 block mb-1">Object Volume: {objectVolume}</label>
+              <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1">Object Volume: {objectVolume}</label>
               <input type="range" min="20" max="150" step="5" value={objectVolume} onChange={e => { setObjectVolume(+e.target.value); resetSimulation(); }} className="w-full h-1.5 rounded-full appearance-none bg-gray-700" />
             </div>
-            <label className="flex items-center gap-2 text-[10px] text-gray-300 cursor-pointer">
+            <label className="flex items-center gap-2 text-[10px] text-gray-700 dark:text-gray-300 cursor-pointer">
               <input type="checkbox" checked={showForces} onChange={e => setShowForces(e.target.checked)} className="rounded" />
               Show force arrows
             </label>
           </div>
 
-          <div className="bg-cyan-950/30 border border-cyan-800/40 rounded-lg p-2.5">
-            <h4 className="text-[10px] font-semibold text-cyan-300 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+          <div className="bg-cyan-50 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-800/40 rounded-lg p-2.5">
+            <h4 className="text-[10px] font-semibold text-cyan-700 dark:text-cyan-300 uppercase tracking-wider mb-1.5 flex items-center gap-1">
               <Info className="h-3 w-3" /> Archimedes' Principle
             </h4>
-            <div className="space-y-1 text-[9px] text-gray-400">
-              <p className="font-mono bg-gray-800/50 rounded px-1 py-0.5">Fb = ρ_fluid × V_displaced × g</p>
+            <div className="space-y-1 text-[9px] text-gray-600 dark:text-gray-400">
+              <p className="font-mono bg-gray-200/50 dark:bg-gray-800/50 rounded px-1 py-0.5">Fb = ρ_fluid × V_displaced × g</p>
               <p>An object floats when its density is less than the fluid's density. It displaces exactly its own weight in fluid.</p>
               <p>The buoyant force equals the weight of the displaced fluid.</p>
             </div>

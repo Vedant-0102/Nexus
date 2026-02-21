@@ -35,27 +35,40 @@ export const PhysicsLab: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
+    const resize = () => {
+      const r = canvas.getBoundingClientRect();
+      const d = window.devicePixelRatio || 1;
+      canvas.width = r.width * d;
+      canvas.height = r.height * d;
+      ctx.scale(d, d);
+    };
+    resize();
+    const obs = new ResizeObserver(resize);
+    obs.observe(canvas);
 
     let animationId: number;
     let time = 0;
+    let isDark = document.documentElement.classList.contains('dark');
 
     const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      isDark = document.documentElement.classList.contains('dark');
+      const { width: W, height: H } = canvas.getBoundingClientRect();
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = isDark ? '#080c18' : '#f8f9fc';
+      ctx.fillRect(0, 0, W, H);
 
       if (activeTab === 'projectile' && isPlaying) {
-        drawProjectileMotion(ctx, canvas, time);
+        drawProjectileMotion(ctx, W, H, time);
         time += 0.05;
       } else if (activeTab === 'pendulum' && isPlaying) {
-        drawPendulum(ctx, canvas);
+        drawPendulum(ctx, W, H);
       } else if (activeTab === 'spring' && isPlaying) {
-        drawSpring(ctx, canvas);
+        drawSpring(ctx, W, H);
       } else if (activeTab === 'collision') {
-        drawCollision(ctx, canvas, time);
+        drawCollision(ctx, W, H, time);
         if (isPlaying) time += 0.02;
       } else if (activeTab === 'waves') {
-        drawWaves(ctx, canvas, time);
+        drawWaves(ctx, W, H, time);
         if (isPlaying) time += 0.1;
       }
 
@@ -64,12 +77,15 @@ export const PhysicsLab: React.FC = () => {
 
     animate();
 
-    return () => cancelAnimationFrame(animationId);
+    return () => {
+      obs.disconnect();
+      cancelAnimationFrame(animationId);
+    };
   }, [activeTab, isPlaying, velocity, angle, gravity, pendulumLength, pendulumAngle, pendulumVelocity, springK, springMass, springDisplacement, springVelocity]);
 
-  const drawProjectileMotion = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, t: number) => {
+  const drawProjectileMotion = (ctx: CanvasRenderingContext2D, W: number, H: number, t: number) => {
     const x0 = 50;
-    const y0 = canvas.height - 50;
+    const y0 = H - 50;
     const v0 = velocity;
     const angleRad = (angle * Math.PI) / 180;
     
@@ -92,7 +108,7 @@ export const PhysicsLab: React.FC = () => {
     ctx.stroke();
     
     // Draw projectile
-    if (y <= canvas.height - 50) {
+    if (y <= H - 50) {
       ctx.fillStyle = '#FF6B6B';
       ctx.beginPath();
       ctx.arc(x, y, 10, 0, Math.PI * 2);
@@ -108,16 +124,16 @@ export const PhysicsLab: React.FC = () => {
     }
     
     // Draw ground
-    ctx.strokeStyle = '#333';
+    ctx.strokeStyle = isDark ? '#888' : '#333';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(0, canvas.height - 50);
-    ctx.lineTo(canvas.width, canvas.height - 50);
+    ctx.moveTo(0, H - 50);
+    ctx.lineTo(W, H - 50);
     ctx.stroke();
   };
 
-  const drawPendulum = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
-    const pivotX = canvas.width / 2;
+  const drawPendulum = (ctx: CanvasRenderingContext2D, W: number, H: number) => {
+    const pivotX = W / 2;
     const pivotY = 50;
     
     // Update pendulum physics
@@ -134,7 +150,7 @@ export const PhysicsLab: React.FC = () => {
     const bobY = pivotY + pendulumLength * Math.cos(angleRad);
     
     // Draw string
-    ctx.strokeStyle = '#333';
+    ctx.strokeStyle = isDark ? '#888' : '#333';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(pivotX, pivotY);
@@ -142,7 +158,7 @@ export const PhysicsLab: React.FC = () => {
     ctx.stroke();
     
     // Draw pivot
-    ctx.fillStyle = '#666';
+    ctx.fillStyle = isDark ? '#999' : '#666';
     ctx.beginPath();
     ctx.arc(pivotX, pivotY, 8, 0, Math.PI * 2);
     ctx.fill();
@@ -161,9 +177,9 @@ export const PhysicsLab: React.FC = () => {
     ctx.stroke();
   };
 
-  const drawSpring = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
-    const centerY = canvas.height / 2;
-    const equilibrium = canvas.width / 2;
+  const drawSpring = (ctx: CanvasRenderingContext2D, W: number, H: number) => {
+    const centerY = H / 2;
+    const equilibrium = W / 2;
     
     // Update spring physics (Hooke's Law)
     const dt = 0.016;
@@ -202,15 +218,15 @@ export const PhysicsLab: React.FC = () => {
     ctx.setLineDash([5, 5]);
     ctx.beginPath();
     ctx.moveTo(equilibrium, 0);
-    ctx.lineTo(equilibrium, canvas.height);
+    ctx.lineTo(equilibrium, H);
     ctx.stroke();
     ctx.setLineDash([]);
   };
 
-  const drawCollision = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, t: number) => {
-    const y = canvas.height / 2;
+  const drawCollision = (ctx: CanvasRenderingContext2D, W: number, H: number, t: number) => {
+    const y = H / 2;
     const ball1X = 100 + Math.sin(t) * 150;
-    const ball2X = canvas.width - 100 - Math.sin(t) * 150;
+    const ball2X = W - 100 - Math.sin(t) * 150;
     
     // Draw balls
     ctx.fillStyle = '#FF6B6B';
@@ -232,14 +248,14 @@ export const PhysicsLab: React.FC = () => {
     }
   };
 
-  const drawWaves = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, t: number) => {
-    const centerY = canvas.height / 2;
-    
+  const drawWaves = (ctx: CanvasRenderingContext2D, W: number, H: number, t: number) => {
+    const centerY = H / 2;
+
     // Draw wave 1
     ctx.strokeStyle = '#FF6B6B';
     ctx.lineWidth = 3;
     ctx.beginPath();
-    for (let x = 0; x < canvas.width; x++) {
+    for (let x = 0; x < W; x++) {
       const y = centerY + Math.sin((x + t * 10) * 0.02) * 50;
       if (x === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
@@ -249,18 +265,18 @@ export const PhysicsLab: React.FC = () => {
     // Draw wave 2
     ctx.strokeStyle = '#4ECDC4';
     ctx.beginPath();
-    for (let x = 0; x < canvas.width; x++) {
+    for (let x = 0; x < W; x++) {
       const y = centerY + Math.sin((x + t * 10) * 0.02 + Math.PI / 2) * 50;
       if (x === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
     ctx.stroke();
-    
+
     // Draw interference
     ctx.strokeStyle = '#FFD93D';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    for (let x = 0; x < canvas.width; x++) {
+    for (let x = 0; x < W; x++) {
       const y1 = Math.sin((x + t * 10) * 0.02) * 50;
       const y2 = Math.sin((x + t * 10) * 0.02 + Math.PI / 2) * 50;
       const y = centerY + y1 + y2;

@@ -60,14 +60,19 @@ export const Thermodynamics: React.FC = () => {
       return coldTemp + (hotTemp - coldTemp) * (1 - i / 50);
     });
 
+    let isDark = document.documentElement.classList.contains('dark');
+
     const animate = () => {
       animRef.current = requestAnimationFrame(animate);
       if (!isPlaying) return;
       timeRef.current += 1;
+      isDark = document.documentElement.classList.contains('dark');
       const rect = canvas.getBoundingClientRect();
       const w = rect.width;
       const h = rect.height;
       ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = isDark ? '#080c18' : '#f8f9fc';
+      ctx.fillRect(0, 0, w, h);
 
       if (tab === 'conduction') drawConduction(ctx, w, h, barTemps);
       else if (tab === 'convection') drawConvection(ctx, w, h);
@@ -156,7 +161,7 @@ export const Thermodynamics: React.FC = () => {
       ctx.stroke();
 
       // Labels
-      ctx.fillStyle = '#475569';
+      ctx.fillStyle = isDark ? '#cbd5e1' : '#475569';
       ctx.font = '11px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('Temperature Distribution Along Bar', w / 2, graphY - 15);
@@ -251,7 +256,7 @@ export const Thermodynamics: React.FC = () => {
       particlesRef.current = alive;
 
       // Labels
-      ctx.fillStyle = '#475569';
+      ctx.fillStyle = isDark ? '#cbd5e1' : '#475569';
       ctx.font = '11px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('Convection Currents in Fluid', w / 2, cY - 10);
@@ -339,7 +344,7 @@ export const Thermodynamics: React.FC = () => {
 
       // Stefan-Boltzmann law
       const power = 5.67e-8 * Math.pow(hotTemp, 4);
-      ctx.fillStyle = '#475569';
+      ctx.fillStyle = isDark ? '#cbd5e1' : '#475569';
       ctx.font = '11px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('Electromagnetic Radiation (no medium needed)', w / 2, h * 0.12);
@@ -347,7 +352,7 @@ export const Thermodynamics: React.FC = () => {
       ctx.fillText(`Stefan-Boltzmann: P = σT⁴ = ${power.toExponential(2)} W/m²`, w / 2, h * 0.9);
 
       // Spectrum indicator
-      ctx.fillStyle = '#475569';
+      ctx.fillStyle = isDark ? '#cbd5e1' : '#475569';
       ctx.font = '10px sans-serif';
       ctx.fillText(`Peak λ ≈ ${(2.898e6 / hotTemp).toFixed(0)} nm (${hotTemp > 3000 ? 'visible' : hotTemp > 700 ? 'infrared' : 'far infrared'})`, w / 2, h * 0.85);
     };

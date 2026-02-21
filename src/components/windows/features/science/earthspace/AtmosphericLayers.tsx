@@ -10,6 +10,7 @@ export const AtmosphericLayers: React.FC = () => {
   const [showObjects, setShowObjects] = useState(true);
   const animRef = useRef<number>(0);
   const timeRef = useRef(0);
+  const [altitude, setAltitude] = useState<number>(0);
 
   const layers: Layer[] = [
     { name: 'Troposphere', minAlt: 0, maxAlt: 12, color: '#4090ff', tempRange: [15, -56], features: ['Weather', 'Clouds', 'Aircraft'] },
@@ -26,6 +27,51 @@ export const AtmosphericLayers: React.FC = () => {
     const usableH = h - margin * 2;
     const logAlt = Math.log10(alt + 1) / Math.log10(10001);
     return h - margin - logAlt * usableH;
+  };
+
+  const getTemperature = (alt: number): number => {
+    if (alt <= 12) return 15 - (alt / 12) * 71;
+    if (alt <= 50) return -56 + ((alt - 12) / 38) * 53;
+    if (alt <= 80) return -3 - ((alt - 50) / 30) * 87;
+    if (alt <= 700) return -90 + ((alt - 80) / 620) * 1590;
+    return 1500 + ((alt - 700) / 9300) * 1000;
+  };
+
+  const getPressure = (alt: number): number => {
+    return 101.325 * Math.exp(-alt / 8.5);
+  };
+
+  const getDensity = (alt: number): number => {
+    return 1.225 * Math.exp(-alt / 8.5);
+  };
+
+  const getLayerIndex = (alt: number): number => {
+    if (alt < 12) return 0;
+    if (alt < 50) return 1;
+    if (alt < 80) return 2;
+    if (alt < 700) return 3;
+    return 4;
+  };
+
+  const getPhenomena = (alt: number): string[] => {
+    if (alt < 2) return ['Ground weather', 'Fog', 'Low clouds'];
+    if (alt < 12) return ['Cumulus clouds', 'Jet streams', 'Aircraft'];
+    if (alt < 30) return ['Ozone layer', 'Weather balloons'];
+    if (alt < 50) return ['Stratospheric research', 'Ozone peak'];
+    if (alt < 65) return ['Noctilucent clouds'];
+    if (alt < 85) return ['Meteors burn up', 'Noctilucent clouds'];
+    if (alt < 150) return ['Aurora borealis', 'Ionosphere (D layer)'];
+    if (alt < 300) return ['Ionosphere (E/F layers)', 'Radio reflection'];
+    if (alt < 500) return ['ISS orbit (~408 km)', 'Low Earth orbit'];
+    if (alt < 700) return ['LEO satellites', 'Hubble (~540 km)'];
+    return ['GPS satellites', 'Transition to space'];
+  };
+
+  const getComposition = (alt: number): { n2: number; o2: number; other: string } => {
+    if (alt < 100) return { n2: 78, o2: 21, other: 'Ar ~1%, CO\u2082 trace' };
+    if (alt < 200) return { n2: 60, o2: 10, other: 'Atomic O ~30%' };
+    if (alt < 500) return { n2: 20, o2: 2, other: 'Atomic O ~70%, He trace' };
+    return { n2: 5, o2: 0, other: 'H ~50%, He ~45%' };
   };
 
   useEffect(() => {
@@ -48,9 +94,15 @@ export const AtmosphericLayers: React.FC = () => {
       ctx.clearRect(0, 0, w, h);
 
       // Background gradient (space to ground)
+      const isDark = document.documentElement.classList.contains('dark');
       const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
-      bgGrad.addColorStop(0, '#000010'); bgGrad.addColorStop(0.3, '#080830');
-      bgGrad.addColorStop(0.7, '#1040a0'); bgGrad.addColorStop(1, '#80c0ff');
+      if (isDark) {
+        bgGrad.addColorStop(0, '#000010'); bgGrad.addColorStop(0.3, '#080830');
+        bgGrad.addColorStop(0.7, '#1040a0'); bgGrad.addColorStop(1, '#80c0ff');
+      } else {
+        bgGrad.addColorStop(0, '#1a1a40'); bgGrad.addColorStop(0.3, '#304080');
+        bgGrad.addColorStop(0.7, '#6090d0'); bgGrad.addColorStop(1, '#b8e0ff');
+      }
       ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, w, h);
 
       // Stars at top
@@ -95,6 +147,23 @@ export const AtmosphericLayers: React.FC = () => {
       const groundY = altToY(0, h);
       ctx.fillStyle = '#2a5a20'; ctx.fillRect(0, groundY, w, h - groundY);
       ctx.fillStyle = '#3a7030'; ctx.fillRect(0, groundY, w, 3);
+
+      // Altitude marker line
+      const markerY = altToY(altitude, h);
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,220,50,0.7)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([6, 3]);
+      ctx.beginPath();
+      ctx.moveTo(layerPadding, markerY);
+      ctx.lineTo(w - layerPadding, markerY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+      ctx.fillStyle = 'rgba(255,220,50,0.9)';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText(`${altitude} km`, w - layerPadding - 3, markerY - 4);
 
       // Objects in layers
       if (showObjects) {
@@ -161,69 +230,106 @@ export const AtmosphericLayers: React.FC = () => {
 
       // Temperature profile
       if (showTemp) {
+        const tempToX = (temp: number) => layerPadding + 30 + (temp + 100) / 2600 * (w - layerPadding * 2 - 60);
+
+        // Draw the zigzag temperature curve
         ctx.strokeStyle = 'rgba(255,100,100,0.6)'; ctx.lineWidth = 1.5;
         ctx.beginPath();
         let first = true;
-        for (let alt = 0; alt <= 10000; alt += 50) {
-          let temp = 15;
-          if (alt <= 12) temp = 15 - (alt / 12) * 71;
-          else if (alt <= 50) temp = -56 + ((alt - 12) / 38) * 53;
-          else if (alt <= 80) temp = -3 - ((alt - 50) / 30) * 87;
-          else if (alt <= 700) temp = -90 + ((alt - 80) / 620) * 1590;
-          else temp = 1500 + ((alt - 700) / 9300) * 1000;
-
-          const x = layerPadding + 30 + (temp + 100) / 2600 * (w - layerPadding * 2 - 60);
-          const y = altToY(alt, h);
+        for (let a = 0; a <= 10000; a += 50) {
+          const temp = getTemperature(a);
+          const x = tempToX(temp);
+          const y = altToY(a, h);
           if (first) { ctx.moveTo(x, y); first = false; } else ctx.lineTo(x, y);
         }
         ctx.stroke();
+
+        // Layer boundary markers (tropopause, stratopause, mesopause)
+        const boundaries = [
+          { alt: 12, label: 'Tropopause' },
+          { alt: 50, label: 'Stratopause' },
+          { alt: 80, label: 'Mesopause' },
+        ];
+        boundaries.forEach(b => {
+          const by = altToY(b.alt, h);
+          const bTemp = getTemperature(b.alt);
+          const bx = tempToX(bTemp);
+          ctx.fillStyle = 'rgba(255,180,100,0.75)';
+          ctx.beginPath(); ctx.arc(bx, by, 3, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = 'rgba(255,180,100,0.6)'; ctx.font = '7px sans-serif'; ctx.textAlign = 'left';
+          ctx.fillText(`${b.label} (${b.alt}km)`, bx + 6, by + 3);
+        });
+
+        // Current altitude dot on the temperature curve
+        const curTemp = getTemperature(altitude);
+        const curX = tempToX(curTemp);
+        const curY = altToY(altitude, h);
+        ctx.fillStyle = 'rgba(255,255,50,0.9)';
+        ctx.beginPath(); ctx.arc(curX, curY, 4.5, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,50,0.5)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(curX, curY, 7, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = 'rgba(255,255,50,0.85)'; ctx.font = 'bold 8px sans-serif'; ctx.textAlign = 'left';
+        ctx.fillText(`${curTemp.toFixed(0)}\u00B0C`, curX + 10, curY + 3);
+
         ctx.fillStyle = 'rgba(255,100,100,0.4)'; ctx.font = '8px sans-serif'; ctx.textAlign = 'center';
-        ctx.fillText('Temperature →', w / 2, h - 5);
+        ctx.fillText('Temperature \u2192', w / 2, h - 5);
       }
 
       animRef.current = requestAnimationFrame(draw);
     };
     animRef.current = requestAnimationFrame(draw);
     return () => { cancelAnimationFrame(animRef.current); obs.disconnect(); };
-  }, [selectedLayer, showTemp, showObjects]);
+  }, [selectedLayer, showTemp, showObjects, altitude]);
 
   const sel = layers[selectedLayer];
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-gray-950 to-cyan-950 p-3 overflow-hidden">
+    <div className="h-full flex flex-col bg-gradient-to-br from-gray-100 to-cyan-100 dark:from-gray-950 dark:to-cyan-950 p-3 overflow-hidden">
       <div className="mb-2">
-        <h2 className="text-lg font-bold text-white">🌤 Atmospheric Layers Explorer</h2>
-        <p className="text-[11px] text-gray-400">Earth's atmosphere structure</p>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">🌤 Atmospheric Layers Explorer</h2>
+        <p className="text-[11px] text-gray-500 dark:text-gray-400">Earth's atmosphere structure</p>
       </div>
       <div className="flex-1 flex gap-3 min-h-0">
-        <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-800 overflow-hidden">
+        <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-300 dark:border-gray-800 overflow-hidden">
           <canvas ref={canvasRef} className="w-full h-full" />
         </div>
         <div className="w-[210px] flex flex-col gap-2 flex-shrink-0 overflow-y-auto">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-1">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase mb-1">Layers</h4>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-1">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Layers</h4>
             {layers.map((l, i) => (
-              <button key={l.name} onClick={() => setSelectedLayer(i)} className={`flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-[10px] ${selectedLayer===i?'bg-cyan-700 text-white':'bg-gray-800 text-gray-400'}`}>
+              <button key={l.name} onClick={() => { setSelectedLayer(i); setAltitude(Math.min(Math.round((l.minAlt + l.maxAlt) / 2), 700)); }} className={`flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-[10px] ${selectedLayer===i?'bg-cyan-700 text-white':'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>
                 <span className="w-2 h-2 rounded-full" style={{background:l.color}}/>{l.name}
                 <span className="ml-auto text-[8px] opacity-60">{l.minAlt}-{l.maxAlt}km</span>
               </button>
             ))}
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-1.5">
-            <label className="flex items-center gap-2 text-[10px] text-gray-400 cursor-pointer">
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-1.5">
+            <label className="flex items-center gap-2 text-[10px] text-gray-500 dark:text-gray-400 cursor-pointer">
               <input type="checkbox" checked={showTemp} onChange={e=>setShowTemp(e.target.checked)} className="accent-red-500 w-3 h-3"/>Temperature profile
             </label>
-            <label className="flex items-center gap-2 text-[10px] text-gray-400 cursor-pointer">
+            <label className="flex items-center gap-2 text-[10px] text-gray-500 dark:text-gray-400 cursor-pointer">
               <input type="checkbox" checked={showObjects} onChange={e=>setShowObjects(e.target.checked)} className="accent-cyan-500 w-3 h-3"/>Show objects
             </label>
           </div>
-          <div className="bg-cyan-950/30 border border-cyan-800/40 rounded-lg p-2.5">
-            <h4 className="text-[10px] font-bold text-cyan-300 mb-1">{sel.name}</h4>
-            <div className="text-[9px] text-gray-400 space-y-0.5">
-              <p>Altitude: {sel.minAlt} – {sel.maxAlt} km</p>
-              <p>Temperature: {sel.tempRange[0]}°C to {sel.tempRange[1]}°C</p>
-              <p className="mt-1 font-semibold text-gray-300">Features:</p>
-              {sel.features.map(f => <p key={f}>• {f}</p>)}
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-1.5">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Altitude Explorer</h4>
+            <input type="range" min={0} max={700} step={1} value={altitude} onChange={e => { const a = Number(e.target.value); setAltitude(a); setSelectedLayer(getLayerIndex(a)); }} className="w-full accent-yellow-500 h-1.5" />
+            <div className="text-[10px] text-gray-600 dark:text-gray-400 flex justify-between">
+              <span>0 km</span><span className="font-bold text-yellow-600 dark:text-yellow-400">{altitude} km</span><span>700 km</span>
+            </div>
+          </div>
+          <div className="bg-cyan-50 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-800/40 rounded-lg p-2.5">
+            <h4 className="text-[10px] font-bold text-cyan-700 dark:text-cyan-300 mb-1">{sel.name}</h4>
+            <div className="text-[9px] text-gray-600 dark:text-gray-400 space-y-0.5">
+              <p>Altitude: {altitude} km ({sel.minAlt}&ndash;{sel.maxAlt} km range)</p>
+              <p>Temperature: {getTemperature(altitude).toFixed(1)}&deg;C</p>
+              <p>Pressure: {getPressure(altitude) >= 0.01 ? getPressure(altitude).toFixed(2) : getPressure(altitude).toExponential(2)} kPa</p>
+              <p>Density: {getDensity(altitude) >= 0.001 ? getDensity(altitude).toFixed(4) : getDensity(altitude).toExponential(2)} kg/m&sup3;</p>
+              <p className="mt-1 font-semibold text-gray-600 dark:text-gray-300">Composition:</p>
+              <p>N&#8322;: {getComposition(altitude).n2}% &middot; O&#8322;: {getComposition(altitude).o2}%</p>
+              <p>{getComposition(altitude).other}</p>
+              <p className="mt-1 font-semibold text-gray-600 dark:text-gray-300">Phenomena:</p>
+              {getPhenomena(altitude).map(f => <p key={f}>&bull; {f}</p>)}
             </div>
           </div>
         </div>

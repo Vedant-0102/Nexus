@@ -26,12 +26,31 @@ export const CollisionSimulator: React.FC = () => {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const resize = () => {
+      const r = canvas.getBoundingClientRect();
+      const d = window.devicePixelRatio || 1;
+      canvas.width = r.width * d;
+      canvas.height = r.height * d;
+      ctx.scale(d, d);
+    };
+    resize();
+    const obs = new ResizeObserver(resize);
+    obs.observe(canvas);
+    return () => obs.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     const draw = () => {
       if (!isRunning) return;
+      const { width: W, height: H } = canvas.getBoundingClientRect();
 
       // Update positions
       const newPos1 = pos1 + vel1;
@@ -56,30 +75,31 @@ export const CollisionSimulator: React.FC = () => {
       setPos2(newPos2);
 
       // Stop if balls leave canvas
-      if (newPos1 < -50 || newPos1 > canvas.width + 50 || newPos2 < -50 || newPos2 > canvas.width + 50) {
+      if (newPos1 < -50 || newPos1 > W + 50 || newPos2 < -50 || newPos2 > W + 50) {
         setIsRunning(false);
         return;
       }
 
       // Clear canvas
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, W, H);
+      const isDark = document.documentElement.classList.contains('dark');
 
       // Draw ground
       ctx.fillStyle = '#8B4513';
-      ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
+      ctx.fillRect(0, H - 20, W, 20);
 
       // Draw center line
       ctx.strokeStyle = '#999';
       ctx.lineWidth = 2;
       ctx.setLineDash([10, 10]);
       ctx.beginPath();
-      ctx.moveTo(canvas.width / 2, 0);
-      ctx.lineTo(canvas.width / 2, canvas.height - 20);
+      ctx.moveTo(W / 2, 0);
+      ctx.lineTo(W / 2, H - 20);
       ctx.stroke();
       ctx.setLineDash([]);
 
       // Draw ball 1 with glow
-      const y = canvas.height - 20 - radius1;
+      const y = H - 20 - radius1;
       ctx.shadowBlur = 15;
       ctx.shadowColor = '#3B82F6';
       ctx.fillStyle = '#3B82F6';
@@ -106,7 +126,7 @@ export const CollisionSimulator: React.FC = () => {
       ctx.stroke();
 
       // Draw ball 2 with glow
-      const y2 = canvas.height - 20 - radius2;
+      const y2 = H - 20 - radius2;
       ctx.shadowBlur = 15;
       ctx.shadowColor = '#EF4444';
       ctx.fillStyle = '#EF4444';
@@ -146,7 +166,7 @@ export const CollisionSimulator: React.FC = () => {
       ctx.stroke();
 
       // Draw labels
-      ctx.fillStyle = '#000';
+      ctx.fillStyle = isDark ? '#fff' : '#1a1a2e';
       ctx.font = 'bold 14px Arial';
       ctx.fillText(`m₁=${mass1}kg`, newPos1 - 20, y - radius1 - 10);
       ctx.fillText(`m₂=${mass2}kg`, newPos2 - 20, y2 - radius2 - 10);

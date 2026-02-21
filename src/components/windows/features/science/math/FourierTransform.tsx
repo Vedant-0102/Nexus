@@ -13,11 +13,16 @@ export const FourierTransform: React.FC = () => {
   ]);
 
   useEffect(() => {
-    if (!isPlaying) return;
-    const interval = setInterval(() => {
-      setTime(t => (t + 0.05) % (2 * Math.PI));
-    }, 50);
-    return () => clearInterval(interval);
+    let animId: number;
+
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+      if (!isPlaying) return;
+      setTime(t => (t + 0.016) % (2 * Math.PI));
+    };
+    animId = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(animId);
   }, [isPlaying]);
 
   useEffect(() => {
@@ -31,7 +36,8 @@ export const FourierTransform: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.fillStyle = '#f8f9fa';
+    const isDark = document.documentElement.classList.contains('dark');
+    ctx.fillStyle = isDark ? '#0a0e1a' : '#f8f9fa';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     const centerY = canvas.height / 2;
@@ -64,7 +70,7 @@ export const FourierTransform: React.FC = () => {
     });
 
     // Draw composite signal
-    ctx.strokeStyle = '#000';
+    ctx.strokeStyle = isDark ? '#fff' : '#000';
     ctx.lineWidth = 3;
     ctx.beginPath();
     for (let x = 0; x < canvas.width; x++) {
@@ -95,7 +101,8 @@ export const FourierTransform: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.fillStyle = '#f8f9fa';
+    const isDark = document.documentElement.classList.contains('dark');
+    ctx.fillStyle = isDark ? '#0a0e1a' : '#f8f9fa';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     const barWidth = canvas.width / 10;
@@ -112,7 +119,7 @@ export const FourierTransform: React.FC = () => {
       ctx.fillRect(x - 15, canvas.height - height - 20, 30, height);
       
       // Label
-      ctx.fillStyle = '#000';
+      ctx.fillStyle = isDark ? '#fff' : '#000';
       ctx.font = '12px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText(`${wave.freq}Hz`, x, canvas.height - 5);

@@ -69,7 +69,8 @@ export const PunnettSquare: React.FC = () => {
       const r = canvas.getBoundingClientRect();
       const w = r.width, h = r.height;
       ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = '#0c1020'; ctx.fillRect(0, 0, w, h);
+      const isDark = document.documentElement.classList.contains('dark');
+      ctx.fillStyle = isDark ? '#0c1020' : '#f8f9fc'; ctx.fillRect(0, 0, w, h);
 
       const cellSize = Math.min((w - 160) / 3, (h - 120) / 3);
       const startX = (w - cellSize * 3) / 2;
@@ -78,9 +79,9 @@ export const PunnettSquare: React.FC = () => {
       const g2 = getGametes(parent2);
 
       // Title
-      ctx.fillStyle = 'rgba(200,200,255,0.8)'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillStyle = isDark ? 'rgba(200,200,255,0.8)' : 'rgba(30,40,80,0.8)'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
       ctx.fillText('Punnett Square', w/2, 25);
-      ctx.font = '11px sans-serif'; ctx.fillStyle = 'rgba(200,200,255,0.5)';
+      ctx.font = '11px sans-serif'; ctx.fillStyle = isDark ? 'rgba(200,200,255,0.5)' : 'rgba(80,90,130,0.7)';
       ctx.fillText(`${parent1} × ${parent2}`, w/2, 42);
 
       // Top header (parent 1 gametes)
@@ -139,7 +140,7 @@ export const PunnettSquare: React.FC = () => {
 
       // Results section
       const resY = startY + 3 * cellSize + 25;
-      ctx.fillStyle = 'rgba(200,200,255,0.7)'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'left';
+      ctx.fillStyle = isDark ? 'rgba(200,200,255,0.7)' : 'rgba(30,40,80,0.7)'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'left';
       ctx.fillText('Genotype Ratio:', 20, resY);
       let rx = 20;
       Object.entries(genotypeCount).forEach(([g, c]) => {
@@ -148,7 +149,7 @@ export const PunnettSquare: React.FC = () => {
         rx += 120;
       });
 
-      ctx.fillStyle = 'rgba(200,200,255,0.7)'; ctx.font = 'bold 11px sans-serif';
+      ctx.fillStyle = isDark ? 'rgba(200,200,255,0.7)' : 'rgba(30,40,80,0.7)'; ctx.font = 'bold 11px sans-serif';
       ctx.fillText('Phenotype Ratio:', 20, resY + 40);
       rx = 20;
       Object.entries(phenotypeCount).forEach(([p, c]) => {
@@ -183,42 +184,42 @@ export const PunnettSquare: React.FC = () => {
   const alleles = [t.dA + t.dA, t.dA + t.rA, t.rA + t.rA];
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-gray-950 to-violet-950 p-3 overflow-hidden">
+    <div className="h-full flex flex-col bg-gradient-to-br from-gray-100 to-violet-100 dark:from-gray-950 dark:to-violet-950 p-3 overflow-hidden">
       <div className="mb-2">
-        <h2 className="text-lg font-bold text-white">🧬 Genetics & Punnett Square</h2>
-        <p className="text-[11px] text-gray-400">Mendelian inheritance prediction</p>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">🧬 Genetics & Punnett Square</h2>
+        <p className="text-[11px] text-gray-500 dark:text-gray-400">Mendelian inheritance prediction</p>
       </div>
       <div className="flex-1 flex gap-3 min-h-0">
-        <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-800 overflow-hidden">
+        <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-300 dark:border-gray-800 overflow-hidden">
           <canvas ref={canvasRef} className="w-full h-full" />
         </div>
         <div className="w-[210px] flex flex-col gap-2 flex-shrink-0 overflow-y-auto">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-2">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase">Trait</h4>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-2">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Trait</h4>
             {['eye','hair','seed','custom'].map(tr => (
-              <button key={tr} onClick={() => handleTraitChange(tr)} className={`block w-full text-left px-2 py-1 rounded text-[10px] ${trait===tr?'bg-violet-600 text-white':'bg-gray-800 text-gray-400'}`}>
+              <button key={tr} onClick={() => handleTraitChange(tr)} className={`block w-full text-left px-2 py-1 rounded text-[10px] ${trait===tr?'bg-violet-600 text-white':'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>
                 {tr === 'custom' ? 'Custom Trait' : traits[tr].dom.split(' ')[0]}
               </button>
             ))}
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-2">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase">Parents</h4>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-2">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Parents</h4>
             <div>
-              <label className="text-[10px] text-gray-400 block mb-1">Parent 1 ♂</label>
-              <select value={parent1} onChange={e => setParent1(e.target.value)} className="w-full bg-gray-800 text-gray-300 text-[10px] rounded px-2 py-1 border border-gray-700">
+              <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1">Parent 1 ♂</label>
+              <select value={parent1} onChange={e => setParent1(e.target.value)} className="w-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-[10px] rounded px-2 py-1 border border-gray-200 dark:border-gray-700">
                 {alleles.map(a => <option key={a} value={a}>{a} ({a[0]===a[0].toUpperCase() ? (a[1]===a[1].toUpperCase() ? 'Homozygous Dom.' : 'Heterozygous') : 'Homozygous Rec.'})</option>)}
               </select>
             </div>
             <div>
-              <label className="text-[10px] text-gray-400 block mb-1">Parent 2 ♀</label>
-              <select value={parent2} onChange={e => setParent2(e.target.value)} className="w-full bg-gray-800 text-gray-300 text-[10px] rounded px-2 py-1 border border-gray-700">
+              <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1">Parent 2 ♀</label>
+              <select value={parent2} onChange={e => setParent2(e.target.value)} className="w-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-[10px] rounded px-2 py-1 border border-gray-200 dark:border-gray-700">
                 {alleles.map(a => <option key={a} value={a}>{a} ({a[0]===a[0].toUpperCase() ? (a[1]===a[1].toUpperCase() ? 'Homozygous Dom.' : 'Heterozygous') : 'Homozygous Rec.'})</option>)}
               </select>
             </div>
           </div>
-          <div className="bg-violet-950/30 border border-violet-800/40 rounded-lg p-2.5">
-            <h4 className="text-[10px] font-semibold text-violet-300 flex items-center gap-1 mb-1"><Info className="h-3 w-3" /> Mendel's Laws</h4>
-            <div className="text-[9px] text-gray-400 space-y-1">
+          <div className="bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800/40 rounded-lg p-2.5">
+            <h4 className="text-[10px] font-semibold text-violet-700 dark:text-violet-300 flex items-center gap-1 mb-1"><Info className="h-3 w-3" /> Mendel's Laws</h4>
+            <div className="text-[9px] text-gray-600 dark:text-gray-400 space-y-1">
               <p><strong>Dominant (uppercase):</strong> expressed when 1+ copy present</p>
               <p><strong>Recessive (lowercase):</strong> only expressed when homozygous</p>
               <p>Bb × Bb → 3:1 phenotype ratio (75% dominant, 25% recessive)</p>

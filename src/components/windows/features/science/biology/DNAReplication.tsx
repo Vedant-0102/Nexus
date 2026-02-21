@@ -10,19 +10,22 @@ export const DNAReplication: React.FC = () => {
   const basePairs = ['A-T', 'T-A', 'G-C', 'C-G', 'A-T', 'G-C', 'T-A', 'C-G', 'A-T', 'G-C'];
 
   useEffect(() => {
-    if (!isPlaying) return;
+    let animId: number;
 
-    const interval = setInterval(() => {
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+      if (!isPlaying) return;
       setProgress(prev => {
         if (prev >= 100) {
           setIsPlaying(false);
           return 100;
         }
-        return prev + 0.8 * speed;
+        return prev + 0.32 * speed;
       });
-    }, 40);
+    };
+    animId = requestAnimationFrame(animate);
 
-    return () => clearInterval(interval);
+    return () => cancelAnimationFrame(animId);
   }, [isPlaying, speed]);
 
   const getBaseColor = (base: string) => {

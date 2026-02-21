@@ -91,6 +91,24 @@ export const DopplerEffect: React.FC = () => {
   const [baseFrequency, setBaseFrequency] = useState(440); // Hz
   const [activeTab, setActiveTab] = useState<TabId>('visualizer');
 
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const resize = () => {
+      const r = canvas.getBoundingClientRect();
+      const d = window.devicePixelRatio || 1;
+      canvas.width = r.width * d;
+      canvas.height = r.height * d;
+      ctx.scale(d, d);
+    };
+    resize();
+    const obs = new ResizeObserver(resize);
+    obs.observe(canvas);
+    return () => obs.disconnect();
+  }, []);
+
   // ── Derived values ────────────────────────────────────────────────────────
   const approachFreq = baseFrequency * ((SPEED_OF_SOUND + observerVelocity) / (SPEED_OF_SOUND - sourceVelocity));
   const recedeFreq = baseFrequency * ((SPEED_OF_SOUND - observerVelocity) / (SPEED_OF_SOUND + sourceVelocity));
@@ -105,8 +123,8 @@ export const DopplerEffect: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const W = canvas.width;
-    const H = canvas.height;
+    const W = canvas.getBoundingClientRect().width;
+    const H = canvas.getBoundingClientRect().height;
     const dark = isDarkBackground(canvas);
     const dt = 0.016; // ~60 fps frame time
 

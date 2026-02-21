@@ -49,6 +49,8 @@ export const BernoulliPrinciple: React.FC = () => {
     const obs = new ResizeObserver(resize);
     obs.observe(canvas);
 
+    const isDark = document.documentElement.classList.contains('dark');
+
     const animate = () => {
       if (!isPlaying) {
         animRef.current = requestAnimationFrame(animate);
@@ -59,6 +61,8 @@ export const BernoulliPrinciple: React.FC = () => {
       const w = rect.width;
       const h = rect.height;
       ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = isDark ? '#080c18' : '#f8f9fc';
+      ctx.fillRect(0, 0, w, h);
 
       // Draw based on selected tab
       if (tab === 'venturi') {
@@ -242,7 +246,7 @@ export const BernoulliPrinciple: React.FC = () => {
       }
 
       // Bernoulli equation
-      ctx.fillStyle = '#475569';
+      ctx.fillStyle = isDark ? '#94a3b8' : '#475569';
       ctx.font = '11px monospace';
       ctx.textAlign = 'left';
       ctx.fillText('P₁ + ½ρv₁² + ρgh₁ = P₂ + ½ρv₂² + ρgh₂', 10, h - 10);
@@ -425,7 +429,7 @@ export const BernoulliPrinciple: React.FC = () => {
       particlesRef.current = alive3;
 
       // Labels
-      ctx.fillStyle = '#475569';
+      ctx.fillStyle = isDark ? '#94a3b8' : '#475569';
       ctx.font = 'bold 12px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('Fast air flow → Low pressure above tube', centerX, h * 0.25);

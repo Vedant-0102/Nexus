@@ -20,12 +20,31 @@ export const SpringSimulator: React.FC = () => {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const resize = () => {
+      const r = canvas.getBoundingClientRect();
+      const d = window.devicePixelRatio || 1;
+      canvas.width = r.width * d;
+      canvas.height = r.height * d;
+      ctx.scale(d, d);
+    };
+    resize();
+    const obs = new ResizeObserver(resize);
+    obs.observe(canvas);
+    return () => obs.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     const draw = (currentTime: number) => {
       if (!isRunning) return;
+      const { width: W, height: H } = canvas.getBoundingClientRect();
 
       if (startTimeRef.current === 0) {
         startTimeRef.current = currentTime;
@@ -45,10 +64,13 @@ export const SpringSimulator: React.FC = () => {
       setDisplacement(newDisplacement);
 
       // Clear canvas
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const isDark = document.documentElement.classList.contains('dark');
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = isDark ? '#080c18' : '#f8f9fc';
+      ctx.fillRect(0, 0, W, H);
 
-      const centerY = canvas.height / 2;
-      const equilibrium = canvas.width / 2;
+      const centerY = H / 2;
+      const equilibrium = W / 2;
       const massX = equilibrium + newDisplacement;
 
       // Draw equilibrium line
@@ -57,7 +79,7 @@ export const SpringSimulator: React.FC = () => {
       ctx.setLineDash([5, 5]);
       ctx.beginPath();
       ctx.moveTo(equilibrium, 0);
-      ctx.lineTo(equilibrium, canvas.height);
+      ctx.lineTo(equilibrium, H);
       ctx.stroke();
       ctx.setLineDash([]);
 
@@ -80,7 +102,7 @@ export const SpringSimulator: React.FC = () => {
       ctx.stroke();
 
       // Draw wall
-      ctx.fillStyle = '#666';
+      ctx.fillStyle = isDark ? '#999' : '#666';
       ctx.fillRect(40, centerY - 60, 10, 120);
       
       // Draw mass with glow effect

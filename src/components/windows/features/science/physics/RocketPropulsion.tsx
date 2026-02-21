@@ -161,6 +161,24 @@ export const RocketPropulsion = () => {
   }, [windEnabled]);
 
   useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const resize = () => {
+      const r = canvas.getBoundingClientRect();
+      const d = window.devicePixelRatio || 1;
+      canvas.width = r.width * d;
+      canvas.height = r.height * d;
+      ctx.scale(d, d);
+    };
+    resize();
+    const obs = new ResizeObserver(resize);
+    obs.observe(canvas);
+    return () => obs.disconnect();
+  }, []);
+
+  useEffect(() => {
     const animate = () => {
       if (isRunning) {
         update();
@@ -394,11 +412,12 @@ export const RocketPropulsion = () => {
     if (!ctx) return;
 
     const rocket = rocketRef.current;
-    const W = canvas.width;
-    const H = canvas.height;
+    const W = canvas.getBoundingClientRect().width;
+    const H = canvas.getBoundingClientRect().height;
     const camY = cameraYRef.current;
     const groundY = 520;
     const altitudeMeters = Math.max(0, (groundY - rocket.y + camY)) * SCALE_FACTOR;
+    const isDark = document.documentElement.classList.contains('dark');
 
     // --- SKY GRADIENT based on altitude ---
     const altFraction = Math.min(altitudeMeters / 80000, 1); // 0=ground, 1=space
@@ -406,15 +425,15 @@ export const RocketPropulsion = () => {
     if (altFraction < 0.3) {
       // Low altitude: blue sky
       const t = altFraction / 0.3;
-      skyGrad.addColorStop(0, lerpColor('#1a3a5c', '#0a0a2e', t));
-      skyGrad.addColorStop(0.5, lerpColor('#4a8bc2', '#1a2a5c', t));
-      skyGrad.addColorStop(1, lerpColor('#87CEEB', '#3a5a8c', t));
+      skyGrad.addColorStop(0, lerpColor(isDark ? '#1a3a5c' : '#6aadeb', isDark ? '#0a0a2e' : '#2a4a7e', t));
+      skyGrad.addColorStop(0.5, lerpColor(isDark ? '#4a8bc2' : '#a0cdf0', isDark ? '#1a2a5c' : '#5a8ac0', t));
+      skyGrad.addColorStop(1, lerpColor(isDark ? '#87CEEB' : '#d8edfa', isDark ? '#3a5a8c' : '#7aaad0', t));
     } else if (altFraction < 0.7) {
       // Mid altitude: darkening
       const t = (altFraction - 0.3) / 0.4;
-      skyGrad.addColorStop(0, lerpColor('#0a0a2e', '#020210', t));
-      skyGrad.addColorStop(0.5, lerpColor('#1a2a5c', '#050520', t));
-      skyGrad.addColorStop(1, lerpColor('#3a5a8c', '#0a0a30', t));
+      skyGrad.addColorStop(0, lerpColor(isDark ? '#0a0a2e' : '#2a4a7e', isDark ? '#020210' : '#0a0a2e', t));
+      skyGrad.addColorStop(0.5, lerpColor(isDark ? '#1a2a5c' : '#5a8ac0', isDark ? '#050520' : '#1a2a5c', t));
+      skyGrad.addColorStop(1, lerpColor(isDark ? '#3a5a8c' : '#7aaad0', isDark ? '#0a0a30' : '#3a5a8c', t));
     } else {
       // Space
       skyGrad.addColorStop(0, '#010108');
@@ -453,7 +472,7 @@ export const RocketPropulsion = () => {
     for (let alt = startMarker; alt < startMarker + H * SCALE_FACTOR + markerSpacing; alt += markerSpacing) {
       const pixelY = groundY - alt / SCALE_FACTOR + camY;
       if (pixelY < 0 || pixelY > H) continue;
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.strokeStyle = isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(30, 40, 80, 0.15)';
       ctx.lineWidth = 1;
       ctx.setLineDash([4, 8]);
       ctx.beginPath();
@@ -461,7 +480,7 @@ export const RocketPropulsion = () => {
       ctx.lineTo(W, pixelY);
       ctx.stroke();
       ctx.setLineDash([]);
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.fillStyle = isDark ? 'rgba(255, 255, 255, 0.5)' : 'rgba(30, 40, 80, 0.5)';
       const altLabel = alt >= 1000 ? `${(alt / 1000).toFixed(0)} km` : `${alt} m`;
       ctx.fillText(altLabel, 8, pixelY - 3);
     }
@@ -765,14 +784,14 @@ export const RocketPropulsion = () => {
     const mach = stats.machNumber;
     ctx.font = 'bold 12px monospace';
     ctx.textAlign = 'right';
-    ctx.fillStyle = mach > 1 ? '#FF6644' : 'rgba(255, 255, 255, 0.8)';
+    ctx.fillStyle = mach > 1 ? '#FF6644' : (isDark ? 'rgba(255, 255, 255, 0.8)' : 'rgba(30, 40, 80, 0.8)');
     ctx.fillText(`Mach ${mach.toFixed(2)}`, W - 12, 20);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.fillStyle = isDark ? 'rgba(255, 255, 255, 0.6)' : 'rgba(30, 40, 80, 0.6)';
     ctx.fillText(`${stats.velocity.toFixed(0)} m/s`, W - 12, 35);
 
     // Altitude on right
     const altKm = stats.altitude / 1000;
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.fillStyle = isDark ? 'rgba(255, 255, 255, 0.8)' : 'rgba(30, 40, 80, 0.8)';
     ctx.fillText(`ALT: ${altKm >= 1 ? altKm.toFixed(2) + ' km' : stats.altitude.toFixed(0) + ' m'}`, W - 12, 55);
 
     // G-force indicator top-left
@@ -788,7 +807,7 @@ export const RocketPropulsion = () => {
     // Wind indicator
     if (windEnabled) {
       const wind = windRef.current;
-      ctx.fillStyle = 'rgba(150, 200, 255, 0.7)';
+      ctx.fillStyle = isDark ? 'rgba(150, 200, 255, 0.7)' : 'rgba(40, 80, 150, 0.7)';
       ctx.font = '10px monospace';
       ctx.fillText(`Wind: ${wind.vx.toFixed(1)} m/s`, 12, 50);
     }
@@ -804,9 +823,9 @@ export const RocketPropulsion = () => {
     const fuelColor = fuelPct > 0.3 ? '#00CC66' : fuelPct > 0.1 ? '#FFAA00' : '#FF3333';
     ctx.fillStyle = fuelColor;
     ctx.fillRect(fuelBarX, fuelBarY, fuelBarW * fuelPct, fuelBarH);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.strokeStyle = isDark ? 'rgba(255, 255, 255, 0.3)' : 'rgba(30, 40, 80, 0.3)';
     ctx.strokeRect(fuelBarX, fuelBarY, fuelBarW, fuelBarH);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.fillStyle = isDark ? 'rgba(255, 255, 255, 0.7)' : 'rgba(30, 40, 80, 0.7)';
     ctx.font = '9px monospace';
     ctx.textAlign = 'center';
     ctx.fillText(`FUEL: ${(fuelPct * 100).toFixed(1)}%`, W / 2, fuelBarY - 3);
@@ -831,10 +850,8 @@ export const RocketPropulsion = () => {
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
 
     const rocket = rocketRef.current;
     const screenRocketY = rocket.y + cameraYRef.current;

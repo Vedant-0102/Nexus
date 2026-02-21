@@ -175,6 +175,9 @@ export const GasLawsSimulator: React.FC = () => {
       const pistonX = ox + cw;
 
       ctx.clearRect(0, 0, w, h);
+      const isDark = document.documentElement.classList.contains('dark');
+      ctx.fillStyle = isDark ? '#080c18' : '#f8f9fc';
+      ctx.fillRect(0, 0, w, h);
 
       // Container
       ctx.strokeStyle = '#6b7280';

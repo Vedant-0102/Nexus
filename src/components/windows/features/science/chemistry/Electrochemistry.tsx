@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Zap, Play, Pause, RotateCcw, Info } from 'lucide-react';
 
 interface CellConfig {
@@ -126,40 +126,30 @@ export const Electrochemistry: React.FC = () => {
   const [progress, setProgress] = useState(0);
   const [speed, setSpeed] = useState(1);
   const [animTick, setAnimTick] = useState(0);
-  const intervalRef = useRef<number | undefined>();
 
   useEffect(() => {
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, []);
+    let animId: number;
 
-  useEffect(() => {
-    if (isRunning) {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      const ms = Math.round(50 / speed);
-      intervalRef.current = window.setInterval(() => {
-        setAnimTick(t => t + 1);
-        setProgress(prev => {
-          const next = prev + 0.15 * speed;
-          if (next >= 100) {
-            if (intervalRef.current) clearInterval(intervalRef.current);
-            setIsRunning(false);
-            return 100;
-          }
-          return next;
-        });
-      }, ms);
-    } else {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+      if (!isRunning) return;
+
+      setAnimTick(t => t + 0.32 * speed);
+      setProgress(prev => {
+        const next = prev + 0.048 * speed * speed;
+        if (next >= 100) {
+          setIsRunning(false);
+          return 100;
+        }
+        return next;
+      });
     };
+    animId = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(animId);
   }, [isRunning, speed]);
 
   const reset = () => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
     setIsRunning(false);
     setProgress(0);
     setAnimTick(0);

@@ -70,7 +70,8 @@ export const EcosystemFoodWeb: React.FC = () => {
       const r = canvas.getBoundingClientRect();
       const w = r.width, h = r.height;
       ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = '#0a1020'; ctx.fillRect(0, 0, w, h);
+      const isDark = document.documentElement.classList.contains('dark');
+      ctx.fillStyle = isDark ? '#0a1020' : '#f8f9fc'; ctx.fillRect(0, 0, w, h);
 
       if (isPlaying) {
         timeRef.current += 0.016 * speed;
@@ -102,7 +103,7 @@ export const EcosystemFoodWeb: React.FC = () => {
         const bandY = h * (0.85 - lv * 0.25);
         ctx.fillStyle = `rgba(100, 150, 255, ${0.02 + lv * 0.01})`;
         ctx.fillRect(0, bandY - h * 0.1, w, h * 0.2);
-        ctx.fillStyle = 'rgba(200,200,255,0.15)';
+        ctx.fillStyle = isDark ? 'rgba(200,200,255,0.15)' : 'rgba(30,40,80,0.25)';
         ctx.font = '9px sans-serif'; ctx.textAlign = 'right';
         ctx.fillText(levelLabels[lv], w - 8, bandY - h * 0.08);
       }
@@ -163,43 +164,43 @@ export const EcosystemFoodWeb: React.FC = () => {
   };
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-gray-950 to-green-950 p-3 overflow-hidden">
+    <div className="h-full flex flex-col bg-gradient-to-br from-gray-100 to-green-100 dark:from-gray-950 dark:to-green-950 p-3 overflow-hidden">
       <div className="mb-2 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-white">🌍 Ecosystem Food Web</h2>
-          <p className="text-[11px] text-gray-400">Predator-prey dynamics & trophic levels</p>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">🌍 Ecosystem Food Web</h2>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400">Predator-prey dynamics & trophic levels</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setIsPlaying(!isPlaying)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-900/50 text-green-300 text-xs font-medium">
             {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />} {isPlaying ? 'Pause' : 'Play'}
           </button>
-          <button onClick={reset} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 text-xs font-medium">
+          <button onClick={reset} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs font-medium">
             <RotateCcw className="h-3.5 w-3.5" /> Reset
           </button>
         </div>
       </div>
       <div className="flex-1 flex gap-3 min-h-0">
-        <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-800 overflow-hidden">
+        <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-300 dark:border-gray-800 overflow-hidden">
           <canvas ref={canvasRef} className="w-full h-full" />
         </div>
         <div className="w-[200px] flex flex-col gap-2 flex-shrink-0 overflow-y-auto">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-2">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase">Speed</h4>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-2">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Speed</h4>
             <input type="range" min="0.2" max="5" step="0.2" value={speed} onChange={e => setSpeed(+e.target.value)} className="w-full h-1.5 rounded-full appearance-none bg-gray-700" />
             <span className="text-[10px] text-gray-500">{speed.toFixed(1)}x</span>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-1.5">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase">Populations</h4>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-1.5">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Populations</h4>
             {orgsRef.current.map(o => (
               <div key={o.id} className="flex items-center justify-between text-[9px]">
                 <span style={{ color: o.color }}>{o.emoji} {o.name}</span>
-                <span className="font-mono text-gray-400">{Math.round(o.population)}</span>
+                <span className="font-mono text-gray-500 dark:text-gray-400">{Math.round(o.population)}</span>
               </div>
             ))}
           </div>
-          <div className="bg-green-950/30 border border-green-800/40 rounded-lg p-2.5">
-            <h4 className="text-[10px] font-semibold text-green-300 flex items-center gap-1 mb-1"><Info className="h-3 w-3" /> Ecology</h4>
-            <p className="text-[9px] text-gray-400">Energy flows from producers → consumers → apex predators. Each level sustains ~10% of energy from below (10% rule). Populations oscillate following Lotka-Volterra dynamics.</p>
+          <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800/40 rounded-lg p-2.5">
+            <h4 className="text-[10px] font-semibold text-green-700 dark:text-green-300 flex items-center gap-1 mb-1"><Info className="h-3 w-3" /> Ecology</h4>
+            <p className="text-[9px] text-gray-600 dark:text-gray-400">Energy flows from producers → consumers → apex predators. Each level sustains ~10% of energy from below (10% rule). Populations oscillate following Lotka-Volterra dynamics.</p>
           </div>
         </div>
       </div>

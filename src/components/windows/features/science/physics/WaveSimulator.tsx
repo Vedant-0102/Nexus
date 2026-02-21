@@ -81,6 +81,8 @@ export const WaveSimulator: React.FC = () => {
       ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
     };
     updateSize();
+    const obs = new ResizeObserver(updateSize);
+    obs.observe(canvas);
 
     const draw = () => {
       if (isPlaying) {
@@ -92,10 +94,13 @@ export const WaveSimulator: React.FC = () => {
       const centerY = height / 2;
 
       // Clear canvas
+      const isDark = document.documentElement.classList.contains('dark');
       ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = isDark ? '#080c18' : '#f8f9fc';
+      ctx.fillRect(0, 0, width, height);
 
       // Draw grid
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.05)';
+      ctx.strokeStyle = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)';
       ctx.lineWidth = 1;
       for (let y = 0; y <= height; y += 40) {
         ctx.beginPath();
@@ -105,7 +110,7 @@ export const WaveSimulator: React.FC = () => {
       }
 
       // Draw center line
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+      ctx.strokeStyle = isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)';
       ctx.lineWidth = 2;
       ctx.setLineDash([5, 5]);
       ctx.beginPath();
@@ -174,6 +179,7 @@ export const WaveSimulator: React.FC = () => {
     draw();
 
     return () => {
+      obs.disconnect();
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }

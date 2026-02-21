@@ -31,7 +31,22 @@ export const OpticsSimulator = () => {
   }, [incidentAngle, material1, material2]);
 
   useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const resize = () => {
+      const r = canvas.getBoundingClientRect();
+      const d = window.devicePixelRatio || 1;
+      canvas.width = r.width * d;
+      canvas.height = r.height * d;
+      ctx.scale(d, d);
+    };
+    resize();
+    const obs = new ResizeObserver(() => { resize(); draw(); });
+    obs.observe(canvas);
     draw();
+    return () => obs.disconnect();
   }, [incidentAngle, material1, material2, reflectionAngle, refractionAngle, totalInternalReflection, criticalAngle]);
 
   const calculateAngles = () => {
@@ -74,10 +89,11 @@ export const OpticsSimulator = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const width = canvas.width;
-    const height = canvas.height;
+    const width = canvas.getBoundingClientRect().width;
+    const height = canvas.getBoundingClientRect().height;
     const centerY = height / 2;
     const centerX = width / 2;
+    const isDark = document.documentElement.classList.contains('dark');
 
     // Clear canvas
     ctx.clearRect(0, 0, width, height);
@@ -153,7 +169,7 @@ export const OpticsSimulator = () => {
     }
 
     // Labels
-    ctx.fillStyle = '#000';
+    ctx.fillStyle = isDark ? '#e2e8f0' : '#1a1a2e';
     ctx.font = 'bold 14px Arial';
     ctx.fillText(materials[material1].name, 10, 20);
     ctx.fillText(materials[material2].name, 10, height - 10);

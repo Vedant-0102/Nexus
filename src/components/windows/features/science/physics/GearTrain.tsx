@@ -62,7 +62,8 @@ export const GearTrain: React.FC = () => {
       const r = canvas.getBoundingClientRect();
       const w = r.width, h = r.height;
       ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = '#080c18'; ctx.fillRect(0, 0, w, h);
+      const isDark = document.documentElement.classList.contains('dark');
+      ctx.fillStyle = isDark ? '#080c18' : '#f8f9fc'; ctx.fillRect(0, 0, w, h);
 
       const cx = w / 2, cy = h * 0.45;
       if (gearsRef.current.length === 0 || gearsRef.current[0].x === 0) {
@@ -123,7 +124,7 @@ export const GearTrain: React.FC = () => {
 
         // Center hole
         ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2);
-        ctx.fillStyle = '#080c18'; ctx.fill();
+        ctx.fillStyle = isDark ? '#080c18' : '#f8f9fc'; ctx.fill();
         ctx.strokeStyle = gear.color; ctx.lineWidth = 1; ctx.stroke();
 
         // Spoke line
@@ -137,7 +138,7 @@ export const GearTrain: React.FC = () => {
           ctx.fillStyle = gear.color;
           ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center';
           ctx.fillText(gear.isDriver ? 'DRIVER' : `Gear ${gi + 1}`, gear.x, gear.y + gear.radius + 22);
-          ctx.fillStyle = 'rgba(200,200,255,0.5)'; ctx.font = '8px monospace';
+          ctx.fillStyle = isDark ? 'rgba(200,200,255,0.5)' : 'rgba(30,40,80,0.5)'; ctx.font = '8px monospace';
           ctx.fillText(`${Math.abs(gear.rpm).toFixed(0)} RPM`, gear.x, gear.y + gear.radius + 34);
           ctx.fillText(`${gear.teeth}T | τ=${gear.torque.toFixed(1)}Nm`, gear.x, gear.y + gear.radius + 44);
         }
@@ -148,7 +149,7 @@ export const GearTrain: React.FC = () => {
           const arrowAngle = gear.angle + dir * 0.3;
           const ax = gear.x + Math.cos(arrowAngle) * (gear.radius + 14);
           const ay = gear.y + Math.sin(arrowAngle) * (gear.radius + 14);
-          ctx.fillStyle = 'rgba(200,200,255,0.3)'; ctx.font = '8px sans-serif'; ctx.textAlign = 'center';
+          ctx.fillStyle = isDark ? 'rgba(200,200,255,0.3)' : 'rgba(30,40,80,0.3)'; ctx.font = '8px sans-serif'; ctx.textAlign = 'center';
           ctx.fillText(dir > 0 ? '↻' : '↺', ax, ay);
         }
       });
@@ -159,9 +160,9 @@ export const GearTrain: React.FC = () => {
         const outputRPM = gears[gears.length - 1].rpm;
         const outputTorque = gears[gears.length - 1].torque;
 
-        ctx.fillStyle = 'rgba(20,25,50,0.5)'; ctx.fillRect(10, h - 55, w - 20, 45);
-        ctx.strokeStyle = 'rgba(60,70,100,0.3)'; ctx.lineWidth = 0.5; ctx.strokeRect(10, h - 55, w - 20, 45);
-        ctx.fillStyle = 'rgba(200,200,255,0.6)'; ctx.font = '9px monospace'; ctx.textAlign = 'left';
+        ctx.fillStyle = isDark ? 'rgba(20,25,50,0.5)' : 'rgba(230,235,245,0.8)'; ctx.fillRect(10, h - 55, w - 20, 45);
+        ctx.strokeStyle = isDark ? 'rgba(60,70,100,0.3)' : 'rgba(180,190,210,0.3)'; ctx.lineWidth = 0.5; ctx.strokeRect(10, h - 55, w - 20, 45);
+        ctx.fillStyle = isDark ? 'rgba(200,200,255,0.6)' : 'rgba(30,40,80,0.6)'; ctx.font = '9px monospace'; ctx.textAlign = 'left';
         ctx.fillText(`Gear Ratio: 1:${(1 / totalRatio).toFixed(2)}`, 20, h - 38);
         ctx.fillText(`Input: ${driverRPM} RPM, ${driverTorque} Nm`, 20, h - 24);
         ctx.fillText(`Output: ${Math.abs(outputRPM).toFixed(1)} RPM, ${outputTorque.toFixed(1)} Nm`, w / 2, h - 24);
@@ -170,7 +171,7 @@ export const GearTrain: React.FC = () => {
       }
 
       // Title
-      ctx.fillStyle = 'rgba(200,200,255,0.6)'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillStyle = isDark ? 'rgba(200,200,255,0.6)' : 'rgba(30,40,80,0.6)'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
       ctx.fillText(presets[preset].name, w / 2, 18);
 
       animRef.current = requestAnimationFrame(draw);
@@ -180,13 +181,13 @@ export const GearTrain: React.FC = () => {
   }, [running, driverRPM, driverTorque, preset, showInfo]);
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-gray-950 to-stone-900 p-3 overflow-hidden">
+    <div className="h-full flex flex-col bg-gradient-to-br from-gray-100 to-stone-100 dark:from-gray-950 dark:to-stone-900 p-3 overflow-hidden">
       <div className="mb-2">
-        <h2 className="text-lg font-bold text-white">⚙️ Gear Train Simulator</h2>
-        <p className="text-[11px] text-gray-400">Mechanical advantage & gear ratios</p>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">⚙️ Gear Train Simulator</h2>
+        <p className="text-[11px] text-gray-500 dark:text-gray-400">Mechanical advantage & gear ratios</p>
       </div>
       <div className="flex-1 flex gap-3 min-h-0">
-        <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-800 overflow-hidden">
+        <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-300 dark:border-gray-800 overflow-hidden">
           <canvas ref={canvasRef} className="w-full h-full" />
         </div>
         <div className="w-[190px] flex flex-col gap-2 flex-shrink-0 overflow-y-auto">
@@ -194,26 +195,26 @@ export const GearTrain: React.FC = () => {
             <button onClick={() => setRunning(!running)} className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded text-[10px] font-medium ${running?'bg-amber-600 text-white':'bg-green-600 text-white'}`}>
               {running?<><Pause className="h-3 w-3"/>Pause</>:<><Play className="h-3 w-3"/>Run</>}
             </button>
-            <button onClick={() => { gearsRef.current = []; }} className="px-2 py-1.5 rounded bg-gray-700 text-white text-[10px]"><RotateCcw className="h-3 w-3"/></button>
+            <button onClick={() => { gearsRef.current = []; }} className="px-2 py-1.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white text-[10px]"><RotateCcw className="h-3 w-3"/></button>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-1">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase mb-1">Preset</h4>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-1">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Preset</h4>
             {presets.map((p, i) => (
-              <button key={i} onClick={() => { setPreset(i); gearsRef.current = []; }} className={`block w-full text-left px-2 py-1 rounded text-[10px] ${preset===i?'bg-stone-600 text-white':'bg-gray-800 text-gray-400'}`}>{p.name}</button>
+              <button key={i} onClick={() => { setPreset(i); gearsRef.current = []; }} className={`block w-full text-left px-2 py-1 rounded text-[10px] ${preset===i?'bg-stone-600 text-white':'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>{p.name}</button>
             ))}
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-2">
-            <label className="text-[9px] text-gray-400 flex justify-between"><span>Driver RPM</span><span>{driverRPM}</span></label>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-2">
+            <label className="text-[9px] text-gray-500 dark:text-gray-400 flex justify-between"><span>Driver RPM</span><span>{driverRPM}</span></label>
             <input type="range" min={10} max={300} step={5} value={driverRPM} onChange={e=>setDriverRPM(+e.target.value)} className="w-full h-1 accent-blue-500"/>
-            <label className="text-[9px] text-gray-400 flex justify-between"><span>Input Torque (Nm)</span><span>{driverTorque}</span></label>
+            <label className="text-[9px] text-gray-500 dark:text-gray-400 flex justify-between"><span>Input Torque (Nm)</span><span>{driverTorque}</span></label>
             <input type="range" min={1} max={50} step={1} value={driverTorque} onChange={e=>setDriverTorque(+e.target.value)} className="w-full h-1 accent-orange-500"/>
           </div>
-          <label className="flex items-center gap-2 text-[10px] text-gray-400 cursor-pointer px-1">
+          <label className="flex items-center gap-2 text-[10px] text-gray-500 dark:text-gray-400 cursor-pointer px-1">
             <input type="checkbox" checked={showInfo} onChange={e=>setShowInfo(e.target.checked)} className="accent-blue-500"/>Show Labels
           </label>
-          <div className="bg-stone-900/30 border border-stone-700/40 rounded-lg p-2.5">
-            <h4 className="text-[10px] font-semibold text-stone-300 flex items-center gap-1 mb-1"><Info className="h-3 w-3"/>How it works</h4>
-            <p className="text-[9px] text-gray-400">Meshing gears transfer torque inversely proportional to their tooth ratio. More teeth = more torque, less speed.</p>
+          <div className="bg-stone-50 dark:bg-stone-900/30 border border-stone-200 dark:border-stone-700/40 rounded-lg p-2.5">
+            <h4 className="text-[10px] font-semibold text-stone-700 dark:text-stone-300 flex items-center gap-1 mb-1"><Info className="h-3 w-3"/>How it works</h4>
+            <p className="text-[9px] text-gray-600 dark:text-gray-400">Meshing gears transfer torque inversely proportional to their tooth ratio. More teeth = more torque, less speed.</p>
           </div>
         </div>
       </div>

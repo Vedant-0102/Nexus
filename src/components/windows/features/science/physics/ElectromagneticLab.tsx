@@ -27,41 +27,64 @@ export const ElectromagneticLab: React.FC = () => {
   const [showVectors, setShowVectors] = useState(true);
 
   useEffect(() => {
-    if (isRunning) {
-      const interval = setInterval(() => {
-        simTimeRef.current += 0.03;
-        updateCharges();
-        drawScene();
-      }, 30);
-      return () => clearInterval(interval);
-    }
+    let animId: number;
+
+    const animate = () => {
+      animId = requestAnimationFrame(animate);
+      if (!isRunning) return;
+      simTimeRef.current += 0.016;
+      updateCharges();
+      drawScene();
+    };
+    animId = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(animId);
   }, [isRunning, charges, magneticField, electricField]);
 
   useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const resize = () => {
+      const r = canvas.getBoundingClientRect();
+      const d = window.devicePixelRatio || 1;
+      canvas.width = r.width * d;
+      canvas.height = r.height * d;
+      ctx.scale(d, d);
+    };
+    resize();
+    const obs = new ResizeObserver(() => { resize(); drawScene(); });
+    obs.observe(canvas);
     drawScene();
+    return () => obs.disconnect();
   }, [charges, activeTab, showFieldLines, showVectors, magneticField, electricField]);
 
   const updateCharges = () => {
+    const canvas = canvasRef.current;
+    const bounds = canvas ? canvas.getBoundingClientRect() : { width: 800, height: 600 };
+    const maxX = bounds.width - 20;
+    const maxY = bounds.height - 20;
     setCharges(prev => prev.map(charge => {
       const E = calculateElectricField(charge.x, charge.y, charge);
       const B = magneticField[0] / 100;
-      
+
       // Lorentz force: F = q(E + v × B)
       const fx = charge.charge * (E.x + charge.velocity.y * B);
       const fy = charge.charge * (E.y - charge.velocity.x * B);
-      
+
       let newVx = charge.velocity.x + fx * 0.01;
       let newVy = charge.velocity.y + fy * 0.01;
-      
+
       let newX = charge.x + newVx;
       let newY = charge.y + newVy;
-      
+
       // Boundary checks
-      if (newX < 20 || newX > 780) newVx *= -0.8;
-      if (newY < 20 || newY > 580) newVy *= -0.8;
-      newX = Math.max(20, Math.min(780, newX));
-      newY = Math.max(20, Math.min(580, newY));
-      
+      if (newX < 20 || newX > maxX) newVx *= -0.8;
+      if (newY < 20 || newY > maxY) newVy *= -0.8;
+      newX = Math.max(20, Math.min(maxX, newX));
+      newY = Math.max(20, Math.min(maxY, newY));
+
       return { ...charge, x: newX, y: newY, velocity: { x: newVx * 0.99, y: newVy * 0.99 } };
     }));
   };
@@ -91,35 +114,40 @@ export const ElectromagneticLab: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const { width: W, height: H } = canvas.getBoundingClientRect();
+    ctx.clearRect(0, 0, W, H);
+    const isDark = document.documentElement.classList.contains('dark');
+    ctx.fillStyle = isDark ? '#080c18' : '#f8f9fc';
+    ctx.fillRect(0, 0, W, H);
 
     if (activeTab === 'electromagnetic') {
-      drawElectromagneticField(ctx);
+      drawElectromagneticField(ctx, W, H);
     } else if (activeTab === 'induction') {
-      drawInduction(ctx);
+      drawInduction(ctx, W, H);
     } else if (activeTab === 'waves') {
-      drawEMWaves(ctx);
+      drawEMWaves(ctx, W, H);
     }
   };
 
-  const drawElectromagneticField = (ctx: CanvasRenderingContext2D) => {
+  const drawElectromagneticField = (ctx: CanvasRenderingContext2D, W: number, H: number) => {
+    const isDark = document.documentElement.classList.contains('dark');
     // Draw magnetic field lines (horizontal)
     if (showFieldLines) {
       ctx.strokeStyle = 'rgba(139, 92, 246, 0.3)';
       ctx.lineWidth = 2;
-      for (let y = 50; y < 600; y += 50) {
+      for (let y = 50; y < H; y += 50) {
         ctx.beginPath();
         ctx.moveTo(0, y);
-        ctx.lineTo(800, y);
+        ctx.lineTo(W, y);
         ctx.stroke();
       }
-      
+
       // Draw electric field lines (vertical)
       ctx.strokeStyle = 'rgba(59, 130, 246, 0.3)';
-      for (let x = 50; x < 800; x += 50) {
+      for (let x = 50; x < W; x += 50) {
         ctx.beginPath();
         ctx.moveTo(x, 0);
-        ctx.lineTo(x, 600);
+        ctx.lineTo(x, H);
         ctx.stroke();
       }
     }
@@ -146,16 +174,17 @@ export const ElectromagneticLab: React.FC = () => {
     });
 
     // Draw field strength indicators
-    ctx.fillStyle = '#000';
+    ctx.fillStyle = isDark ? '#e2e8f0' : '#1a1a2e';
     ctx.font = '14px Arial';
     ctx.fillText(`E-field: ${electricField[0]}%`, 10, 20);
     ctx.fillText(`B-field: ${magneticField[0]}%`, 10, 40);
   };
 
-  const drawInduction = (ctx: CanvasRenderingContext2D) => {
+  const drawInduction = (ctx: CanvasRenderingContext2D, W: number, H: number) => {
+    const isDark = document.documentElement.classList.contains('dark');
     const time = simTimeRef.current;
-    const centerX = 400;
-    const centerY = 300;
+    const centerX = W / 2;
+    const centerY = H / 2;
     const coilRadius = 100;
 
     // Draw coil
@@ -183,22 +212,22 @@ export const ElectromagneticLab: React.FC = () => {
     ctx.stroke();
 
     // Labels
-    ctx.fillStyle = '#000';
+    ctx.fillStyle = isDark ? '#e2e8f0' : '#1a1a2e';
     ctx.font = 'bold 16px Arial';
     ctx.fillText('Electromagnetic Induction', centerX - 100, 50);
     ctx.font = '14px Arial';
-    ctx.fillText(`Induced Current: ${current.toFixed(1)}A`, centerX - 80, 550);
+    ctx.fillText(`Induced Current: ${current.toFixed(1)}A`, centerX - 80, H - 50);
   };
 
-  const drawEMWaves = (ctx: CanvasRenderingContext2D) => {
+  const drawEMWaves = (ctx: CanvasRenderingContext2D, W: number, H: number) => {
     const time = simTimeRef.current;
-    const centerY = 300;
+    const centerY = H / 2;
 
     // Draw electric field wave
     ctx.strokeStyle = '#3b82f6';
     ctx.lineWidth = 3;
     ctx.beginPath();
-    for (let x = 0; x < 800; x++) {
+    for (let x = 0; x < W; x++) {
       const y = centerY + Math.sin((x - time * 100) * 0.02) * electricField[0];
       if (x === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
@@ -209,7 +238,7 @@ export const ElectromagneticLab: React.FC = () => {
     ctx.strokeStyle = '#8b5cf6';
     ctx.lineWidth = 3;
     ctx.beginPath();
-    for (let x = 0; x < 800; x++) {
+    for (let x = 0; x < W; x++) {
       const y = centerY + Math.cos((x - time * 100) * 0.02) * magneticField[0];
       if (x === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
@@ -220,11 +249,11 @@ export const ElectromagneticLab: React.FC = () => {
     ctx.strokeStyle = '#22c55e';
     ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.moveTo(700, centerY);
-    ctx.lineTo(750, centerY);
-    ctx.lineTo(740, centerY - 10);
-    ctx.moveTo(750, centerY);
-    ctx.lineTo(740, centerY + 10);
+    ctx.moveTo(W - 100, centerY);
+    ctx.lineTo(W - 50, centerY);
+    ctx.lineTo(W - 60, centerY - 10);
+    ctx.moveTo(W - 50, centerY);
+    ctx.lineTo(W - 60, centerY + 10);
     ctx.stroke();
 
     // Labels
@@ -234,7 +263,7 @@ export const ElectromagneticLab: React.FC = () => {
     ctx.fillStyle = '#8b5cf6';
     ctx.fillText('B (Magnetic)', 10, centerY + 80);
     ctx.fillStyle = '#22c55e';
-    ctx.fillText('Direction', 680, centerY - 20);
+    ctx.fillText('Direction', W - 120, centerY - 20);
   };
 
   const handleReset = () => {

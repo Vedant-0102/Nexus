@@ -51,7 +51,8 @@ export const DiffractionGrating: React.FC = () => {
       ctx.clearRect(0, 0, w, h);
 
       // Background
-      ctx.fillStyle = '#080812';
+      const isDark = document.documentElement.classList.contains('dark');
+      ctx.fillStyle = isDark ? '#080812' : '#f8f9fc';
       ctx.fillRect(0, 0, w, h);
 
       const gratingX = w * 0.3;
@@ -101,7 +102,7 @@ export const DiffractionGrating: React.FC = () => {
       }
 
       // Grating label
-      ctx.fillStyle = 'rgba(200, 200, 255, 0.5)';
+      ctx.fillStyle = isDark ? 'rgba(200, 200, 255, 0.5)' : 'rgba(80, 90, 130, 0.7)';
       ctx.font = '9px monospace';
       ctx.textAlign = 'center';
       ctx.fillText('Grating', gratingX, h - 5);
@@ -216,7 +217,7 @@ export const DiffractionGrating: React.FC = () => {
       }
 
       // Screen label
-      ctx.fillStyle = 'rgba(200, 200, 255, 0.5)';
+      ctx.fillStyle = isDark ? 'rgba(200, 200, 255, 0.5)' : 'rgba(80, 90, 130, 0.7)';
       ctx.font = '9px monospace';
       ctx.textAlign = 'center';
       ctx.fillText('Screen', screenX + 9, h - 5);
@@ -230,14 +231,14 @@ export const DiffractionGrating: React.FC = () => {
   }, [isPlaying, wavelength, slitCount, slitSpacing, slitWidth, showEnvelope]);
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-gray-950 to-indigo-950 p-3 overflow-hidden">
+    <div className="h-full flex flex-col bg-gradient-to-br from-gray-100 to-indigo-100 dark:from-gray-950 dark:to-indigo-950 p-3 overflow-hidden">
       <div className="mb-2 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Scan className="h-5 w-5 text-violet-400" />
             Diffraction Grating Simulator
           </h2>
-          <p className="text-[11px] text-gray-400">Multi-slit diffraction & interference patterns</p>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400">Multi-slit diffraction & interference patterns</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setIsPlaying(!isPlaying)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-900/50 text-indigo-300 text-xs font-medium">
@@ -249,46 +250,46 @@ export const DiffractionGrating: React.FC = () => {
 
       <div className="flex-1 flex gap-3 min-h-0">
         <div className="flex-1 min-w-0 min-h-0">
-          <div className="rounded-lg shadow-md h-full overflow-hidden border border-gray-800">
+          <div className="rounded-lg shadow-md h-full overflow-hidden border border-gray-300 dark:border-gray-800">
             <canvas ref={canvasRef} className="w-full h-full" />
           </div>
         </div>
 
         <div className="w-[210px] flex flex-col gap-2 flex-shrink-0 overflow-y-auto">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-3">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase">Controls</h4>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-3">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Controls</h4>
             <div>
-              <label className="text-[10px] text-gray-400 block mb-1">
+              <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1">
                 Wavelength: {wavelength} nm
                 <span className="inline-block w-3 h-3 rounded-full ml-1 align-middle" style={{ backgroundColor: wavelengthToColor(wavelength) }} />
               </label>
               <input type="range" min="380" max="750" step="5" value={wavelength} onChange={e => setWavelength(+e.target.value)} className="w-full h-1.5 rounded-full appearance-none bg-gray-700" />
             </div>
             <div>
-              <label className="text-[10px] text-gray-400 block mb-1">Number of Slits: {slitCount}</label>
+              <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1">Number of Slits: {slitCount}</label>
               <input type="range" min="2" max="20" step="1" value={slitCount} onChange={e => setSlitCount(+e.target.value)} className="w-full h-1.5 rounded-full appearance-none bg-gray-700" />
             </div>
             <div>
-              <label className="text-[10px] text-gray-400 block mb-1">Slit Spacing: {slitSpacing} μm</label>
+              <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1">Slit Spacing: {slitSpacing} μm</label>
               <input type="range" min="5" max="50" step="1" value={slitSpacing} onChange={e => setSlitSpacing(+e.target.value)} className="w-full h-1.5 rounded-full appearance-none bg-gray-700" />
             </div>
             <div>
-              <label className="text-[10px] text-gray-400 block mb-1">Slit Width: {slitWidth} μm</label>
+              <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1">Slit Width: {slitWidth} μm</label>
               <input type="range" min="1" max="20" step="1" value={slitWidth} onChange={e => setSlitWidth(+e.target.value)} className="w-full h-1.5 rounded-full appearance-none bg-gray-700" />
             </div>
-            <label className="flex items-center gap-2 text-[10px] text-gray-300 cursor-pointer">
+            <label className="flex items-center gap-2 text-[10px] text-gray-700 dark:text-gray-300 cursor-pointer">
               <input type="checkbox" checked={showEnvelope} onChange={e => setShowEnvelope(e.target.checked)} className="rounded" />
               Show single-slit envelope
             </label>
           </div>
 
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-2">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase">Maxima Positions</h4>
-            <div className="text-[9px] text-gray-400 space-y-1">
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-2">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Maxima Positions</h4>
+            <div className="text-[9px] text-gray-600 dark:text-gray-400 space-y-1">
               {[0, 1, 2, 3].map(m => {
                 const sinTheta = (m * wavelength * 1e-9) / (slitSpacing * 1e-6);
                 return sinTheta <= 1 ? (
-                  <div key={m} className="flex justify-between bg-gray-800/50 rounded px-1.5 py-0.5">
+                  <div key={m} className="flex justify-between bg-gray-100/50 dark:bg-gray-800/50 rounded px-1.5 py-0.5">
                     <span>m = {m}</span>
                     <span className="font-mono">{m === 0 ? '0°' : `±${(Math.asin(sinTheta) * 180 / Math.PI).toFixed(1)}°`}</span>
                   </div>
@@ -297,13 +298,13 @@ export const DiffractionGrating: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-violet-950/30 border border-violet-800/40 rounded-lg p-2.5">
-            <h4 className="text-[10px] font-semibold text-violet-300 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+          <div className="bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800/40 rounded-lg p-2.5">
+            <h4 className="text-[10px] font-semibold text-violet-700 dark:text-violet-300 uppercase tracking-wider mb-1.5 flex items-center gap-1">
               <Info className="h-3 w-3" /> Diffraction
             </h4>
-            <div className="space-y-1 text-[9px] text-gray-400">
+            <div className="space-y-1 text-[9px] text-gray-600 dark:text-gray-400">
               <p>Maxima occur when path difference equals mλ:</p>
-              <p className="font-mono bg-gray-800/50 rounded px-1 py-0.5">d sin(θ) = mλ</p>
+              <p className="font-mono bg-gray-200/50 dark:bg-gray-800/50 rounded px-1 py-0.5">d sin(θ) = mλ</p>
               <p>As the number of slits increases, the bright fringes become sharper. More slits = more precise wavelength selection.</p>
             </div>
           </div>

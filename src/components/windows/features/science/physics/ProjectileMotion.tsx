@@ -26,12 +26,31 @@ export const ProjectileMotion: React.FC = () => {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const resize = () => {
+      const r = canvas.getBoundingClientRect();
+      const d = window.devicePixelRatio || 1;
+      canvas.width = r.width * d;
+      canvas.height = r.height * d;
+      ctx.scale(d, d);
+    };
+    resize();
+    const obs = new ResizeObserver(resize);
+    obs.observe(canvas);
+    return () => obs.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     const draw = (currentTime: number) => {
       if (!isRunning) return;
+      const { width: W, height: H } = canvas.getBoundingClientRect();
 
       if (startTimeRef.current === 0) {
         startTimeRef.current = currentTime;
@@ -48,11 +67,14 @@ export const ProjectileMotion: React.FC = () => {
       }
 
       // Clear canvas
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const isDark = document.documentElement.classList.contains('dark');
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = isDark ? '#080c18' : '#f8f9fc';
+      ctx.fillRect(0, 0, W, H);
 
       // Draw ground
       ctx.fillStyle = '#8B4513';
-      ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
+      ctx.fillRect(0, H - 20, W, 20);
 
       // Draw trajectory path
       ctx.strokeStyle = '#3B82F6';
@@ -62,7 +84,7 @@ export const ProjectileMotion: React.FC = () => {
       
       for (let t = 0; t <= totalTime; t += 0.1) {
         const x = 50 + vx * t * 10;
-        const y = canvas.height - 20 - (vy * t - 0.5 * gravity * t * t) * 10;
+        const y = H - 20 - (vy * t - 0.5 * gravity * t * t) * 10;
         if (t === 0) {
           ctx.moveTo(x, y);
         } else {
@@ -74,7 +96,7 @@ export const ProjectileMotion: React.FC = () => {
 
       // Calculate current position
       const x = 50 + vx * elapsed * 10;
-      const y = canvas.height - 20 - (vy * elapsed - 0.5 * gravity * elapsed * elapsed) * 10;
+      const y = H - 20 - (vy * elapsed - 0.5 * gravity * elapsed * elapsed) * 10;
 
       // Draw projectile with glow effect
       ctx.shadowBlur = 15;
@@ -104,7 +126,7 @@ export const ProjectileMotion: React.FC = () => {
       ctx.strokeStyle = '#8B5CF6';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(50, canvas.height - 20, 30, -angleRad, 0);
+      ctx.arc(50, H - 20, 30, -angleRad, 0);
       ctx.stroke();
 
       animationRef.current = requestAnimationFrame(draw);

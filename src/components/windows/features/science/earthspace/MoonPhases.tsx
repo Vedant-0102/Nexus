@@ -28,7 +28,8 @@ export const MoonPhases: React.FC = () => {
       const r = canvas.getBoundingClientRect();
       const w = r.width, h = r.height;
       ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = '#050810'; ctx.fillRect(0, 0, w, h);
+      const isDark = document.documentElement.classList.contains('dark');
+      ctx.fillStyle = isDark ? '#050810' : '#f8f9fc'; ctx.fillRect(0, 0, w, h);
 
       if (running) { timeRef.current += 0.016 * speed; setDay(Math.floor(timeRef.current) % 30); }
       const t = timeRef.current;
@@ -108,9 +109,9 @@ export const MoonPhases: React.FC = () => {
       ctx.fill();
 
       // Phase label
-      ctx.fillStyle = 'rgba(200,200,255,0.8)'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillStyle = isDark ? 'rgba(200,200,255,0.8)' : 'rgba(30,40,80,0.8)'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center';
       ctx.fillText(phaseName, moonCx, moonCy + moonR + 20);
-      ctx.fillStyle = 'rgba(200,200,255,0.4)'; ctx.font = '10px sans-serif';
+      ctx.fillStyle = isDark ? 'rgba(200,200,255,0.4)' : 'rgba(80,90,130,0.6)'; ctx.font = '10px sans-serif';
       ctx.fillText(`Day ${Math.floor(t % lunarCycle).toFixed(0)} of ${lunarCycle}`, moonCx, moonCy + moonR + 34);
 
       // Tidal effect
@@ -156,13 +157,13 @@ export const MoonPhases: React.FC = () => {
   }, [running, speed, showTides]);
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-gray-950 to-indigo-950 p-3 overflow-hidden">
+    <div className="h-full flex flex-col bg-gradient-to-br from-gray-100 to-indigo-100 dark:from-gray-950 dark:to-indigo-950 p-3 overflow-hidden">
       <div className="mb-2">
-        <h2 className="text-lg font-bold text-white">🌙 Moon Phases & Tidal Effects</h2>
-        <p className="text-[11px] text-gray-400">Lunar cycle and gravitational tides</p>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">🌙 Moon Phases & Tidal Effects</h2>
+        <p className="text-[11px] text-gray-500 dark:text-gray-400">Lunar cycle and gravitational tides</p>
       </div>
       <div className="flex-1 flex gap-3 min-h-0">
-        <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-800 overflow-hidden">
+        <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-300 dark:border-gray-800 overflow-hidden">
           <canvas ref={canvasRef} className="w-full h-full" />
         </div>
         <div className="w-[200px] flex flex-col gap-2 flex-shrink-0 overflow-y-auto">
@@ -171,18 +172,18 @@ export const MoonPhases: React.FC = () => {
               {running?<><Pause className="h-3 w-3"/>Pause</>:<><Play className="h-3 w-3"/>Play</>}
             </button>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-2">
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-2">
             <div>
-              <label className="text-[10px] text-gray-400 flex justify-between"><span>Speed</span><span>{speed}x</span></label>
+              <label className="text-[10px] text-gray-500 dark:text-gray-400 flex justify-between"><span>Speed</span><span>{speed}x</span></label>
               <input type="range" min={0.5} max={5} step={0.5} value={speed} onChange={e=>setSpeed(+e.target.value)} className="w-full h-1 accent-indigo-500"/>
             </div>
-            <label className="flex items-center gap-2 text-[10px] text-gray-400 cursor-pointer">
+            <label className="flex items-center gap-2 text-[10px] text-gray-500 dark:text-gray-400 cursor-pointer">
               <input type="checkbox" checked={showTides} onChange={e=>setShowTides(e.target.checked)} className="accent-blue-500 w-3 h-3"/>Show tidal effects
             </label>
           </div>
-          <div className="bg-indigo-950/30 border border-indigo-800/40 rounded-lg p-2.5">
-            <h4 className="text-[10px] font-semibold text-indigo-300 flex items-center gap-1 mb-1"><Info className="h-3 w-3"/> Info</h4>
-            <div className="text-[9px] text-gray-400 space-y-1">
+          <div className="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/40 rounded-lg p-2.5">
+            <h4 className="text-[10px] font-semibold text-indigo-700 dark:text-indigo-300 flex items-center gap-1 mb-1"><Info className="h-3 w-3"/> Info</h4>
+            <div className="text-[9px] text-gray-600 dark:text-gray-400 space-y-1">
               <p>The lunar cycle is ~29.53 days. Moon phases result from the angle between Sun, Earth, and Moon.</p>
               <p><strong>Spring tides</strong> occur at New/Full Moon (Sun+Moon aligned). <strong>Neap tides</strong> at quarters.</p>
             </div>

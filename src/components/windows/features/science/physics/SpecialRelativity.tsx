@@ -30,14 +30,19 @@ export const SpecialRelativity: React.FC = () => {
     const obs = new ResizeObserver(resize);
     obs.observe(canvas);
 
+    let isDark = document.documentElement.classList.contains('dark');
+
     const animate = () => {
       animRef.current = requestAnimationFrame(animate);
       if (!isPlaying) return;
       timeRef.current += 1;
+      isDark = document.documentElement.classList.contains('dark');
       const rect = canvas.getBoundingClientRect();
       const w = rect.width;
       const h = rect.height;
       ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = isDark ? '#080c18' : '#f8f9fc';
+      ctx.fillRect(0, 0, w, h);
 
       if (tab === 'dilation') drawTimeDilation(ctx, w, h);
       else if (tab === 'contraction') drawLengthContraction(ctx, w, h);
@@ -53,7 +58,7 @@ export const SpecialRelativity: React.FC = () => {
       const clockR = Math.min(60, w * 0.08);
 
       // Background labels
-      ctx.fillStyle = '#475569';
+      ctx.fillStyle = isDark ? '#cbd5e1' : '#475569';
       ctx.font = 'bold 13px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('Stationary Observer', leftX, h * 0.12);
@@ -87,7 +92,7 @@ export const SpecialRelativity: React.FC = () => {
       ctx.stroke();
 
       // Formula
-      ctx.fillStyle = '#475569';
+      ctx.fillStyle = isDark ? '#cbd5e1' : '#475569';
       ctx.font = '12px monospace';
       ctx.textAlign = 'center';
       ctx.fillText(`γ = ${gamma.toFixed(3)}`, centerX, h * 0.78);
@@ -138,7 +143,7 @@ export const SpecialRelativity: React.FC = () => {
       const barH = 30;
 
       // Stationary bar
-      ctx.fillStyle = '#475569';
+      ctx.fillStyle = isDark ? '#cbd5e1' : '#475569';
       ctx.font = 'bold 13px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('At Rest (proper length L₀)', centerX, topY - 20);
@@ -167,7 +172,7 @@ export const SpecialRelativity: React.FC = () => {
       const contractedLen = barLen * lengthFactor;
       const moveX = Math.sin(timeRef.current * 0.03) * 40;
 
-      ctx.fillStyle = '#475569';
+      ctx.fillStyle = isDark ? '#cbd5e1' : '#475569';
       ctx.font = 'bold 13px sans-serif';
       ctx.fillText(`Moving at v = ${(velocity * 100).toFixed(0)}% c`, centerX, bottomY - 20);
 
@@ -199,7 +204,7 @@ export const SpecialRelativity: React.FC = () => {
       ctx.setLineDash([]);
 
       // Formula
-      ctx.fillStyle = '#475569';
+      ctx.fillStyle = isDark ? '#cbd5e1' : '#475569';
       ctx.font = '12px monospace';
       ctx.textAlign = 'center';
       ctx.fillText(`γ = ${gamma.toFixed(3)}   |   L = L₀ × √(1 - v²/c²) = L₀ × ${lengthFactor.toFixed(3)}`, centerX, h * 0.88);
@@ -260,7 +265,7 @@ export const SpecialRelativity: React.FC = () => {
       const spaceTwinAge = 20 + ((timeRef.current % journeyTime) / journeyTime * 30) / gamma;
 
       // Twin faces
-      ctx.fillStyle = '#475569';
+      ctx.fillStyle = isDark ? '#cbd5e1' : '#475569';
       ctx.font = '12px sans-serif';
       ctx.textAlign = 'center';
 
@@ -271,7 +276,7 @@ export const SpecialRelativity: React.FC = () => {
       ctx.fillText(`Age: ${earthAge.toFixed(1)} yrs`, earthX, pathY - 42);
 
       // Traveling twin
-      ctx.fillStyle = '#475569';
+      ctx.fillStyle = isDark ? '#cbd5e1' : '#475569';
       ctx.font = '12px sans-serif';
       ctx.fillText('Traveling Twin', shipX, pathY - 30);
       ctx.font = 'bold 14px monospace';
@@ -279,7 +284,7 @@ export const SpecialRelativity: React.FC = () => {
       ctx.fillText(`Age: ${spaceTwinAge.toFixed(1)} yrs`, shipX, pathY - 14);
 
       // Info
-      ctx.fillStyle = '#475569';
+      ctx.fillStyle = isDark ? '#cbd5e1' : '#475569';
       ctx.font = '11px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText(`v = ${(velocity * 100).toFixed(0)}% c   |   γ = ${gamma.toFixed(2)}`, w / 2, h * 0.78);

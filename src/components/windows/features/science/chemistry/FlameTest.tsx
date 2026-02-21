@@ -354,6 +354,11 @@ export const FlameTest: React.FC = () => {
       const rgb = hexToRgb(currentColor);
 
       ctx.clearRect(0, 0, w, h);
+      const isDark = document.documentElement.classList.contains('dark');
+      if (!isDark) {
+        ctx.fillStyle = '#f8f9fc';
+        ctx.fillRect(0, 0, w, h);
+      }
 
       // Burner position
       const burnerCenterX = w / 2;
@@ -431,7 +436,7 @@ export const FlameTest: React.FC = () => {
       }
 
       // Wire label
-      ctx.fillStyle = '#999';
+      ctx.fillStyle = isDark ? '#999' : '#555';
       ctx.font = '9px sans-serif';
       ctx.textAlign = 'left';
       ctx.fillText('Nichrome wire', wireBaseX - 30, wireBaseY + 72);
@@ -525,7 +530,7 @@ export const FlameTest: React.FC = () => {
       ctx.fill();
 
       // Label
-      ctx.fillStyle = '#aaa';
+      ctx.fillStyle = isDark ? '#aaa' : '#555';
       ctx.font = '10px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('Bunsen Burner', burnerCenterX, h * 0.97);
@@ -681,15 +686,15 @@ export const FlameTest: React.FC = () => {
             onDragOver={handleDropZoneDragOver}
             onDragLeave={handleDropZoneDragLeave}
             onDrop={handleDrop}
-            className={`bg-gray-950 rounded-lg shadow-md p-3 flex flex-col flex-1 transition-all duration-300 ${
+            className={`bg-gray-100 dark:bg-gray-950 rounded-lg shadow-md p-3 flex flex-col flex-1 transition-all duration-300 ${
               isDragOver
-                ? 'ring-2 ring-orange-400 ring-offset-2 ring-offset-gray-950 shadow-lg shadow-orange-500/20'
+                ? 'ring-2 ring-orange-400 ring-offset-2 ring-offset-gray-100 dark:ring-offset-gray-950 shadow-lg shadow-orange-500/20'
                 : ''
             } ${dropFlash ? 'ring-4 ring-white/50' : ''}`}
             style={{ minHeight: 0 }}
           >
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
+              <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
                 <Flame className="h-3.5 w-3.5 text-orange-400" />
                 Bunsen Burner &mdash; Flame Test
               </span>

@@ -96,7 +96,8 @@ export const BridgeStress: React.FC = () => {
       const r = canvas.getBoundingClientRect();
       const w = r.width, h = r.height;
       ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = '#080c18'; ctx.fillRect(0, 0, w, h);
+      const isDark = document.documentElement.classList.contains('dark');
+      ctx.fillStyle = isDark ? '#080c18' : '#f8f9fc'; ctx.fillRect(0, 0, w, h);
 
       const { nodes, beams } = buildBridge(w, h);
       const mat = materialProps[material];
@@ -196,7 +197,7 @@ export const BridgeStress: React.FC = () => {
       ctx.fillText(`${loadMag} kN`, loadX, loadY - 55);
 
       // Title
-      ctx.fillStyle = 'rgba(200,200,255,0.6)'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillStyle = isDark ? 'rgba(200,200,255,0.6)' : 'rgba(30,40,80,0.6)'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
       ctx.fillText(`${bridgeType.charAt(0).toUpperCase() + bridgeType.slice(1)} Bridge — ${material.charAt(0).toUpperCase() + material.slice(1)}`, w / 2, 18);
 
       // Max stress indicator
@@ -213,45 +214,45 @@ export const BridgeStress: React.FC = () => {
   }, [bridgeType, loadPos, loadMag, gravity, showForces, showStress, material, buildBridge]);
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-gray-950 to-orange-950 p-3 overflow-hidden">
+    <div className="h-full flex flex-col bg-gradient-to-br from-gray-100 to-orange-100 dark:from-gray-950 dark:to-orange-950 p-3 overflow-hidden">
       <div className="mb-2">
-        <h2 className="text-lg font-bold text-white">🌉 Bridge Stress Tester</h2>
-        <p className="text-[11px] text-gray-400">Load analysis & structural stress</p>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">🌉 Bridge Stress Tester</h2>
+        <p className="text-[11px] text-gray-500 dark:text-gray-400">Load analysis & structural stress</p>
       </div>
       <div className="flex-1 flex gap-3 min-h-0">
-        <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-800 overflow-hidden">
+        <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-300 dark:border-gray-800 overflow-hidden">
           <canvas ref={canvasRef} className="w-full h-full" />
         </div>
         <div className="w-[190px] flex flex-col gap-2 flex-shrink-0 overflow-y-auto">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-1">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase mb-1">Bridge Type</h4>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-1">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Bridge Type</h4>
             {(['truss', 'arch', 'suspension'] as const).map(t => (
-              <button key={t} onClick={() => setBridgeType(t)} className={`block w-full text-left px-2 py-1 rounded text-[10px] capitalize ${bridgeType===t?'bg-orange-700 text-white':'bg-gray-800 text-gray-400'}`}>{t}</button>
+              <button key={t} onClick={() => setBridgeType(t)} className={`block w-full text-left px-2 py-1 rounded text-[10px] capitalize ${bridgeType===t?'bg-orange-700 text-white':'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>{t}</button>
             ))}
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-1">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase mb-1">Material</h4>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-1">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Material</h4>
             {(['steel', 'wood', 'concrete'] as const).map(m => (
-              <button key={m} onClick={() => setMaterial(m)} className={`block w-full text-left px-2 py-1 rounded text-[10px] capitalize ${material===m?'bg-amber-700 text-white':'bg-gray-800 text-gray-400'}`}>{m}</button>
+              <button key={m} onClick={() => setMaterial(m)} className={`block w-full text-left px-2 py-1 rounded text-[10px] capitalize ${material===m?'bg-amber-700 text-white':'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>{m}</button>
             ))}
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-2">
-            <label className="text-[9px] text-gray-400 flex justify-between"><span>Load Position</span><span>{(loadPos*100).toFixed(0)}%</span></label>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-2">
+            <label className="text-[9px] text-gray-500 dark:text-gray-400 flex justify-between"><span>Load Position</span><span>{(loadPos*100).toFixed(0)}%</span></label>
             <input type="range" min={0} max={1} step={0.01} value={loadPos} onChange={e=>setLoadPos(+e.target.value)} className="w-full h-1 accent-red-500"/>
-            <label className="text-[9px] text-gray-400 flex justify-between"><span>Load (kN)</span><span>{loadMag}</span></label>
+            <label className="text-[9px] text-gray-500 dark:text-gray-400 flex justify-between"><span>Load (kN)</span><span>{loadMag}</span></label>
             <input type="range" min={1} max={200} step={1} value={loadMag} onChange={e=>setLoadMag(+e.target.value)} className="w-full h-1 accent-red-500"/>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-1">
-            <label className="flex items-center gap-2 text-[10px] text-gray-400 cursor-pointer">
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-1">
+            <label className="flex items-center gap-2 text-[10px] text-gray-500 dark:text-gray-400 cursor-pointer">
               <input type="checkbox" checked={showStress} onChange={e=>setShowStress(e.target.checked)} className="accent-orange-500"/>Show Stress Colors
             </label>
-            <label className="flex items-center gap-2 text-[10px] text-gray-400 cursor-pointer">
+            <label className="flex items-center gap-2 text-[10px] text-gray-500 dark:text-gray-400 cursor-pointer">
               <input type="checkbox" checked={showForces} onChange={e=>setShowForces(e.target.checked)} className="accent-blue-500"/>Show Forces
             </label>
           </div>
-          <div className="bg-orange-950/30 border border-orange-800/40 rounded-lg p-2.5">
-            <h4 className="text-[10px] font-semibold text-orange-300 flex items-center gap-1 mb-1"><Info className="h-3 w-3"/>About</h4>
-            <p className="text-[9px] text-gray-400">Green=low stress, Red=high stress. Warning shown when stress exceeds material yield strength.</p>
+          <div className="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800/40 rounded-lg p-2.5">
+            <h4 className="text-[10px] font-semibold text-orange-700 dark:text-orange-300 flex items-center gap-1 mb-1"><Info className="h-3 w-3"/>About</h4>
+            <p className="text-[9px] text-gray-600 dark:text-gray-400">Green=low stress, Red=high stress. Warning shown when stress exceeds material yield strength.</p>
           </div>
         </div>
       </div>

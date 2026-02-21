@@ -52,7 +52,8 @@ export const QuantumTunneling: React.FC = () => {
       const h = rect.height;
       ctx.clearRect(0, 0, w, h);
 
-      ctx.fillStyle = '#080812';
+      const isDark = document.documentElement.classList.contains('dark');
+      ctx.fillStyle = isDark ? '#080812' : '#f8f9fc';
       ctx.fillRect(0, 0, w, h);
 
       if (mode === 'tunneling') {
@@ -173,7 +174,7 @@ export const QuantumTunneling: React.FC = () => {
         }
 
         // Probability readout
-        ctx.fillStyle = 'rgba(200, 200, 255, 0.8)';
+        ctx.fillStyle = isDark ? 'rgba(200, 200, 255, 0.8)' : 'rgba(30, 40, 80, 0.8)';
         ctx.font = 'bold 11px monospace';
         ctx.textAlign = 'center';
         ctx.fillText(`Tunneling Probability: ${(tunnelingProbability * 100).toFixed(1)}%`, w / 2, h - 15);
@@ -294,7 +295,7 @@ export const QuantumTunneling: React.FC = () => {
         }
 
         // Labels
-        ctx.fillStyle = 'rgba(200, 200, 255, 0.5)';
+        ctx.fillStyle = isDark ? 'rgba(200, 200, 255, 0.5)' : 'rgba(80, 90, 130, 0.7)';
         ctx.font = '9px monospace';
         ctx.textAlign = 'center';
         ctx.fillText('Slits', wallX, h - 5);
@@ -311,21 +312,21 @@ export const QuantumTunneling: React.FC = () => {
   }, [isPlaying, mode, barrierHeight, particleEnergy, barrierWidth, slitSeparation, wavelength, tunnelingProbability]);
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-gray-950 to-purple-950 p-3 overflow-hidden">
+    <div className="h-full flex flex-col bg-gradient-to-br from-gray-100 to-purple-100 dark:from-gray-950 dark:to-purple-950 p-3 overflow-hidden">
       <div className="mb-2 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Atom className="h-5 w-5 text-purple-400" />
             Quantum Mechanics Lab
           </h2>
-          <p className="text-[11px] text-gray-400">Tunneling & Double-Slit Experiment</p>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400">Tunneling & Double-Slit Experiment</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setIsPlaying(!isPlaying)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-900/50 text-purple-300 text-xs font-medium">
             {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
             {isPlaying ? 'Pause' : 'Play'}
           </button>
-          <button onClick={resetSimulation} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 text-gray-300 text-xs font-medium">
+          <button onClick={resetSimulation} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-medium">
             <RotateCcw className="h-3.5 w-3.5" /> Reset
           </button>
         </div>
@@ -333,39 +334,39 @@ export const QuantumTunneling: React.FC = () => {
 
       <div className="flex-1 flex gap-3 min-h-0">
         <div className="flex-1 min-w-0 min-h-0">
-          <div className="rounded-lg shadow-md h-full overflow-hidden border border-gray-800">
+          <div className="rounded-lg shadow-md h-full overflow-hidden border border-gray-300 dark:border-gray-800">
             <canvas ref={canvasRef} className="w-full h-full" />
           </div>
         </div>
 
         <div className="w-[210px] flex flex-col gap-2 flex-shrink-0 overflow-y-auto">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-2">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase">Experiment</h4>
-            <button onClick={() => { setMode('tunneling'); resetSimulation(); }} className={`block w-full text-left px-2 py-1 rounded text-[10px] ${mode === 'tunneling' ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-2">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Experiment</h4>
+            <button onClick={() => { setMode('tunneling'); resetSimulation(); }} className={`block w-full text-left px-2 py-1 rounded text-[10px] ${mode === 'tunneling' ? 'bg-purple-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
               Quantum Tunneling
             </button>
-            <button onClick={() => { setMode('double-slit'); resetSimulation(); }} className={`block w-full text-left px-2 py-1 rounded text-[10px] ${mode === 'double-slit' ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>
+            <button onClick={() => { setMode('double-slit'); resetSimulation(); }} className={`block w-full text-left px-2 py-1 rounded text-[10px] ${mode === 'double-slit' ? 'bg-purple-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
               Double-Slit Experiment
             </button>
           </div>
 
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-3">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase">Parameters</h4>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-3">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Parameters</h4>
             {mode === 'tunneling' ? (
               <>
                 <div>
-                  <label className="text-[10px] text-gray-400 block mb-1">Particle Energy: {particleEnergy} eV</label>
+                  <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1">Particle Energy: {particleEnergy} eV</label>
                   <input type="range" min="1" max="8" step="0.5" value={particleEnergy} onChange={e => setParticleEnergy(+e.target.value)} className="w-full h-1.5 rounded-full appearance-none bg-gray-700" />
                 </div>
                 <div>
-                  <label className="text-[10px] text-gray-400 block mb-1">Barrier Height: {barrierHeight} eV</label>
+                  <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1">Barrier Height: {barrierHeight} eV</label>
                   <input type="range" min="2" max="10" step="0.5" value={barrierHeight} onChange={e => setBarrierHeight(+e.target.value)} className="w-full h-1.5 rounded-full appearance-none bg-gray-700" />
                 </div>
                 <div>
-                  <label className="text-[10px] text-gray-400 block mb-1">Barrier Width: {barrierWidth}</label>
+                  <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1">Barrier Width: {barrierWidth}</label>
                   <input type="range" min="10" max="80" step="5" value={barrierWidth} onChange={e => setBarrierWidth(+e.target.value)} className="w-full h-1.5 rounded-full appearance-none bg-gray-700" />
                 </div>
-                <div className="bg-purple-950/40 rounded-md px-2 py-1.5">
+                <div className="bg-purple-50 dark:bg-purple-950/40 rounded-md px-2 py-1.5">
                   <div className="text-[9px] text-gray-500 uppercase">Tunneling Probability</div>
                   <div className="text-sm font-mono font-bold text-purple-400">{(tunnelingProbability * 100).toFixed(1)}%</div>
                 </div>
@@ -373,33 +374,33 @@ export const QuantumTunneling: React.FC = () => {
             ) : (
               <>
                 <div>
-                  <label className="text-[10px] text-gray-400 block mb-1">Slit Separation: {slitSeparation}</label>
+                  <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1">Slit Separation: {slitSeparation}</label>
                   <input type="range" min="15" max="80" step="5" value={slitSeparation} onChange={e => { setSlitSeparation(+e.target.value); resetSimulation(); }} className="w-full h-1.5 rounded-full appearance-none bg-gray-700" />
                 </div>
                 <div>
-                  <label className="text-[10px] text-gray-400 block mb-1">Wavelength: {wavelength}</label>
+                  <label className="text-[10px] text-gray-500 dark:text-gray-400 block mb-1">Wavelength: {wavelength}</label>
                   <input type="range" min="10" max="60" step="5" value={wavelength} onChange={e => { setWavelength(+e.target.value); resetSimulation(); }} className="w-full h-1.5 rounded-full appearance-none bg-gray-700" />
                 </div>
               </>
             )}
           </div>
 
-          <div className="bg-purple-950/30 border border-purple-800/40 rounded-lg p-2.5">
-            <h4 className="text-[10px] font-semibold text-purple-300 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+          <div className="bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/40 rounded-lg p-2.5">
+            <h4 className="text-[10px] font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wider mb-1.5 flex items-center gap-1">
               <Info className="h-3 w-3" /> {mode === 'tunneling' ? 'Quantum Tunneling' : 'Wave-Particle Duality'}
             </h4>
-            <div className="space-y-1 text-[9px] text-gray-400">
+            <div className="space-y-1 text-[9px] text-gray-600 dark:text-gray-400">
               {mode === 'tunneling' ? (
                 <>
                   <p>A quantum particle can penetrate classically forbidden regions.</p>
-                  <p className="font-mono bg-gray-800/50 rounded px-1 py-0.5">T ∝ e^(-2κa)</p>
+                  <p className="font-mono bg-gray-200/50 dark:bg-gray-800/50 rounded px-1 py-0.5">T ∝ e^(-2κa)</p>
                   <p>κ = √(2m(V₀-E))/ℏ — the decay constant inside the barrier.</p>
                   <p>Essential for nuclear decay, STM microscopy, and flash memory.</p>
                 </>
               ) : (
                 <>
                   <p>Individual particles build up an interference pattern — each goes through both slits simultaneously!</p>
-                  <p className="font-mono bg-gray-800/50 rounded px-1 py-0.5">d sin(θ) = mλ</p>
+                  <p className="font-mono bg-gray-200/50 dark:bg-gray-800/50 rounded px-1 py-0.5">d sin(θ) = mλ</p>
                   <p>This demonstrates wave-particle duality: observation collapses the wave function.</p>
                 </>
               )}

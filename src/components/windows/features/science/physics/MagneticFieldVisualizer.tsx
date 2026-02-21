@@ -17,6 +17,24 @@ export const MagneticFieldVisualizer = () => {
   const animationRef = useRef<number>();
 
   useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const resize = () => {
+      const r = canvas.getBoundingClientRect();
+      const d = window.devicePixelRatio || 1;
+      canvas.width = r.width * d;
+      canvas.height = r.height * d;
+      ctx.scale(d, d);
+    };
+    resize();
+    const obs = new ResizeObserver(resize);
+    obs.observe(canvas);
+    return () => obs.disconnect();
+  }, []);
+
+  useEffect(() => {
     const animate = () => {
       draw();
       animationRef.current = requestAnimationFrame(animate);
@@ -35,8 +53,8 @@ export const MagneticFieldVisualizer = () => {
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-    const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
 
     const newMagnet: Magnet = {
       x,
@@ -61,16 +79,17 @@ export const MagneticFieldVisualizer = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const width = canvas.width;
-    const height = canvas.height;
+    const width = canvas.getBoundingClientRect().width;
+    const height = canvas.getBoundingClientRect().height;
+    const isDark = document.documentElement.classList.contains('dark');
 
     // Clear canvas
-    ctx.fillStyle = '#F5F5F5';
+    ctx.fillStyle = isDark ? '#0a0e1a' : '#F5F5F5';
     ctx.fillRect(0, 0, width, height);
 
     // Draw field lines
     magnets.forEach(magnet => {
-      drawFieldLines(ctx, magnet);
+      drawFieldLines(ctx, magnet, width, height);
     });
 
     // Draw compass grid
@@ -115,7 +134,7 @@ export const MagneticFieldVisualizer = () => {
     ctx.restore();
   };
 
-  const drawFieldLines = (ctx: CanvasRenderingContext2D, magnet: Magnet) => {
+  const drawFieldLines = (ctx: CanvasRenderingContext2D, magnet: Magnet, W: number, H: number) => {
     const numLines = 8;
     const magnetLength = 40;
 
@@ -132,11 +151,11 @@ export const MagneticFieldVisualizer = () => {
       const startX = northX + offset * Math.cos(perpAngle);
       const startY = northY + offset * Math.sin(perpAngle);
 
-      drawFieldLine(ctx, startX, startY, magnet);
+      drawFieldLine(ctx, startX, startY, magnet, W, H);
     }
   };
 
-  const drawFieldLine = (ctx: CanvasRenderingContext2D, startX: number, startY: number, magnet: Magnet) => {
+  const drawFieldLine = (ctx: CanvasRenderingContext2D, startX: number, startY: number, magnet: Magnet, W: number, H: number) => {
     ctx.strokeStyle = 'rgba(100, 100, 100, 0.3)';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
@@ -156,7 +175,7 @@ export const MagneticFieldVisualizer = () => {
       x += (field.x / magnitude) * stepSize;
       y += (field.y / magnitude) * stepSize;
 
-      if (x < 0 || x > 700 || y < 0 || y > 500) break;
+      if (x < 0 || x > W || y < 0 || y > H) break;
 
       ctx.lineTo(x, y);
     }

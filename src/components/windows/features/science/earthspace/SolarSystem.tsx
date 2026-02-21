@@ -44,7 +44,8 @@ export const SolarSystem: React.FC = () => {
       ctx.clearRect(0, 0, w, h);
 
       // Background stars
-      ctx.fillStyle = '#050810'; ctx.fillRect(0, 0, w, h);
+      const isDark = document.documentElement.classList.contains('dark');
+      ctx.fillStyle = isDark ? '#050810' : '#f8f9fc'; ctx.fillRect(0, 0, w, h);
       for (let i = 0; i < 150; i++) {
         const sx = (Math.sin(i * 127.1) * 0.5 + 0.5) * w;
         const sy = (Math.cos(i * 311.7) * 0.5 + 0.5) * h;
@@ -129,13 +130,13 @@ export const SolarSystem: React.FC = () => {
   const selPlanet = selected ? planets.find(p => p.name === selected) : null;
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-gray-950 to-blue-950 p-3 overflow-hidden">
+    <div className="h-full flex flex-col bg-gradient-to-br from-gray-100 to-blue-100 dark:from-gray-950 dark:to-blue-950 p-3 overflow-hidden">
       <div className="mb-2">
-        <h2 className="text-lg font-bold text-white">🌌 Solar System Simulator</h2>
-        <p className="text-[11px] text-gray-400">Orbital mechanics and planetary motion</p>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">🌌 Solar System Simulator</h2>
+        <p className="text-[11px] text-gray-500 dark:text-gray-400">Orbital mechanics and planetary motion</p>
       </div>
       <div className="flex-1 flex gap-3 min-h-0">
-        <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-800 overflow-hidden">
+        <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-300 dark:border-gray-800 overflow-hidden">
           <canvas ref={canvasRef} className="w-full h-full" />
         </div>
         <div className="w-[210px] flex flex-col gap-2 flex-shrink-0 overflow-y-auto">
@@ -143,36 +144,36 @@ export const SolarSystem: React.FC = () => {
             <button onClick={() => setRunning(!running)} className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded text-[10px] font-medium ${running?'bg-amber-600 text-white':'bg-blue-600 text-white'}`}>
               {running?<><Pause className="h-3 w-3"/>Pause</>:<><Play className="h-3 w-3"/>Play</>}
             </button>
-            <button onClick={() => { timeRef.current = 0; }} className="px-2 py-1.5 rounded bg-gray-700 text-white text-[10px]"><RotateCcw className="h-3 w-3"/></button>
+            <button onClick={() => { timeRef.current = 0; }} className="px-2 py-1.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white text-[10px]"><RotateCcw className="h-3 w-3"/></button>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-2">
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-2">
             <div>
-              <label className="text-[10px] text-gray-400 flex justify-between"><span>Speed</span><span>{speed}x</span></label>
+              <label className="text-[10px] text-gray-500 dark:text-gray-400 flex justify-between"><span>Speed</span><span>{speed}x</span></label>
               <input type="range" min={0.1} max={10} step={0.1} value={speed} onChange={e=>setSpeed(+e.target.value)} className="w-full h-1 accent-blue-500"/>
             </div>
             <div>
-              <label className="text-[10px] text-gray-400 flex justify-between"><span>Zoom</span><span>{scale.toFixed(1)}x</span></label>
+              <label className="text-[10px] text-gray-500 dark:text-gray-400 flex justify-between"><span>Zoom</span><span>{scale.toFixed(1)}x</span></label>
               <input type="range" min={0.3} max={2} step={0.1} value={scale} onChange={e=>setScale(+e.target.value)} className="w-full h-1 accent-indigo-500"/>
             </div>
-            <label className="flex items-center gap-2 text-[10px] text-gray-400 cursor-pointer">
+            <label className="flex items-center gap-2 text-[10px] text-gray-500 dark:text-gray-400 cursor-pointer">
               <input type="checkbox" checked={showOrbits} onChange={e=>setShowOrbits(e.target.checked)} className="accent-blue-500 w-3 h-3"/>Show orbits
             </label>
-            <label className="flex items-center gap-2 text-[10px] text-gray-400 cursor-pointer">
+            <label className="flex items-center gap-2 text-[10px] text-gray-500 dark:text-gray-400 cursor-pointer">
               <input type="checkbox" checked={showLabels} onChange={e=>setShowLabels(e.target.checked)} className="accent-blue-500 w-3 h-3"/>Show labels
             </label>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-1">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase mb-1">Planets</h4>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-1">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Planets</h4>
             {planets.map(p => (
-              <button key={p.name} onClick={() => setSelected(selected===p.name?null:p.name)} className={`flex items-center gap-2 w-full text-left px-2 py-1 rounded text-[10px] ${selected===p.name?'bg-blue-700 text-white':'bg-gray-800 text-gray-400 hover:bg-gray-750'}`}>
+              <button key={p.name} onClick={() => setSelected(selected===p.name?null:p.name)} className={`flex items-center gap-2 w-full text-left px-2 py-1 rounded text-[10px] ${selected===p.name?'bg-blue-700 text-white':'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-750'}`}>
                 <span className="w-2 h-2 rounded-full" style={{background:p.color}}/>{p.name}
               </button>
             ))}
           </div>
           {selPlanet && (
-            <div className="bg-blue-950/30 border border-blue-800/40 rounded-lg p-2.5">
-              <h4 className="text-[10px] font-bold text-blue-300 mb-1">{selPlanet.name}</h4>
-              <div className="text-[9px] text-gray-400 space-y-0.5">
+            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/40 rounded-lg p-2.5">
+              <h4 className="text-[10px] font-bold text-blue-700 dark:text-blue-300 mb-1">{selPlanet.name}</h4>
+              <div className="text-[9px] text-gray-600 dark:text-gray-400 space-y-0.5">
                 <p>Orbital period: {selPlanet.period} years</p>
                 <p>Distance from Sun: {selPlanet.distance} (scaled AU)</p>
                 <p>Moons shown: {selPlanet.moons?.length || 0}</p>

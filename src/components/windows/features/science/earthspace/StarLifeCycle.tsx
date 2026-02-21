@@ -57,7 +57,8 @@ export const StarLifeCycle: React.FC = () => {
       const r = canvas.getBoundingClientRect();
       const w = r.width, h = r.height;
       ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = '#050810'; ctx.fillRect(0, 0, w, h);
+      const isDark = document.documentElement.classList.contains('dark');
+      ctx.fillStyle = isDark ? '#050810' : '#f8f9fc'; ctx.fillRect(0, 0, w, h);
 
       if (running) timeRef.current += 0.016 * speed;
       const t = timeRef.current;
@@ -173,9 +174,9 @@ export const StarLifeCycle: React.FC = () => {
       }
 
       // Stage name
-      ctx.fillStyle = 'rgba(200,200,255,0.8)'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillStyle = isDark ? 'rgba(200,200,255,0.8)' : 'rgba(30,40,80,0.8)'; ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center';
       ctx.fillText(stage.name, cx, h * 0.82);
-      ctx.fillStyle = 'rgba(200,200,255,0.4)'; ctx.font = '10px sans-serif';
+      ctx.fillStyle = isDark ? 'rgba(200,200,255,0.4)' : 'rgba(80,90,130,0.6)'; ctx.font = '10px sans-serif';
       ctx.fillText(stage.description.slice(0, 60) + (stage.description.length > 60 ? '...' : ''), cx, h * 0.87);
 
       // Timeline at bottom
@@ -208,13 +209,13 @@ export const StarLifeCycle: React.FC = () => {
   }, [running, speed, starMass]);
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-gray-950 to-yellow-950 p-3 overflow-hidden">
+    <div className="h-full flex flex-col bg-gradient-to-br from-gray-100 to-yellow-100 dark:from-gray-950 dark:to-yellow-950 p-3 overflow-hidden">
       <div className="mb-2">
-        <h2 className="text-lg font-bold text-white">⭐ Star Life Cycle</h2>
-        <p className="text-[11px] text-gray-400">Stellar evolution from birth to death</p>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">⭐ Star Life Cycle</h2>
+        <p className="text-[11px] text-gray-500 dark:text-gray-400">Stellar evolution from birth to death</p>
       </div>
       <div className="flex-1 flex gap-3 min-h-0">
-        <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-800 overflow-hidden">
+        <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-300 dark:border-gray-800 overflow-hidden">
           <canvas ref={canvasRef} className="w-full h-full" />
         </div>
         <div className="w-[200px] flex flex-col gap-2 flex-shrink-0 overflow-y-auto">
@@ -223,21 +224,21 @@ export const StarLifeCycle: React.FC = () => {
               {running?<><Pause className="h-3 w-3"/>Pause</>:<><Play className="h-3 w-3"/>Play</>}
             </button>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-2">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase">Star Mass</h4>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-2">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Star Mass</h4>
             {(['low','medium','high'] as const).map(m => (
-              <button key={m} onClick={() => { setStarMass(m); timeRef.current = 0; }} className={`block w-full text-left px-2 py-1.5 rounded text-[10px] ${starMass===m?'bg-yellow-700 text-white':'bg-gray-800 text-gray-400'}`}>
+              <button key={m} onClick={() => { setStarMass(m); timeRef.current = 0; }} className={`block w-full text-left px-2 py-1.5 rounded text-[10px] ${starMass===m?'bg-yellow-700 text-white':'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>
                 {m === 'low' ? '☀ Low mass (< 8 M☉)' : m === 'medium' ? '🌟 Medium (8-25 M☉)' : '💫 High mass (> 25 M☉)'}
               </button>
             ))}
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
-            <label className="text-[10px] text-gray-400 flex justify-between"><span>Speed</span><span>{speed}x</span></label>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3">
+            <label className="text-[10px] text-gray-500 dark:text-gray-400 flex justify-between"><span>Speed</span><span>{speed}x</span></label>
             <input type="range" min={0.5} max={5} step={0.5} value={speed} onChange={e=>setSpeed(+e.target.value)} className="w-full h-1 accent-yellow-500"/>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-1">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase">Endpoints</h4>
-            <div className="text-[9px] text-gray-400 space-y-0.5">
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-1">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Endpoints</h4>
+            <div className="text-[9px] text-gray-600 dark:text-gray-400 space-y-0.5">
               <p>Low mass → White Dwarf</p>
               <p>Medium → Neutron Star</p>
               <p>High mass → Black Hole</p>

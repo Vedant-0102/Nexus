@@ -81,6 +81,80 @@ export const ElectricalCircuit: React.FC = () => {
     }));
   };
 
+  const updateBatteryVoltage = (compId: string, voltage: number) => {
+    setCircuitData(prev => ({
+      ...prev,
+      components: prev.components.map(c =>
+        c.id === compId && c.type === 'battery' ? { ...c, value: voltage } : c
+      ),
+    }));
+  };
+
+  const updateResistorValue = (compId: string, resistance: number) => {
+    setCircuitData(prev => ({
+      ...prev,
+      components: prev.components.map(c =>
+        c.id === compId && c.type === 'resistor' ? { ...c, value: resistance } : c
+      ),
+    }));
+  };
+
+  // Circuit analysis: detect parallel/series, compute correct total resistance
+  const circuitAnalysis = React.useMemo(() => {
+    const { nodes, components } = circuitData;
+    const circuitOpen = components.some(c => c.type === 'switch' && !c.on);
+
+    // Union-Find to group nodes connected by wires
+    const parent: Record<string, string> = {};
+    nodes.forEach(n => (parent[n.id] = n.id));
+    const find = (id: string): string => {
+      while (parent[id] !== id) {
+        parent[id] = parent[parent[id]];
+        id = parent[id];
+      }
+      return id;
+    };
+    const union = (a: string, b: string) => {
+      parent[find(a)] = find(b);
+    };
+    components.filter(c => c.type === 'wire').forEach(w => union(w.from, w.to));
+
+    const batteries = components.filter(c => c.type === 'battery');
+    const totalV = batteries.reduce((s, b) => s + b.value, 0);
+    const resistors = components.filter(c => c.type === 'resistor');
+
+    // Check if all resistors share the same wire-group endpoints (parallel)
+    const rGroups = resistors.map(r => ({ from: find(r.from), to: find(r.to) }));
+    const isParallel =
+      resistors.length > 1 &&
+      rGroups.every(
+        g => g.from === rGroups[0].from && g.to === rGroups[0].to
+      );
+
+    let totalR: number;
+    if (isParallel) {
+      const invSum = resistors.reduce((s, r) => s + 1 / r.value, 0);
+      totalR = invSum > 0 ? 1 / invSum : 1;
+    } else {
+      totalR = resistors.reduce((s, r) => s + r.value, 0) || 1;
+    }
+
+    const current = circuitOpen ? 0 : totalV / totalR;
+
+    // Per-resistor analysis
+    const resistorInfo = resistors.map(r => {
+      if (circuitOpen) return { id: r.id, value: r.value, vDrop: 0, current: 0, power: 0 };
+      if (isParallel) {
+        const iR = totalV / r.value;
+        return { id: r.id, value: r.value, vDrop: totalV, current: iR, power: totalV * iR };
+      }
+      const vDrop = current * r.value;
+      return { id: r.id, value: r.value, vDrop, current, power: vDrop * current };
+    });
+
+    return { totalV, totalR, current, isParallel, circuitOpen, resistorInfo };
+  }, [circuitData]);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -100,19 +174,13 @@ export const ElectricalCircuit: React.FC = () => {
       const r = canvas.getBoundingClientRect();
       const w = r.width, h = r.height;
       ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = '#080c18'; ctx.fillRect(0, 0, w, h);
+      const isDark = document.documentElement.classList.contains('dark');
+      ctx.fillStyle = isDark ? '#080c18' : '#f8f9fc'; ctx.fillRect(0, 0, w, h);
       if (running) phaseRef.current += dt;
       const phase = phaseRef.current;
 
       const { nodes, components } = circuitData;
-      const circuitOpen = components.some(c => c.type === 'switch' && !c.on);
-
-      // Calculate total resistance and current
-      const batteries = components.filter(c => c.type === 'battery');
-      const totalV = batteries.reduce((s, b) => s + b.value, 0);
-      const resistors = components.filter(c => c.type === 'resistor');
-      const totalR = resistors.reduce((s, r) => s + r.value, 0) || 1;
-      const current = circuitOpen ? 0 : totalV / totalR;
+      const { totalV, totalR, current, circuitOpen } = circuitAnalysis;
 
       const getNodePos = (id: string) => {
         const n = nodes.find(n => n.id === id)!;
@@ -227,36 +295,36 @@ export const ElectricalCircuit: React.FC = () => {
       // Draw nodes
       nodes.forEach(n => {
         const x = n.x * w, y = n.y * h;
-        ctx.fillStyle = 'rgba(200,200,255,0.5)';
+        ctx.fillStyle = isDark ? 'rgba(200,200,255,0.5)' : 'rgba(30,40,80,0.5)';
         ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = 'rgba(200,200,255,0.3)'; ctx.font = '8px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillStyle = isDark ? 'rgba(200,200,255,0.3)' : 'rgba(30,40,80,0.3)'; ctx.font = '8px sans-serif'; ctx.textAlign = 'center';
         ctx.fillText(n.id, x, y - 8);
       });
 
       // Info panel
-      ctx.fillStyle = 'rgba(20,25,50,0.5)'; ctx.fillRect(10, h - 45, w - 20, 38);
-      ctx.fillStyle = 'rgba(200,200,255,0.6)'; ctx.font = '9px monospace'; ctx.textAlign = 'left';
-      ctx.fillText(`V = ${totalV}V | R_total = ${totalR}Ω | I = ${(current * 1000).toFixed(1)}mA | P = ${(totalV * current * 1000).toFixed(1)}mW`, 20, h - 25);
+      ctx.fillStyle = isDark ? 'rgba(20,25,50,0.5)' : 'rgba(230,235,245,0.8)'; ctx.fillRect(10, h - 45, w - 20, 38);
+      ctx.fillStyle = isDark ? 'rgba(200,200,255,0.6)' : 'rgba(30,40,80,0.6)'; ctx.font = '9px monospace'; ctx.textAlign = 'left';
+      ctx.fillText(`V = ${totalV.toFixed(1)}V | R_total = ${totalR.toFixed(1)}Ω | I = ${(current * 1000).toFixed(1)}mA | P = ${(totalV * current * 1000).toFixed(1)}mW`, 20, h - 25);
       ctx.fillText(`Ohm's Law: V = IR | ${circuitOpen ? '⚡ CIRCUIT OPEN' : '✓ Circuit Closed'}`, 20, h - 13);
 
       // Title
-      ctx.fillStyle = 'rgba(200,200,255,0.6)'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillStyle = isDark ? 'rgba(200,200,255,0.6)' : 'rgba(30,40,80,0.6)'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
       ctx.fillText(circuitData.name, w / 2, 18);
 
       animRef.current = requestAnimationFrame(draw);
     };
     animRef.current = requestAnimationFrame(draw);
     return () => { cancelAnimationFrame(animRef.current); obs.disconnect(); };
-  }, [running, circuitData, showValues]);
+  }, [running, circuitData, showValues, circuitAnalysis]);
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-gray-950 to-yellow-950 p-3 overflow-hidden">
+    <div className="h-full flex flex-col bg-gradient-to-br from-gray-100 to-yellow-100 dark:from-gray-950 dark:to-yellow-950 p-3 overflow-hidden">
       <div className="mb-2">
-        <h2 className="text-lg font-bold text-white">⚡ Electrical Circuit</h2>
-        <p className="text-[11px] text-gray-400">Ohm's Law & circuit analysis</p>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">⚡ Electrical Circuit</h2>
+        <p className="text-[11px] text-gray-500 dark:text-gray-400">Ohm's Law & circuit analysis</p>
       </div>
       <div className="flex-1 flex gap-3 min-h-0">
-        <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-800 overflow-hidden">
+        <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-300 dark:border-gray-800 overflow-hidden">
           <canvas ref={canvasRef} className="w-full h-full" />
         </div>
         <div className="w-[190px] flex flex-col gap-2 flex-shrink-0 overflow-y-auto">
@@ -265,10 +333,10 @@ export const ElectricalCircuit: React.FC = () => {
               {running?<><Pause className="h-3 w-3"/>Pause</>:<><Play className="h-3 w-3"/>Run</>}
             </button>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-1">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase mb-1">Circuit</h4>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-1">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Circuit</h4>
             {presets.map((p, i) => (
-              <button key={i} onClick={() => setPreset(i)} className={`block w-full text-left px-2 py-1 rounded text-[10px] ${preset===i?'bg-yellow-700 text-white':'bg-gray-800 text-gray-400'}`}>{p.name}</button>
+              <button key={i} onClick={() => setPreset(i)} className={`block w-full text-left px-2 py-1 rounded text-[10px] ${preset===i?'bg-yellow-700 text-white':'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>{p.name}</button>
             ))}
           </div>
           {circuitData.components.filter(c => c.type === 'switch').map(sw => (
@@ -276,15 +344,62 @@ export const ElectricalCircuit: React.FC = () => {
               {sw.id}: {sw.on ? '🟢 ON' : '🔴 OFF'}
             </button>
           ))}
-          <label className="flex items-center gap-2 text-[10px] text-gray-400 cursor-pointer px-1">
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-2">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Controls</h4>
+            {circuitData.components.filter(c => c.type === 'battery').map(b => (
+              <div key={b.id}>
+                <label className="text-[10px] text-gray-600 dark:text-gray-400 flex justify-between">
+                  <span>{b.id} Voltage</span><span>{b.value}V</span>
+                </label>
+                <input type="range" min="1" max="24" step="0.5" value={b.value}
+                  onChange={e => updateBatteryVoltage(b.id, parseFloat(e.target.value))}
+                  className="w-full h-1 accent-green-500" />
+              </div>
+            ))}
+            {circuitData.components.filter(c => c.type === 'resistor').map(r => (
+              <div key={r.id}>
+                <label className="text-[10px] text-gray-600 dark:text-gray-400 flex justify-between">
+                  <span>{r.id}</span><span>{r.value}Ω</span>
+                </label>
+                <input type="range" min="10" max="1000" step="10" value={r.value}
+                  onChange={e => updateResistorValue(r.id, parseFloat(e.target.value))}
+                  className="w-full h-1 accent-orange-500" />
+              </div>
+            ))}
+          </div>
+          <label className="flex items-center gap-2 text-[10px] text-gray-500 dark:text-gray-400 cursor-pointer px-1">
             <input type="checkbox" checked={showValues} onChange={e => setShowValues(e.target.checked)} className="accent-yellow-500" />Show Values
           </label>
-          <div className="bg-yellow-950/30 border border-yellow-800/40 rounded-lg p-2.5">
-            <h4 className="text-[10px] font-semibold text-yellow-300 flex items-center gap-1 mb-1"><Info className="h-3 w-3"/>Ohm's Law</h4>
-            <div className="text-[9px] text-gray-400 space-y-0.5">
+          <div className="bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800/40 rounded-lg p-2.5">
+            <h4 className="text-[10px] font-semibold text-yellow-700 dark:text-yellow-300 flex items-center gap-1 mb-1"><Info className="h-3 w-3"/>Ohm's Law</h4>
+            <div className="text-[9px] text-gray-600 dark:text-gray-400 space-y-0.5">
               <p>V = I × R</p>
-              <p>Series: R_total = R₁ + R₂ + ...</p>
-              <p>Parallel: 1/R = 1/R₁ + 1/R₂ + ...</p>
+              <p>Series: R_total = R1 + R2 + ...</p>
+              <p>Parallel: 1/R = 1/R1 + 1/R2 + ...</p>
+            </div>
+          </div>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-1">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Analysis</h4>
+            <p className="text-[10px] text-gray-600 dark:text-gray-400">
+              Type: {circuitAnalysis.isParallel ? 'Parallel' : 'Series'}
+            </p>
+            <p className="text-[10px] text-gray-600 dark:text-gray-400">
+              R_total: {circuitAnalysis.totalR.toFixed(1)}Ω
+            </p>
+            <p className="text-[10px] text-gray-600 dark:text-gray-400">
+              I_total: {(circuitAnalysis.current * 1000).toFixed(1)}mA
+            </p>
+            <p className="text-[10px] text-gray-600 dark:text-gray-400">
+              P_total: {(circuitAnalysis.totalV * circuitAnalysis.current * 1000).toFixed(1)}mW
+            </p>
+            <div className="border-t border-gray-200 dark:border-gray-700 mt-1 pt-1 space-y-1">
+              {circuitAnalysis.resistorInfo.map(r => (
+                <div key={r.id} className="text-[9px] text-gray-500 dark:text-gray-500 pl-1 border-l-2 border-orange-300 dark:border-orange-700">
+                  <p className="font-medium text-gray-600 dark:text-gray-400">{r.id} ({r.value}Ω)</p>
+                  <p>V = {r.vDrop.toFixed(2)}V | I = {(r.current * 1000).toFixed(1)}mA</p>
+                  <p>P = {(r.power * 1000).toFixed(1)}mW</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>

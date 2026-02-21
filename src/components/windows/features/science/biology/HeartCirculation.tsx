@@ -18,50 +18,49 @@ export const HeartCirculation: React.FC = () => {
   const [selectedChamber, setSelectedChamber] = useState<string | null>(null);
   const nextId = useRef(0);
 
-  // Heart beat cycle
+  // Combined animation loop: heartbeat, particle movement, and particle spawning
   useEffect(() => {
-    if (!isPlaying) return;
-    const interval = setInterval(() => {
+    let animId: number;
+    let lastSpawnTime = 0;
+
+    const animate = (timestamp: number) => {
+      animId = requestAnimationFrame(animate);
+      if (!isPlaying) return;
+
+      // Heart beat cycle
       setBeatProgress(p => {
-        const increment = (heartRate / 60) * 2;
+        const increment = (heartRate / 60) * 0.97;
         const next = (p + increment) % 100;
         setPhase(next < 40 ? 'systole' : 'diastole');
         return next;
       });
-    }, 33);
-    return () => clearInterval(interval);
-  }, [isPlaying, heartRate]);
 
-  // Blood particle spawner
-  useEffect(() => {
-    if (!isPlaying) return;
-    const interval = setInterval(() => {
+      // Determine if we should spawn new particles (~every 800ms)
+      const shouldSpawn = timestamp - lastSpawnTime >= 800;
+      if (shouldSpawn) lastSpawnTime = timestamp;
+
+      // Animate particles and optionally spawn new ones
       setParticles(prev => {
-        const spawned: BloodParticle[] = [];
-        if (prev.filter(p => p.path === 'pulmonary').length < 6) {
-          spawned.push({ id: nextId.current++, path: 'pulmonary', progress: 0, oxygenated: false });
-        }
-        if (prev.filter(p => p.path === 'systemic').length < 6) {
-          spawned.push({ id: nextId.current++, path: 'systemic', progress: 0, oxygenated: true });
-        }
-        return [...prev, ...spawned];
-      });
-    }, 800);
-    return () => clearInterval(interval);
-  }, [isPlaying]);
+        let updated = prev
+          .map(p => ({ ...p, progress: p.progress + 0.73 }))
+          .filter(p => p.progress <= 100);
 
-  // Animate particles
-  useEffect(() => {
-    if (!isPlaying) return;
-    const interval = setInterval(() => {
-      setParticles(prev =>
-        prev
-          .map(p => ({ ...p, progress: p.progress + 1.5 }))
-          .filter(p => p.progress <= 100)
-      );
-    }, 33);
-    return () => clearInterval(interval);
-  }, [isPlaying]);
+        if (shouldSpawn) {
+          if (updated.filter(p => p.path === 'pulmonary').length < 6) {
+            updated = [...updated, { id: nextId.current++, path: 'pulmonary', progress: 0, oxygenated: false }];
+          }
+          if (updated.filter(p => p.path === 'systemic').length < 6) {
+            updated = [...updated, { id: nextId.current++, path: 'systemic', progress: 0, oxygenated: true }];
+          }
+        }
+
+        return updated;
+      });
+    };
+    animId = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(animId);
+  }, [isPlaying, heartRate]);
 
   const reset = () => {
     setIsPlaying(false);

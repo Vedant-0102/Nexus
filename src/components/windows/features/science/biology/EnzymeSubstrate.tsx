@@ -152,7 +152,8 @@ export const EnzymeSubstrate: React.FC = () => {
 
       // Draw
       ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = '#080c18'; ctx.fillRect(0, 0, w, h);
+      const isDark = document.documentElement.classList.contains('dark');
+      ctx.fillStyle = isDark ? '#080c18' : '#f8f9fc'; ctx.fillRect(0, 0, w, h);
 
       // Rate indicator
       const barH = h - 20;
@@ -160,7 +161,7 @@ export const EnzymeSubstrate: React.FC = () => {
       ctx.fillRect(w - 25, 10, 15, barH);
       ctx.fillStyle = `rgba(${Math.floor(255*(1-rate))},${Math.floor(255*rate)},80,0.6)`;
       ctx.fillRect(w - 25, 10 + barH * (1 - rate), 15, barH * rate);
-      ctx.fillStyle = 'rgba(200,200,255,0.4)'; ctx.font = '8px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillStyle = isDark ? 'rgba(200,200,255,0.4)' : 'rgba(30,40,80,0.4)'; ctx.font = '8px sans-serif'; ctx.textAlign = 'center';
       ctx.fillText('Rate', w - 17, h - 2);
 
       // Products
@@ -214,13 +215,13 @@ export const EnzymeSubstrate: React.FC = () => {
       });
 
       // Legend
-      ctx.fillStyle = 'rgba(200,200,255,0.5)'; ctx.font = '9px sans-serif'; ctx.textAlign = 'left';
+      ctx.fillStyle = isDark ? 'rgba(200,200,255,0.5)' : 'rgba(30,40,80,0.5)'; ctx.font = '9px sans-serif'; ctx.textAlign = 'left';
       ctx.fillStyle = 'rgba(255,180,60,0.8)'; ctx.fillRect(10, h - 50, 8, 8);
-      ctx.fillStyle = 'rgba(200,200,255,0.5)'; ctx.fillText('Substrate', 22, h - 43);
+      ctx.fillStyle = isDark ? 'rgba(200,200,255,0.5)' : 'rgba(30,40,80,0.5)'; ctx.fillText('Substrate', 22, h - 43);
       ctx.fillStyle = 'rgba(100,160,255,0.8)'; ctx.beginPath(); ctx.arc(14, h - 30, 5, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = 'rgba(200,200,255,0.5)'; ctx.fillText('Enzyme', 22, h - 27);
+      ctx.fillStyle = isDark ? 'rgba(200,200,255,0.5)' : 'rgba(30,40,80,0.5)'; ctx.fillText('Enzyme', 22, h - 27);
       ctx.fillStyle = 'rgba(100,220,100,0.7)'; ctx.beginPath(); ctx.moveTo(14, h - 18); ctx.lineTo(18, h - 10); ctx.lineTo(10, h - 10); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = 'rgba(200,200,255,0.5)'; ctx.fillText('Product', 22, h - 11);
+      ctx.fillStyle = isDark ? 'rgba(200,200,255,0.5)' : 'rgba(30,40,80,0.5)'; ctx.fillText('Product', 22, h - 11);
 
       animRef.current = requestAnimationFrame(step);
     };
@@ -229,13 +230,13 @@ export const EnzymeSubstrate: React.FC = () => {
   }, [running, temperature, pH, inhibitor, getReactionRate]);
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-gray-950 to-emerald-950 p-3 overflow-hidden">
+    <div className="h-full flex flex-col bg-gradient-to-br from-gray-100 to-emerald-100 dark:from-gray-950 dark:to-emerald-950 p-3 overflow-hidden">
       <div className="mb-2">
-        <h2 className="text-lg font-bold text-white">🔬 Enzyme-Substrate Interaction</h2>
-        <p className="text-[11px] text-gray-400">Lock-and-key model & Michaelis-Menten kinetics</p>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">🔬 Enzyme-Substrate Interaction</h2>
+        <p className="text-[11px] text-gray-500 dark:text-gray-400">Lock-and-key model & Michaelis-Menten kinetics</p>
       </div>
       <div className="flex-1 flex gap-3 min-h-0">
-        <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-800 overflow-hidden">
+        <div className="flex-1 min-w-0 min-h-0 rounded-lg border border-gray-300 dark:border-gray-800 overflow-hidden">
           <canvas ref={canvasRef} className="w-full h-full" />
         </div>
         <div className="w-[210px] flex flex-col gap-2 flex-shrink-0 overflow-y-auto">
@@ -243,42 +244,42 @@ export const EnzymeSubstrate: React.FC = () => {
             <button onClick={() => setRunning(!running)} className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded text-[10px] font-medium ${running ? 'bg-amber-600 text-white' : 'bg-emerald-600 text-white'}`}>
               {running ? <><Pause className="h-3 w-3" />Pause</> : <><Play className="h-3 w-3" />Start</>}
             </button>
-            <button onClick={init} className="px-2 py-1.5 rounded bg-gray-700 text-white text-[10px]"><RotateCcw className="h-3 w-3" /></button>
+            <button onClick={init} className="px-2 py-1.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white text-[10px]"><RotateCcw className="h-3 w-3" /></button>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-2">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase">Environment</h4>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-2">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Environment</h4>
             <div>
-              <label className="text-[10px] text-gray-400 flex justify-between"><span>Temperature</span><span>{temperature}°C</span></label>
+              <label className="text-[10px] text-gray-500 dark:text-gray-400 flex justify-between"><span>Temperature</span><span>{temperature}°C</span></label>
               <input type="range" min={0} max={80} value={temperature} onChange={e => setTemperature(+e.target.value)} className="w-full h-1 accent-orange-500" />
             </div>
             <div>
-              <label className="text-[10px] text-gray-400 flex justify-between"><span>pH</span><span>{pH.toFixed(1)}</span></label>
+              <label className="text-[10px] text-gray-500 dark:text-gray-400 flex justify-between"><span>pH</span><span>{pH.toFixed(1)}</span></label>
               <input type="range" min={1} max={14} step={0.5} value={pH} onChange={e => setPH(+e.target.value)} className="w-full h-1 accent-blue-500" />
             </div>
             <div>
-              <label className="text-[10px] text-gray-400 flex justify-between"><span>Substrates</span><span>{substrateConc}</span></label>
+              <label className="text-[10px] text-gray-500 dark:text-gray-400 flex justify-between"><span>Substrates</span><span>{substrateConc}</span></label>
               <input type="range" min={5} max={50} value={substrateConc} onChange={e => setSubstrateConc(+e.target.value)} className="w-full h-1 accent-yellow-500" />
             </div>
             <div>
-              <label className="text-[10px] text-gray-400 flex justify-between"><span>Enzymes</span><span>{enzymeCount}</span></label>
+              <label className="text-[10px] text-gray-500 dark:text-gray-400 flex justify-between"><span>Enzymes</span><span>{enzymeCount}</span></label>
               <input type="range" min={1} max={8} value={enzymeCount} onChange={e => setEnzymeCount(+e.target.value)} className="w-full h-1 accent-green-500" />
             </div>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3 space-y-1.5">
-            <h4 className="text-[11px] font-semibold text-gray-400 uppercase">Inhibitor</h4>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 space-y-1.5">
+            <h4 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">Inhibitor</h4>
             {(['none','competitive','noncompetitive'] as const).map(i => (
-              <button key={i} onClick={() => setInhibitor(i)} className={`block w-full text-left px-2 py-1 rounded text-[10px] ${inhibitor===i?'bg-red-700 text-white':'bg-gray-800 text-gray-400'}`}>
+              <button key={i} onClick={() => setInhibitor(i)} className={`block w-full text-left px-2 py-1 rounded text-[10px] ${inhibitor===i?'bg-red-700 text-white':'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'}`}>
                 {i === 'none' ? 'None' : i === 'competitive' ? 'Competitive' : 'Non-competitive'}
               </button>
             ))}
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
-            <div className="text-[10px] text-gray-400">Reactions completed: <span className="text-emerald-400 font-bold">{reactionCount}</span></div>
-            <div className="text-[10px] text-gray-400">Rate efficiency: <span className="text-blue-400 font-bold">{(getReactionRate() * 100).toFixed(0)}%</span></div>
+          <div className="bg-white/80 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3">
+            <div className="text-[10px] text-gray-500 dark:text-gray-400">Reactions completed: <span className="text-emerald-400 font-bold">{reactionCount}</span></div>
+            <div className="text-[10px] text-gray-500 dark:text-gray-400">Rate efficiency: <span className="text-blue-400 font-bold">{(getReactionRate() * 100).toFixed(0)}%</span></div>
           </div>
-          <div className="bg-emerald-950/30 border border-emerald-800/40 rounded-lg p-2.5">
-            <h4 className="text-[10px] font-semibold text-emerald-300 flex items-center gap-1 mb-1"><Info className="h-3 w-3" /> About</h4>
-            <p className="text-[9px] text-gray-400">Enzymes lower activation energy. Substrates fit into the active site (lock-and-key). Temperature and pH affect the enzyme's shape and activity. Inhibitors can block or slow reactions.</p>
+          <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 rounded-lg p-2.5">
+            <h4 className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 flex items-center gap-1 mb-1"><Info className="h-3 w-3" /> About</h4>
+            <p className="text-[9px] text-gray-600 dark:text-gray-400">Enzymes lower activation energy. Substrates fit into the active site (lock-and-key). Temperature and pH affect the enzyme's shape and activity. Inhibitors can block or slow reactions.</p>
           </div>
         </div>
       </div>
