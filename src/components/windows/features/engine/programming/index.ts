@@ -1,0 +1,12 @@
+export { PythonLab } from './PythonLab';
+export { JavaScriptLab } from './JavaScriptLab';
+export { CLab } from './CLab';
+export { CppLab } from './CppLab';
+export { JavaLab } from './JavaLab';
+export { CSharpLab } from './CSharpLab';
+export { TypeScriptLab } from './TypeScriptLab';
+export { GoLab } from './GoLab';
+export { RustLab } from './RustLab';
+export { SQLLab } from './SQLLab';
+export { HtmlCssLab } from './HtmlCssLab';
+export { NodeJsLab } from './NodeJsLab';

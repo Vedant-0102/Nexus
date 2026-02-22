@@ -3,7 +3,7 @@ import React from 'react';
 import { useWindows } from '../../context/WindowsContext';
 
 interface FolderContentProps {
-  type: 'games' | 'utilities' | 'office' | 'converters' | 'simulators' | 'chemistry' | 'physics' | 'biology' | 'engine' | 'engine-code' | 'engine-arch' | 'engine-dsa' | 'colors' | 'crypt' | 'math' | 'earth-space' | 'music' | 'networks' | 'editing' | 'cybersecurity' | 'machine-learning' | 'data-visualizer';
+  type: 'games' | 'utilities' | 'office' | 'converters' | 'simulators' | 'chemistry' | 'physics' | 'biology' | 'engine' | 'engine-code' | 'engine-arch' | 'engine-dsa' | 'colors' | 'crypt' | 'math' | 'earth-space' | 'music' | 'networks' | 'editing' | 'cybersecurity' | 'machine-learning' | 'data-visualizer' | 'programming';
 }
 
 export const FolderContent: React.FC<FolderContentProps> = ({ type }) => {
@@ -20,7 +20,7 @@ export const FolderContent: React.FC<FolderContentProps> = ({ type }) => {
     } else if (type === 'simulators') {
       return ['chemistry-folder-window', 'physics-folder-window', 'biology-folder-window', 'earth-space-folder-window', 'universe'].includes(app.id);
     } else if (type === 'engine') {
-      return ['engine-code-folder-window', 'engine-arch-folder-window', 'engine-dsa-folder-window', 'networks-folder-window', 'crypt-folder-window', 'cybersecurity-folder-window', 'machine-learning-folder-window', 'data-visualizer-folder-window'].includes(app.id);
+      return ['engine-code-folder-window', 'engine-arch-folder-window', 'engine-dsa-folder-window', 'networks-folder-window', 'crypt-folder-window', 'cybersecurity-folder-window', 'machine-learning-folder-window', 'data-visualizer-folder-window', 'programming-folder-window'].includes(app.id);
     } else if (type === 'engine-code') {
       return ['database', 'codeeditor', 'nocode', 'gitvisualizer', 'api-tester', 'texttohtml', 'markdowneditor', 'data-formatter', 'binary-converter', 'turing-machine'].includes(app.id);
     } else if (type === 'engine-arch') {
@@ -58,6 +58,8 @@ export const FolderContent: React.FC<FolderContentProps> = ({ type }) => {
       return ['data-visualizer-app', 'dashboard-builder'].includes(app.id);
     } else if (type === 'music') {
       return ['virtual-instruments', 'beat-sequencer', 'piano-roll', 'waveform-visualizer', 'effects-rack', 'chord-helper', 'music-theory', 'arpeggiator', 'sample-pad', 'daw-studio'].includes(app.id);
+    } else if (type === 'programming') {
+      return ['python-lab', 'javascript-lab', 'c-lab', 'cpp-lab', 'java-lab', 'csharp-lab', 'typescript-lab', 'go-lab', 'rust-lab', 'sql-lab', 'htmlcss-lab', 'nodejs-lab'].includes(app.id);
     }
     return false;
   });
@@ -86,6 +88,7 @@ export const FolderContent: React.FC<FolderContentProps> = ({ type }) => {
       case 'cybersecurity': return 'Cybersecurity Tools';
       case 'machine-learning': return 'Machine Learning';
       case 'data-visualizer': return 'Data Visualizer';
+      case 'programming': return 'Programming';
       default: return 'Folder';
     }
   };

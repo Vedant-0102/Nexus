@@ -218,6 +218,8 @@ import { SQLInjectionDemo, XSSSimulator, PhishingAnalyzer, PacketSnifferVisualiz
 import { AlgorithmExplainers, ParameterTuner, DatasetAnalyzer, TrainTestSplitVisualizer, ModelMetrics, BiasVarianceTradeoff, FeatureImportanceVisualizer, HyperparameterTuning, ModelComparison, ModelWizard, DeepLearningBuilder, GradientDescentSimulator } from '../features/engine/machine-learning';
 // Data Visualizer
 import { DataVisualizer, DashboardBuilder } from '../features/engine/data-visualizer';
+// Programming
+import { PythonLab, JavaScriptLab, CLab, CppLab, JavaLab, CSharpLab, TypeScriptLab, GoLab, RustLab, SQLLab, HtmlCssLab, NodeJsLab } from '../features/engine/programming';
 
 const BASE_ZINDEX = 100000;
 const FOLDER_ZINDEX = BASE_ZINDEX;
@@ -3754,6 +3756,139 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
         defaultSize: { width: 1200, height: 800 },
       },
+      // Programming Labs
+      {
+        id: 'python-lab',
+        title: 'Python',
+        content: <PythonLab />,
+        isOpen: openWindowIds.includes('python-lab'),
+        isMinimized: minimizedWindowIds.includes('python-lab'),
+        icon: <Code className="h-5 w-5 text-blue-500" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1100, height: 750 },
+      },
+      {
+        id: 'javascript-lab',
+        title: 'JavaScript',
+        content: <JavaScriptLab />,
+        isOpen: openWindowIds.includes('javascript-lab'),
+        isMinimized: minimizedWindowIds.includes('javascript-lab'),
+        icon: <Code className="h-5 w-5 text-yellow-500" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1100, height: 750 },
+      },
+      {
+        id: 'c-lab',
+        title: 'C',
+        content: <CLab />,
+        isOpen: openWindowIds.includes('c-lab'),
+        isMinimized: minimizedWindowIds.includes('c-lab'),
+        icon: <Code className="h-5 w-5 text-gray-500" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1100, height: 750 },
+      },
+      {
+        id: 'cpp-lab',
+        title: 'C++',
+        content: <CppLab />,
+        isOpen: openWindowIds.includes('cpp-lab'),
+        isMinimized: minimizedWindowIds.includes('cpp-lab'),
+        icon: <Code className="h-5 w-5 text-indigo-500" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1100, height: 750 },
+      },
+      {
+        id: 'java-lab',
+        title: 'Java',
+        content: <JavaLab />,
+        isOpen: openWindowIds.includes('java-lab'),
+        isMinimized: minimizedWindowIds.includes('java-lab'),
+        icon: <Code className="h-5 w-5 text-red-500" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1100, height: 750 },
+      },
+      {
+        id: 'csharp-lab',
+        title: 'C#',
+        content: <CSharpLab />,
+        isOpen: openWindowIds.includes('csharp-lab'),
+        isMinimized: minimizedWindowIds.includes('csharp-lab'),
+        icon: <Code className="h-5 w-5 text-purple-500" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1100, height: 750 },
+      },
+      {
+        id: 'typescript-lab',
+        title: 'TypeScript',
+        content: <TypeScriptLab />,
+        isOpen: openWindowIds.includes('typescript-lab'),
+        isMinimized: minimizedWindowIds.includes('typescript-lab'),
+        icon: <Code className="h-5 w-5 text-blue-600" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1100, height: 750 },
+      },
+      {
+        id: 'go-lab',
+        title: 'Go',
+        content: <GoLab />,
+        isOpen: openWindowIds.includes('go-lab'),
+        isMinimized: minimizedWindowIds.includes('go-lab'),
+        icon: <Code className="h-5 w-5 text-cyan-500" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1100, height: 750 },
+      },
+      {
+        id: 'rust-lab',
+        title: 'Rust',
+        content: <RustLab />,
+        isOpen: openWindowIds.includes('rust-lab'),
+        isMinimized: minimizedWindowIds.includes('rust-lab'),
+        icon: <Code className="h-5 w-5 text-orange-500" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1100, height: 750 },
+      },
+      {
+        id: 'sql-lab',
+        title: 'SQL',
+        content: <SQLLab />,
+        isOpen: openWindowIds.includes('sql-lab'),
+        isMinimized: minimizedWindowIds.includes('sql-lab'),
+        icon: <Code className="h-5 w-5 text-emerald-500" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1100, height: 750 },
+      },
+      {
+        id: 'htmlcss-lab',
+        title: 'HTML / CSS',
+        content: <HtmlCssLab />,
+        isOpen: openWindowIds.includes('htmlcss-lab'),
+        isMinimized: minimizedWindowIds.includes('htmlcss-lab'),
+        icon: <Code className="h-5 w-5 text-pink-500" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1100, height: 750 },
+      },
+      {
+        id: 'nodejs-lab',
+        title: 'Node.js',
+        content: <NodeJsLab />,
+        isOpen: openWindowIds.includes('nodejs-lab'),
+        isMinimized: minimizedWindowIds.includes('nodejs-lab'),
+        icon: <Code className="h-5 w-5 text-green-500" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1100, height: 750 },
+      },
     ];
 
     // Notepad removed from showing by default
@@ -4107,6 +4242,21 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
       isMaximizable: true,
     };
 
+    const programmingFolderWindow: WindowType = {
+      id: 'programming-folder-window',
+      title: 'Programming',
+      content: <FolderContent type="programming" />,
+      isOpen: openWindowIds.includes('programming-folder-window'),
+      isMinimized: minimizedWindowIds.includes('programming-folder-window'),
+      icon: <Code className="h-5 w-5 text-green-500" />,
+      zIndex: FOLDER_ZINDEX,
+      defaultSize: { width: 800, height: 600 },
+      showInStartMenu: false,
+      showInTaskbar: true,
+      isResizable: true,
+      isMaximizable: true,
+    };
+
     setWindows([
       ...portfolioWindows,
       ...utilityWindows,
@@ -4131,7 +4281,8 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
       editingFolderWindow,
       cybersecurityFolderWindow,
       machineLearningFolderWindow,
-      dataVisualizerFolderWindow
+      dataVisualizerFolderWindow,
+      programmingFolderWindow
     ]);
   };
 
