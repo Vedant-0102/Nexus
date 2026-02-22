@@ -1,2 +1,2 @@
-export { ImageEditor } from './ImageEditor';
-export { VideoEditor } from './VideoEditor';
+export { ImageEditor } from './ImageEditor/index';
+export { VideoEditor } from './VideoEditor/index';

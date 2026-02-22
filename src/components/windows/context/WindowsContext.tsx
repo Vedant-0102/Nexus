@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, useRef, useMemo, useCallback } from 'react';
 import { WindowType } from '../types/WindowTypes';
 import { WINDOW_THEMES, WALLPAPER_TO_THEME, WindowThemeName } from '../themes/windowThemes';
-import { Settings as SettingsIcon, Clock, FileText, Battery, Timer, Terminal as TerminalIcon, StickyNote, Gamepad, PaintBucket, Folder, Crown, Globe, RefreshCcw, Code, Layers, Flag, Cloud, Image, Table, Presentation, TrendingUp, Bitcoin, Trophy, Rocket, Briefcase, Repeat, FlaskConical, BarChart3, Beaker, Zap, Atom, QrCode, Plane, Ship, Palette, Sparkles, CheckCircle2, Eye, Newspaper, Cpu, Waves, Brain, ClipboardList, CheckSquare, Ruler, Weight, DollarSign, Sigma, Calculator, Grid3x3, PieChart, Calendar as CalendarIcon, GitBranch, Gauge, Thermometer, Droplet, Shield, Wind, Microscope, Dna, Heart, Circle, Lightbulb, Scan, Settings, Sun, Moon, Mountain, Star, Binary, CircuitBoard, MemoryStick, Cog, Wrench, Bolt, Lock, Key, Hash, Fingerprint, KeyRound, FileKey } from 'lucide-react';
+import { Settings as SettingsIcon, Clock, FileText, Battery, Timer, Terminal as TerminalIcon, StickyNote, Gamepad, PaintBucket, Folder, Crown, Globe, RefreshCcw, Code, Layers, Flag, Cloud, Image, Table, Presentation, TrendingUp, Bitcoin, Trophy, Rocket, Briefcase, Repeat, FlaskConical, BarChart3, Beaker, Zap, Atom, QrCode, Plane, Ship, Palette, Sparkles, CheckCircle2, Eye, Newspaper, Cpu, Waves, Brain, ClipboardList, CheckSquare, Ruler, Weight, DollarSign, Sigma, Calculator, Grid3x3, PieChart, Calendar as CalendarIcon, GitBranch, Gauge, Thermometer, Droplet, Shield, Wind, Microscope, Dna, Heart, Circle, Lightbulb, Scan, Settings, Sun, Moon, Mountain, Star, Binary, CircuitBoard, MemoryStick, Cog, Wrench, Bolt, Lock, Key, Hash, Fingerprint, KeyRound, FileKey, AlertTriangle, Bug, Users, Database } from 'lucide-react';
 import { Notepad } from '../features/office/Notepad';
 import { TextEditor } from '../features/office/TextEditor';
 import { FormBuilder } from '../features/office/FormBuilder';
@@ -210,9 +210,14 @@ import { VirtualInstruments, BeatSequencer, WaveformVisualizer, EffectsRack, Pia
 import { Music } from 'lucide-react';
 import { UUIDGenerator, TokenGenerator, HashingTool, HMACGenerator, BcryptTool, StringObfuscation, JWTDecoder, ClassicalCiphers, AESEncryption, RSASandbox } from '../features/cryptography';
 import { SubnetCalculator, IPv4Converter, IPv4RangeExpander, MACAddressTool, IPv6ULAGenerator } from '../features/networking';
-import { ImageEditor } from '../features/editing/ImageEditor';
-import { VideoEditor } from '../features/editing/VideoEditor';
+import { ImageEditor, VideoEditor } from '../features/editing';
 import { Network, Scissors } from 'lucide-react';
+// Cybersecurity Tools
+import { SQLInjectionDemo, XSSSimulator, PhishingAnalyzer, PacketSnifferVisualizer, FirewallRuleBuilder, PasswordCrackingDemo, CTFChallenge, CIATriadExplainer, SocialEngineeringWalkthroughs, OWASPTop10, PortScannerVisualizer, VulnerabilityScanningDemo } from '../features/engine/cybersecurity';
+// Machine Learning
+import { AlgorithmExplainers, ParameterTuner, DatasetAnalyzer, TrainTestSplitVisualizer, ModelMetrics, BiasVarianceTradeoff, FeatureImportanceVisualizer, HyperparameterTuning, ModelComparison, ModelWizard, DeepLearningBuilder, GradientDescentSimulator } from '../features/engine/machine-learning';
+// Data Visualizer
+import { DataVisualizer, DashboardBuilder } from '../features/engine/data-visualizer';
 
 const BASE_ZINDEX = 100000;
 const FOLDER_ZINDEX = BASE_ZINDEX;
@@ -3460,6 +3465,295 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         isMaximizable: true,
         defaultSize: { width: 1400, height: 900 },
       },
+      // Cybersecurity Tools
+      {
+        id: 'sql-injection-demo',
+        title: 'SQL Injection Demo',
+        content: <SQLInjectionDemo />,
+        isOpen: openWindowIds.includes('sql-injection-demo'),
+        isMinimized: minimizedWindowIds.includes('sql-injection-demo'),
+        icon: <Database className="h-5 w-5 text-red-600" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1000, height: 700 },
+      },
+      {
+        id: 'xss-simulator',
+        title: 'XSS Simulator',
+        content: <XSSSimulator />,
+        isOpen: openWindowIds.includes('xss-simulator'),
+        isMinimized: minimizedWindowIds.includes('xss-simulator'),
+        icon: <Bug className="h-5 w-5 text-orange-600" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1000, height: 700 },
+      },
+      {
+        id: 'phishing-analyzer',
+        title: 'Phishing Analyzer',
+        content: <PhishingAnalyzer />,
+        isOpen: openWindowIds.includes('phishing-analyzer'),
+        isMinimized: minimizedWindowIds.includes('phishing-analyzer'),
+        icon: <Eye className="h-5 w-5 text-yellow-600" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 900, height: 650 },
+      },
+      {
+        id: 'packet-sniffer',
+        title: 'Packet Sniffer Visualizer',
+        content: <PacketSnifferVisualizer />,
+        isOpen: openWindowIds.includes('packet-sniffer'),
+        isMinimized: minimizedWindowIds.includes('packet-sniffer'),
+        icon: <Waves className="h-5 w-5 text-cyan-600" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1100, height: 700 },
+      },
+      {
+        id: 'firewall-builder',
+        title: 'Firewall Rule Builder',
+        content: <FirewallRuleBuilder />,
+        isOpen: openWindowIds.includes('firewall-builder'),
+        isMinimized: minimizedWindowIds.includes('firewall-builder'),
+        icon: <Shield className="h-5 w-5 text-blue-600" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1000, height: 700 },
+      },
+      {
+        id: 'password-cracking',
+        title: 'Password Cracking Demo',
+        content: <PasswordCrackingDemo />,
+        isOpen: openWindowIds.includes('password-cracking'),
+        isMinimized: minimizedWindowIds.includes('password-cracking'),
+        icon: <Lock className="h-5 w-5 text-red-500" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 900, height: 650 },
+      },
+      {
+        id: 'ctf-challenge',
+        title: 'CTF Challenge',
+        content: <CTFChallenge />,
+        isOpen: openWindowIds.includes('ctf-challenge'),
+        isMinimized: minimizedWindowIds.includes('ctf-challenge'),
+        icon: <Flag className="h-5 w-5 text-green-600" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1000, height: 700 },
+      },
+      {
+        id: 'cia-triad',
+        title: 'CIA Triad Explainer',
+        content: <CIATriadExplainer />,
+        isOpen: openWindowIds.includes('cia-triad'),
+        isMinimized: minimizedWindowIds.includes('cia-triad'),
+        icon: <Shield className="h-5 w-5 text-indigo-600" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 900, height: 650 },
+      },
+      {
+        id: 'social-engineering',
+        title: 'Social Engineering Walkthroughs',
+        content: <SocialEngineeringWalkthroughs />,
+        isOpen: openWindowIds.includes('social-engineering'),
+        isMinimized: minimizedWindowIds.includes('social-engineering'),
+        icon: <Users className="h-5 w-5 text-purple-600" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 900, height: 700 },
+      },
+      {
+        id: 'owasp-top10',
+        title: 'OWASP Top 10',
+        content: <OWASPTop10 />,
+        isOpen: openWindowIds.includes('owasp-top10'),
+        isMinimized: minimizedWindowIds.includes('owasp-top10'),
+        icon: <AlertTriangle className="h-5 w-5 text-amber-600" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1000, height: 700 },
+      },
+      {
+        id: 'port-scanner',
+        title: 'Port Scanner Visualizer',
+        content: <PortScannerVisualizer />,
+        isOpen: openWindowIds.includes('port-scanner'),
+        isMinimized: minimizedWindowIds.includes('port-scanner'),
+        icon: <Scan className="h-5 w-5 text-teal-600" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1000, height: 700 },
+      },
+      {
+        id: 'vulnerability-scanning',
+        title: 'Vulnerability Scanning Demo',
+        content: <VulnerabilityScanningDemo />,
+        isOpen: openWindowIds.includes('vulnerability-scanning'),
+        isMinimized: minimizedWindowIds.includes('vulnerability-scanning'),
+        icon: <Bug className="h-5 w-5 text-red-500" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1000, height: 700 },
+      },
+      // Machine Learning
+      {
+        id: 'algorithm-explainers',
+        title: 'Algorithm Explainers',
+        content: <AlgorithmExplainers />,
+        isOpen: openWindowIds.includes('algorithm-explainers'),
+        isMinimized: minimizedWindowIds.includes('algorithm-explainers'),
+        icon: <Brain className="h-5 w-5 text-purple-600" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1000, height: 700 },
+      },
+      {
+        id: 'parameter-tuner',
+        title: 'Parameter Tuner',
+        content: <ParameterTuner />,
+        isOpen: openWindowIds.includes('parameter-tuner'),
+        isMinimized: minimizedWindowIds.includes('parameter-tuner'),
+        icon: <Cog className="h-5 w-5 text-blue-600" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 900, height: 650 },
+      },
+      {
+        id: 'dataset-analyzer',
+        title: 'Dataset Analyzer',
+        content: <DatasetAnalyzer />,
+        isOpen: openWindowIds.includes('dataset-analyzer'),
+        isMinimized: minimizedWindowIds.includes('dataset-analyzer'),
+        icon: <Table className="h-5 w-5 text-green-600" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1000, height: 700 },
+      },
+      {
+        id: 'train-test-split',
+        title: 'Train/Test Split Visualizer',
+        content: <TrainTestSplitVisualizer />,
+        isOpen: openWindowIds.includes('train-test-split'),
+        isMinimized: minimizedWindowIds.includes('train-test-split'),
+        icon: <Scissors className="h-5 w-5 text-orange-600" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 900, height: 650 },
+      },
+      {
+        id: 'model-metrics',
+        title: 'Model Metrics',
+        content: <ModelMetrics />,
+        isOpen: openWindowIds.includes('model-metrics'),
+        isMinimized: minimizedWindowIds.includes('model-metrics'),
+        icon: <BarChart3 className="h-5 w-5 text-cyan-600" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1000, height: 700 },
+      },
+      {
+        id: 'bias-variance',
+        title: 'Bias-Variance Tradeoff',
+        content: <BiasVarianceTradeoff />,
+        isOpen: openWindowIds.includes('bias-variance'),
+        isMinimized: minimizedWindowIds.includes('bias-variance'),
+        icon: <TrendingUp className="h-5 w-5 text-red-600" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 900, height: 650 },
+      },
+      {
+        id: 'feature-importance',
+        title: 'Feature Importance Visualizer',
+        content: <FeatureImportanceVisualizer />,
+        isOpen: openWindowIds.includes('feature-importance'),
+        isMinimized: minimizedWindowIds.includes('feature-importance'),
+        icon: <Layers className="h-5 w-5 text-indigo-600" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 900, height: 650 },
+      },
+      {
+        id: 'hyperparameter-tuning',
+        title: 'Hyperparameter Tuning',
+        content: <HyperparameterTuning />,
+        isOpen: openWindowIds.includes('hyperparameter-tuning'),
+        isMinimized: minimizedWindowIds.includes('hyperparameter-tuning'),
+        icon: <Wrench className="h-5 w-5 text-amber-600" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1000, height: 700 },
+      },
+      {
+        id: 'model-comparison',
+        title: 'Model Comparison',
+        content: <ModelComparison />,
+        isOpen: openWindowIds.includes('model-comparison'),
+        isMinimized: minimizedWindowIds.includes('model-comparison'),
+        icon: <GitBranch className="h-5 w-5 text-teal-600" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1000, height: 700 },
+      },
+      {
+        id: 'model-wizard',
+        title: 'Model Wizard',
+        content: <ModelWizard />,
+        isOpen: openWindowIds.includes('model-wizard'),
+        isMinimized: minimizedWindowIds.includes('model-wizard'),
+        icon: <Sparkles className="h-5 w-5 text-purple-500" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 900, height: 700 },
+      },
+      {
+        id: 'deep-learning-builder',
+        title: 'Deep Learning Builder',
+        content: <DeepLearningBuilder />,
+        isOpen: openWindowIds.includes('deep-learning-builder'),
+        isMinimized: minimizedWindowIds.includes('deep-learning-builder'),
+        icon: <CircuitBoard className="h-5 w-5 text-blue-500" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1100, height: 750 },
+      },
+      {
+        id: 'gradient-descent',
+        title: 'Gradient Descent Simulator',
+        content: <GradientDescentSimulator />,
+        isOpen: openWindowIds.includes('gradient-descent'),
+        isMinimized: minimizedWindowIds.includes('gradient-descent'),
+        icon: <TrendingUp className="h-5 w-5 text-green-500" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 900, height: 650 },
+      },
+      // Data Visualizer
+      {
+        id: 'data-visualizer-app',
+        title: 'Data Visualizer',
+        content: <DataVisualizer />,
+        isOpen: openWindowIds.includes('data-visualizer-app'),
+        isMinimized: minimizedWindowIds.includes('data-visualizer-app'),
+        icon: <PieChart className="h-5 w-5 text-blue-600" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1100, height: 750 },
+      },
+      {
+        id: 'dashboard-builder',
+        title: 'Dashboard Builder',
+        content: <DashboardBuilder />,
+        isOpen: openWindowIds.includes('dashboard-builder'),
+        isMinimized: minimizedWindowIds.includes('dashboard-builder'),
+        icon: <Grid3x3 className="h-5 w-5 text-indigo-600" />,
+        zIndex: APP_ZINDEX,
+        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
+        defaultSize: { width: 1200, height: 800 },
+      },
     ];
 
     // Notepad removed from showing by default
@@ -3768,6 +4062,51 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
       isMaximizable: true,
     };
 
+    const cybersecurityFolderWindow: WindowType = {
+      id: 'cybersecurity-folder-window',
+      title: 'Cybersecurity Tools',
+      content: <FolderContent type="cybersecurity" />,
+      isOpen: openWindowIds.includes('cybersecurity-folder-window'),
+      isMinimized: minimizedWindowIds.includes('cybersecurity-folder-window'),
+      icon: <Shield className="h-5 w-5 text-red-500" />,
+      zIndex: FOLDER_ZINDEX,
+      defaultSize: { width: 800, height: 600 },
+      showInStartMenu: false,
+      showInTaskbar: true,
+      isResizable: true,
+      isMaximizable: true,
+    };
+
+    const machineLearningFolderWindow: WindowType = {
+      id: 'machine-learning-folder-window',
+      title: 'Machine Learning',
+      content: <FolderContent type="machine-learning" />,
+      isOpen: openWindowIds.includes('machine-learning-folder-window'),
+      isMinimized: minimizedWindowIds.includes('machine-learning-folder-window'),
+      icon: <Brain className="h-5 w-5 text-purple-500" />,
+      zIndex: FOLDER_ZINDEX,
+      defaultSize: { width: 800, height: 600 },
+      showInStartMenu: false,
+      showInTaskbar: true,
+      isResizable: true,
+      isMaximizable: true,
+    };
+
+    const dataVisualizerFolderWindow: WindowType = {
+      id: 'data-visualizer-folder-window',
+      title: 'Data Visualizer',
+      content: <FolderContent type="data-visualizer" />,
+      isOpen: openWindowIds.includes('data-visualizer-folder-window'),
+      isMinimized: minimizedWindowIds.includes('data-visualizer-folder-window'),
+      icon: <PieChart className="h-5 w-5 text-blue-500" />,
+      zIndex: FOLDER_ZINDEX,
+      defaultSize: { width: 800, height: 600 },
+      showInStartMenu: false,
+      showInTaskbar: true,
+      isResizable: true,
+      isMaximizable: true,
+    };
+
     setWindows([
       ...portfolioWindows,
       ...utilityWindows,
@@ -3789,7 +4128,10 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
       engineArchFolderWindow,
       engineDsaFolderWindow,
       networksFolderWindow,
-      editingFolderWindow
+      editingFolderWindow,
+      cybersecurityFolderWindow,
+      machineLearningFolderWindow,
+      dataVisualizerFolderWindow
     ]);
   };
 
