@@ -1,12 +1,18 @@
-import React, { useState, useCallback } from 'react';
-import { ChevronLeft, ChevronDown, ChevronRight, Eye, EyeOff, Check, X, Clock, RotateCcw, Flag, Trophy, Star, Lock, Unlock, Play, Pause, Wrench, BookOpen, Terminal } from 'lucide-react';
+import React, { useState, useCallback, useEffect } from 'react';
+import {
+  ChevronLeft, ChevronDown, ChevronRight, Eye, EyeOff, Check, X,
+  Clock, RotateCcw, Flag, Trophy, Star, Lock, Unlock, Play, Pause,
+  Wrench, BookOpen, Terminal,
+} from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 type MainTab = 'learn' | 'sandbox';
 type Category = 'crypto' | 'web' | 'forensics' | 'reverse' | 'misc';
 type Difficulty = 'Easy' | 'Medium' | 'Hard';
-type WorkspaceTool = 'base64' | 'hex' | 'caesar';
+type WorkspaceTool =
+  | 'base64' | 'hex' | 'caesar' | 'xor' | 'binary'
+  | 'decimal' | 'url' | 'rot47' | 'morse' | 'octal' | 'reverse';
 
 interface Challenge {
   id: string;
@@ -18,6 +24,9 @@ interface Challenge {
   hints: string[];
   flag: string;
   solution: string;
+  tool?: WorkspaceTool;
+  data?: string;
+  codeSnippet?: string;
 }
 
 // ─── Challenge Data ──────────────────────────────────────────────────────────
@@ -40,6 +49,8 @@ const CHALLENGES: Challenge[] = [
     flag: 'FLAG{base64_is_not_encryption}',
     solution:
       'Base64 is an encoding, not encryption. Decoding "RkxBR3tiYXNlNjRfaXNfbm90X2VuY3J5cHRpb259" directly yields the flag. Use the Base64 tool in the Workspace or any online decoder.',
+    tool: 'base64',
+    data: 'RkxBR3tiYXNlNjRfaXNfbm90X2VuY3J5cHRpb259',
   },
   {
     id: 'crypto-2',
@@ -57,6 +68,8 @@ const CHALLENGES: Challenge[] = [
     flag: 'FLAG{caesar_cipher_is_classical}',
     solution:
       'Shift every letter back by 3 positions. I->F, O->L, D->A, J->G giving "FLAG". Continue for the rest. Use the Caesar cipher tool in the Workspace with shift 23 (or -3).',
+    tool: 'caesar',
+    data: 'IODJ{fdhvdu_flskhu_lv_fodvvlfdo}',
   },
   {
     id: 'crypto-3',
@@ -74,6 +87,8 @@ const CHALLENGES: Challenge[] = [
     flag: 'FLAG{hex_encoding_unveiled}',
     solution:
       'Convert each hex pair to its decimal value, then map to ASCII. 46->F, 4c->L, 41->A, 47->G, 7b->{, and so on. The Workspace hex decoder handles this automatically.',
+    tool: 'hex',
+    data: '464c41477b6865785f656e636f64696e675f756e7665696c65647d',
   },
   {
     id: 'crypto-4',
@@ -92,6 +107,46 @@ const CHALLENGES: Challenge[] = [
     flag: 'FLAG{xor_single_byte_cracked}',
     solution:
       'Use known-plaintext attack: the first byte 0x27 XOR "F"(0x46) = 0x61, which is the key. XOR each ciphertext byte with 0x61 to recover the full plaintext.',
+    tool: 'xor',
+    data: '27 39 26 24 58 41 4c 4e 52 46 4b 58 45 52 46 46 4a 58 52 40 44 48 5c',
+  },
+  {
+    id: 'crypto-5',
+    category: 'crypto',
+    title: 'Decimal Disguise',
+    difficulty: 'Medium',
+    points: 100,
+    description:
+      'We found a sequence of numbers that the suspect claimed was a "decimal log." Something feels off about the values...\n\nDecimal sequence:\n70 76 65 71 123 110 117 109 98 101 114 115 95 97 114 101 95 99 104 97 114 115 125',
+    hints: [
+      'Each number is less than 128 — what could they represent?',
+      '70=F, 76=L, 65=A, 71=G in ASCII.',
+      'Use the Decimal tool in the Workspace to convert them all at once.',
+    ],
+    flag: 'FLAG{numbers_are_chars}',
+    solution:
+      'Each decimal value is an ASCII code. 70=F, 76=L, 65=A, 71=G, 123={, 110=n, 117=u, 109=m, 98=b, 101=e, 114=r, 115=s, 95=_, 97=a, 114=r, 101=e, 95=_, 99=c, 104=h, 97=a, 114=r, 115=s, 125=}.',
+    tool: 'decimal',
+    data: '70 76 65 71 123 110 117 109 98 101 114 115 95 97 114 101 95 99 104 97 114 115 125',
+  },
+  {
+    id: 'crypto-6',
+    category: 'crypto',
+    title: 'ROT47 Rotation',
+    difficulty: 'Easy',
+    points: 75,
+    description:
+      "ROT47 is a variant of ROT13 but for all printable ASCII characters (33-126). It rotates them by 47 positions. Unlike ROT13 which only shifts letters, ROT47 shifts numbers and symbols too — making it look far more encrypted than it is.\n\nEncoded message:\nu{pvLC_E0cfN",
+    hints: [
+      'ROT47 rotates ASCII codes 33-126 by 47 positions.',
+      'ROT47 is self-inverse: applying it twice returns the original.',
+      'Use the ROT47 tool in the Workspace.',
+    ],
+    flag: 'FLAG{r0t_47}',
+    solution:
+      'Apply ROT47 to each character: u→F, {→L, p→A, v→G, L→{, C→r, _→0, E→t, 0→_, c→4, f→7, N→}. Result: FLAG{r0t_47}.',
+    tool: 'rot47',
+    data: 'u{pvLC_E0cfN',
   },
 
   // ── Web Security ──
@@ -128,6 +183,8 @@ const CHALLENGES: Challenge[] = [
     flag: 'FLAG{cookies_store_secrets}',
     solution:
       'Base64 decode the cookie value. It decodes to a JSON string: {"user":"admin","flag":"FLAG{cookies_store_secrets}"}. Cookies should never store sensitive data in plaintext or simple encoding.',
+    tool: 'base64',
+    data: 'eyJ1c2VyIjoiYWRtaW4iLCJmbGFnIjoiRkxBR3tjb29raWVzX3N0b3JlX3NlY3JldHN9In0=',
   },
   {
     id: 'web-3',
@@ -145,6 +202,25 @@ const CHALLENGES: Challenge[] = [
     flag: 'FLAG{url_params_are_visible}',
     solution:
       'First URL-decode %3D to "=", giving Base64 string "RkxBR3t1cmxfcGFyYW1zX2FyZV92aXNpYmxlfQ==". Then Base64 decode to get the flag. URL parameters are visible to anyone inspecting network traffic.',
+    tool: 'url',
+    data: 'RkxBR3t1cmxfcGFyYW1zX2FyZV92aXNpYmxlfQ%3D%3D',
+  },
+  {
+    id: 'web-4',
+    category: 'web',
+    title: 'robots.txt Recon',
+    difficulty: 'Easy',
+    points: 75,
+    description:
+      'During reconnaissance on a target, you found the robots.txt file. Web developers use this file to tell search engine crawlers which paths to ignore — but it also reveals sensitive directories to attackers.\n\nGET /robots.txt HTTP/1.1\nHost: target.example.com\n\nHTTP/1.1 200 OK\nContent-Type: text/plain\n\nUser-agent: *\nDisallow: /admin/\nDisallow: /api/internal/\nDisallow: /backup_2024/\n\n# Security audit note — do not deploy with this comment:\n# FLAG{robots_txt_is_not_security}',
+    hints: [
+      'robots.txt is publicly accessible to everyone, not just crawlers.',
+      'Read the file carefully — comments are lines starting with #.',
+      'The flag is right there in the file — this is why robots.txt should never contain sensitive info.',
+    ],
+    flag: 'FLAG{robots_txt_is_not_security}',
+    solution:
+      'The flag is in a comment in robots.txt. This illustrates a real-world mistake: developers assume bots ignore Disallow directives for security, but attackers read robots.txt specifically to find hidden paths and sensitive comments.',
   },
 
   // ── Forensics ──
@@ -164,6 +240,8 @@ const CHALLENGES: Challenge[] = [
     flag: 'FLAG{binary_to_text}',
     solution:
       'Convert each 8-bit binary group to decimal, then look up the ASCII character. 01000110->70->F, 01001100->76->L, and so on.',
+    tool: 'binary',
+    data: '01000110 01001100 01000001 01000111 01111011 01100010 01101001 01101110 01100001 01110010 01111001 01011111 01110100 01101111 01011111 01110100 01100101 01111000 01110100 01111101',
   },
   {
     id: 'forensics-2',
@@ -172,7 +250,7 @@ const CHALLENGES: Challenge[] = [
     difficulty: 'Medium',
     points: 125,
     description:
-      'Steganography hides data within innocent-looking content. Read the first letter of each line in this "poem" to reveal a secret message:\n\nForever watching, the hawk soars high\nLanding softly on the ancient tree\nAlways searching for its prey below\nGliding through the evening sky\n{\nSilently it waits with eyes so keen\nThrough darkness and through light\nEach moment captured, nothing missed\nGently floating, a beautiful sight\nAlthough unseen, it\'s always there\nNesting high above the ground\nOver mountains, plains, and sea\n}',
+      "Steganography hides data within innocent-looking content. Read the first letter of each line in this \"poem\" to reveal a secret message:\n\nForever watching, the hawk soars high\nLanding softly on the ancient tree\nAlways searching for its prey below\nGliding through the evening sky\n{\nSilently it waits with eyes so keen\nThrough darkness and through light\nEach moment captured, nothing missed\nGently floating, a beautiful sight\nAlthough unseen, it's always there\nNesting high above the ground\nOver mountains, plains, and sea\n}",
     hints: [
       'Read only the FIRST character of each line.',
       'The lines starting with { and } are literal bracket characters.',
@@ -198,6 +276,27 @@ const CHALLENGES: Challenge[] = [
     flag: 'FLAG{timestamp_analysis}',
     solution:
       'The "timestamps" are actually ASCII codes. Convert each decimal value to its character: 70=F, 76=L, 65=A, 71=G, 123={, 116=t, 105=i, 109=m, etc.',
+    tool: 'decimal',
+    data: '70 76 65 71 123 116 105 109 101 115 116 97 109 112 95 97 110 97 108 121 115 105 115 125',
+  },
+  {
+    id: 'forensics-4',
+    category: 'forensics',
+    title: 'Magic Bytes',
+    difficulty: 'Medium',
+    points: 125,
+    description:
+      "A suspicious file was found on a compromised server with no file extension. The hex dump of the first 8 bytes is:\n\n89 50 4E 47 0D 0A 1A 0A\n\nFile magic bytes (also called file signatures) identify a file's true format regardless of its extension. Forensic analysts use these to recover and classify files. Use the Hex tool to inspect the bytes — three of them spell out the file type.\n\nSubmit the flag once you identify the format: FLAG{FILETYPE_magic_bytes}",
+    hints: [
+      'Ignore 0x89 (a non-printable byte) and 0x0D, 0x0A, 0x1A, 0x0A — focus on bytes 50, 4E, 47.',
+      '0x50=P, 0x4E=N, 0x47=G. What popular image format has those three letters?',
+      'PNG files always begin with the bytes 89 50 4E 47. Substitute the file type into the flag format.',
+    ],
+    flag: 'FLAG{PNG_magic_bytes}',
+    solution:
+      'Hex-decode 50→P, 4E→N, 47→G to reveal "PNG". This is the PNG image file signature. Every PNG file must start with 89 50 4E 47 (\\x89PNG). Magic bytes allow file type identification even when extensions are wrong or missing.',
+    tool: 'hex',
+    data: '89 50 4E 47 0D 0A 1A 0A',
   },
 
   // ── Reverse Engineering ──
@@ -217,6 +316,8 @@ const CHALLENGES: Challenge[] = [
     flag: 'FLAG{string_is_reversed.}',
     solution:
       'The function reverses the target string and compares it to input. Reversing "}.desrever_si_gnirts{GALF" gives "FLAG{string_is_reversed.}".',
+    tool: 'reverse',
+    data: '}.desrever_si_gnirts{GALF',
   },
   {
     id: 'reverse-2',
@@ -252,6 +353,27 @@ const CHALLENGES: Challenge[] = [
     solution:
       'Decode each charCodeAt value (70=F, 76=L, 65=A, 71=G), combine with the literal checks for "{", the slice "d30bfu5c4t3d", and "}". The accepted input is "FLAG{d30bfu5c4t3d}".',
   },
+  {
+    id: 'reverse-4',
+    category: 'reverse',
+    title: 'Code Tracer',
+    difficulty: 'Medium',
+    points: 150,
+    description:
+      'Trace through this JavaScript code to determine what it prints. You can use the Code Runner below to execute it directly, or work it out mentally using the Decimal tool.\n\nconst arr = [70, 76, 65, 71, 123, 99, 111, 100, 101, 95, 114, 117, 110, 110, 101, 114, 125];\nconst flag = arr.map(n => String.fromCharCode(n)).join("");\nconsole.log(flag);',
+    hints: [
+      'String.fromCharCode(n) converts a decimal ASCII code to its character.',
+      '70=F, 76=L, 65=A, 71=G, 123={ — this is the flag format!',
+      'Either run the code in the Code Runner, or use the Decimal tool with: 70 76 65 71 123 99 111 100 101 95 114 117 110 110 101 114 125',
+    ],
+    flag: 'FLAG{code_runner}',
+    solution:
+      'Each number maps to an ASCII character: 70=F, 76=L, 65=A, 71=G, 123={, 99=c, 111=o, 100=d, 101=e, 95=_, 114=r, 117=u, 110=n, 110=n, 101=e, 114=r, 125=}. Result: FLAG{code_runner}.',
+    tool: 'decimal',
+    data: '70 76 65 71 123 99 111 100 101 95 114 117 110 110 101 114 125',
+    codeSnippet:
+      'const arr = [70, 76, 65, 71, 123, 99, 111, 100, 101, 95, 114, 117, 110, 110, 101, 114, 125];\nconst flag = arr.map(n => String.fromCharCode(n)).join("");\nconsole.log(flag);',
+  },
 
   // ── Misc ──
   {
@@ -270,6 +392,8 @@ const CHALLENGES: Challenge[] = [
     flag: 'FLAG{MORSE_CODE}',
     solution:
       'Decode each Morse group: ..-.=F, .-..=L, .-=A, --.=G, {, --=M, ---=O, .-.=R, ...=S, .=E, ..--.-=_, -.-.=C, ---=O, -..=D, .=E, }. Result: FLAG{MORSE_CODE}.',
+    tool: 'morse',
+    data: '..-. .-.. .- --. { -- --- .-. ... . ..--.- -.-. --- -.. . }',
   },
   {
     id: 'misc-2',
@@ -287,6 +411,8 @@ const CHALLENGES: Challenge[] = [
     flag: 'FLAG{rot13_is_its_own_inverse}',
     solution:
       'Apply ROT13 letter substitution: S->F, Y->L, N->A, T->G, {, e->r, b->o, g->t, 1->1, 3->3, _->_, v->i, f->s, _->_, i->v, g->t, f->s, _->_, b->o, j->w, a->n, _->_, v->i, a->n, i->v, r->e, e->r, f->s, r->e, }.',
+    tool: 'caesar',
+    data: 'SYNT{ebg13_vf_vgf_bja_vairefr}',
   },
   {
     id: 'misc-3',
@@ -304,29 +430,95 @@ const CHALLENGES: Challenge[] = [
     flag: 'FLAG{octal_fun}',
     solution:
       'Convert each octal number to decimal, then to ASCII: 106->70->F, 114->76->L, 101->65->A, 107->71->G, 173->123->{, 157->111->o, 143->99->c, 164->116->t, 141->97->a, 154->108->l, 137->95->_, 146->102->f, 165->117->u, 156->110->n, 175->125->}.',
+    tool: 'octal',
+    data: '106 114 101 107 173 157 143 164 141 154 137 146 165 156 175',
+  },
+  {
+    id: 'misc-4',
+    category: 'misc',
+    title: 'URL Encoded Secret',
+    difficulty: 'Easy',
+    points: 75,
+    description:
+      'A form submission was intercepted with this URL-encoded POST body. Decode it to find the hidden flag.\n\nPOST /submit HTTP/1.1\nContent-Type: application/x-www-form-urlencoded\n\nusername=admin&secret=%46%4C%41%47%7B%75%72%6C%5F%65%6E%63%6F%64%69%6E%67%7D',
+    hints: [
+      'URL encoding uses %XX where XX is a hex byte value.',
+      '%46=F, %4C=L, %41=A, %47=G, %7B={, %7D=}',
+      'Use the URL tool in the Workspace to decode %46%4C%41%47%7B%75%72%6C%5F%65%6E%63%6F%64%69%6E%67%7D',
+    ],
+    flag: 'FLAG{url_encoding}',
+    solution:
+      'URL-decode each %XX: %46=F, %4C=L, %41=A, %47=G, %7B={, %75=u, %72=r, %6C=l, %5F=_, %65=e, %6E=n, %63=c, %6F=o, %64=d, %69=i, %6E=n, %67=g, %7D=}. Result: FLAG{url_encoding}.',
+    tool: 'url',
+    data: '%46%4C%41%47%7B%75%72%6C%5F%65%6E%63%6F%64%69%6E%67%7D',
   },
 ];
 
+// ─── Meta ─────────────────────────────────────────────────────────────────────
+
 const CATEGORY_META: { id: Category; label: string; color: string }[] = [
-  { id: 'crypto', label: 'Cryptography', color: 'from-amber-500 to-orange-500' },
-  { id: 'web', label: 'Web Security', color: 'from-blue-500 to-cyan-500' },
-  { id: 'forensics', label: 'Forensics', color: 'from-green-500 to-emerald-500' },
-  { id: 'reverse', label: 'Reverse Eng.', color: 'from-purple-500 to-pink-500' },
-  { id: 'misc', label: 'Misc', color: 'from-red-500 to-rose-500' },
+  { id: 'crypto',    label: 'Cryptography', color: 'from-amber-500 to-orange-500' },
+  { id: 'web',       label: 'Web Security', color: 'from-blue-500 to-cyan-500' },
+  { id: 'forensics', label: 'Forensics',    color: 'from-green-500 to-emerald-500' },
+  { id: 'reverse',   label: 'Reverse Eng.', color: 'from-purple-500 to-pink-500' },
+  { id: 'misc',      label: 'Misc',         color: 'from-red-500 to-rose-500' },
 ];
 
 const DIFF_STYLES: Record<Difficulty, string> = {
-  Easy: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400',
+  Easy:   'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400',
   Medium: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400',
-  Hard: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400',
+  Hard:   'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400',
 };
 
-// ─── Learn Tab Sections ──────────────────────────────────────────────────────
+const TOOL_LABELS: Record<WorkspaceTool, string> = {
+  base64:  'Base64',
+  hex:     'Hex',
+  caesar:  'Caesar',
+  xor:     'XOR',
+  binary:  'Binary',
+  decimal: 'Decimal',
+  url:     'URL',
+  rot47:   'ROT47',
+  morse:   'Morse',
+  octal:   'Octal',
+  reverse: 'Reverse',
+};
 
-interface LearnSection {
-  title: string;
-  content: string;
-}
+const TOOL_COLOR: Record<WorkspaceTool, string> = {
+  base64:  'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  hex:     'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  caesar:  'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+  xor:     'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+  binary:  'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  decimal: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
+  url:     'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400',
+  rot47:   'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400',
+  morse:   'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+  octal:   'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
+  reverse: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
+};
+
+// ─── Morse Alphabet ───────────────────────────────────────────────────────────
+
+const MORSE_ENCODE: Record<string, string> = {
+  A: '.-',   B: '-...',  C: '-.-.',  D: '-..',   E: '.',
+  F: '..-.',  G: '--.',   H: '....',  I: '..',    J: '.---',
+  K: '-.-',   L: '.-..',  M: '--',    N: '-.',    O: '---',
+  P: '.--.',  Q: '--.-',  R: '.-.',   S: '...',   T: '-',
+  U: '..-',   V: '...-',  W: '.--',   X: '-..-',  Y: '-.--',
+  Z: '--..',
+  '0': '-----', '1': '.----', '2': '..---', '3': '...--', '4': '....-',
+  '5': '.....', '6': '-....', '7': '--...', '8': '---..', '9': '----.',
+  '_': '..--.-',
+};
+
+const MORSE_DECODE: Record<string, string> = Object.fromEntries(
+  Object.entries(MORSE_ENCODE).map(([k, v]) => [v, k])
+);
+
+// ─── Learn Sections ───────────────────────────────────────────────────────────
+
+interface LearnSection { title: string; content: string; }
 
 const LEARN_SECTIONS: LearnSection[] = [
   {
@@ -496,6 +688,7 @@ export const CTFChallenge: React.FC = () => {
   const [flagResult, setFlagResult] = useState<'correct' | 'incorrect' | null>(null);
   const [revealedHints, setRevealedHints] = useState<Set<number>>(new Set());
   const [showSolution, setShowSolution] = useState(false);
+  const [attempts, setAttempts] = useState(0);
 
   // ── Timer state ──
   const [timerEnabled, setTimerEnabled] = useState(false);
@@ -509,12 +702,26 @@ export const CTFChallenge: React.FC = () => {
   const [workspaceInput, setWorkspaceInput] = useState('');
   const [workspaceOutput, setWorkspaceOutput] = useState('');
   const [caesarShift, setCaesarShift] = useState(13);
+  const [xorKey, setXorKey] = useState('61');
+
+  // ── Code Runner state ──
+  const [codeInput, setCodeInput] = useState('');
+  const [codeOutput, setCodeOutput] = useState('');
 
   // ── Derived values ──
   const totalPoints = CHALLENGES.reduce((s, c) => s + (solvedIds.has(c.id) ? c.points : 0), 0);
-  const maxPoints = CHALLENGES.reduce((s, c) => s + c.points, 0);
+  const maxPoints   = CHALLENGES.reduce((s, c) => s + c.points, 0);
   const solvedCount = solvedIds.size;
   const categoryChallenges = CHALLENGES.filter(c => c.category === selectedCategory);
+
+  // ── Auto-run workspace on input change for certain tools ──
+  const AUTO_RUN_TOOLS: WorkspaceTool[] = ['caesar', 'rot47', 'reverse', 'binary'];
+  useEffect(() => {
+    if (AUTO_RUN_TOOLS.includes(workspaceTool) && workspaceInput.trim()) {
+      runWorkspaceTool();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceInput, workspaceTool, caesarShift]);
 
   // ── Timer helpers ──
   const formatTime = useCallback((secs: number): string => {
@@ -550,10 +757,14 @@ export const CTFChallenge: React.FC = () => {
     setFlagResult(null);
     setRevealedHints(new Set());
     setShowSolution(false);
+    setAttempts(0);
+    setCodeOutput('');
+    setCodeInput(ch.codeSnippet ?? '');
   }, []);
 
   const submitFlag = useCallback(() => {
     if (!activeChallenge || !flagInput.trim()) return;
+    setAttempts(prev => prev + 1);
     if (flagInput.trim() === activeChallenge.flag) {
       setFlagResult('correct');
       setSolvedIds(prev => new Set([...prev, activeChallenge.id]));
@@ -572,20 +783,24 @@ export const CTFChallenge: React.FC = () => {
     setActiveChallenge(null);
   }, [resetTimer]);
 
+  // ── Load challenge data into workspace ──
+  const loadIntoWorkspace = useCallback(() => {
+    if (!activeChallenge) return;
+    if (activeChallenge.tool) setWorkspaceTool(activeChallenge.tool);
+    if (activeChallenge.data) setWorkspaceInput(activeChallenge.data);
+    setShowWorkspace(true);
+    setWorkspaceOutput('');
+  }, [activeChallenge]);
+
   // ── Workspace tools ──
   const runWorkspaceTool = useCallback(() => {
     const input = workspaceInput;
-    if (!input.trim()) {
-      setWorkspaceOutput('');
-      return;
-    }
+    if (!input.trim()) { setWorkspaceOutput(''); return; }
     try {
       switch (workspaceTool) {
         case 'base64': {
-          // Try to detect if input is base64 and decode, otherwise encode
           try {
             const decoded = atob(input.trim());
-            // Check if result is printable
             const isPrintable = /^[\x20-\x7E\r\n\t]*$/.test(decoded);
             if (isPrintable && decoded.length > 0) {
               setWorkspaceOutput(`Decoded (Base64 -> Text):\n${decoded}\n\n---\nEncoded (Text -> Base64):\n${btoa(input.trim())}`);
@@ -599,8 +814,7 @@ export const CTFChallenge: React.FC = () => {
         }
         case 'hex': {
           const trimmed = input.trim();
-          // Try hex-to-text first
-          const hexClean = trimmed.replace(/\s+/g, '').replace(/0x/g, '');
+          const hexClean = trimmed.replace(/\s+/g, '').replace(/0x/gi, '');
           if (/^[0-9a-fA-F]+$/.test(hexClean) && hexClean.length % 2 === 0) {
             let text = '';
             for (let i = 0; i < hexClean.length; i += 2) {
@@ -613,49 +827,155 @@ export const CTFChallenge: React.FC = () => {
               setWorkspaceOutput(`Encoded (Text -> Hex):\n${trimmed.split('').map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join(' ')}`);
             }
           } else {
-            // Encode text to hex
-            const hexEncoded = trimmed
-              .split('')
-              .map(c => c.charCodeAt(0).toString(16).padStart(2, '0'))
-              .join(' ');
+            const hexEncoded = trimmed.split('').map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join(' ');
             setWorkspaceOutput(`Encoded (Text -> Hex):\n${hexEncoded}`);
           }
           break;
         }
         case 'caesar': {
           const shift = ((caesarShift % 26) + 26) % 26;
-          const result = input
-            .split('')
-            .map(ch => {
-              if (ch >= 'A' && ch <= 'Z') {
-                return String.fromCharCode(((ch.charCodeAt(0) - 65 + shift) % 26) + 65);
-              }
-              if (ch >= 'a' && ch <= 'z') {
-                return String.fromCharCode(((ch.charCodeAt(0) - 97 + shift) % 26) + 97);
-              }
+          const applyShift = (s: string, delta: number) =>
+            s.split('').map(ch => {
+              if (ch >= 'A' && ch <= 'Z') return String.fromCharCode(((ch.charCodeAt(0) - 65 + delta + 26) % 26) + 65);
+              if (ch >= 'a' && ch <= 'z') return String.fromCharCode(((ch.charCodeAt(0) - 97 + delta + 26) % 26) + 97);
               return ch;
-            })
-            .join('');
-          const reverseResult = input
-            .split('')
-            .map(ch => {
-              if (ch >= 'A' && ch <= 'Z') {
-                return String.fromCharCode(((ch.charCodeAt(0) - 65 - shift + 26) % 26) + 65);
-              }
-              if (ch >= 'a' && ch <= 'z') {
-                return String.fromCharCode(((ch.charCodeAt(0) - 97 - shift + 26) % 26) + 97);
-              }
-              return ch;
-            })
-            .join('');
-          setWorkspaceOutput(`Shift +${shift} (encrypt):\n${result}\n\nShift -${shift} (decrypt):\n${reverseResult}`);
+            }).join('');
+          setWorkspaceOutput(`Shift +${shift} (encrypt):\n${applyShift(input, shift)}\n\nShift -${shift} (decrypt):\n${applyShift(input, -shift)}`);
+          break;
+        }
+        case 'xor': {
+          const keyByte = parseInt(xorKey.replace(/^0x/i, ''), 16);
+          if (isNaN(keyByte)) { setWorkspaceOutput('Error: invalid hex key'); break; }
+          const hexParts = input.trim().split(/\s+/);
+          if (hexParts.every(p => /^[0-9a-fA-F]{1,2}$/.test(p))) {
+            // Hex bytes -> XOR -> text
+            const result = hexParts.map(p => {
+              const b = parseInt(p, 16) ^ keyByte;
+              return String.fromCharCode(b);
+            }).join('');
+            setWorkspaceOutput(`XOR with key 0x${keyByte.toString(16).padStart(2, '0')} (key char: "${String.fromCharCode(keyByte)}"):\n${result}`);
+          } else {
+            // Text -> XOR -> hex bytes
+            const result = input.split('').map(ch => (ch.charCodeAt(0) ^ keyByte).toString(16).padStart(2, '0')).join(' ');
+            setWorkspaceOutput(`XOR with key 0x${keyByte.toString(16).padStart(2, '0')} (key char: "${String.fromCharCode(keyByte)}"):\n${result}`);
+          }
+          break;
+        }
+        case 'binary': {
+          const parts = input.trim().split(/\s+/);
+          if (parts.every(p => /^[01]{8}$/.test(p))) {
+            // Binary groups -> text
+            const text = parts.map(p => String.fromCharCode(parseInt(p, 2))).join('');
+            setWorkspaceOutput(`Decoded (Binary -> Text):\n${text}`);
+          } else {
+            // Text -> binary
+            const bins = input.split('').map(c => c.charCodeAt(0).toString(2).padStart(8, '0')).join(' ');
+            setWorkspaceOutput(`Encoded (Text -> Binary):\n${bins}`);
+          }
+          break;
+        }
+        case 'decimal': {
+          const parts = input.trim().split(/\s+/);
+          if (parts.every(p => /^\d+$/.test(p))) {
+            // Decimal codes -> text
+            const text = parts.map(p => String.fromCharCode(parseInt(p, 10))).join('');
+            setWorkspaceOutput(`Decoded (Decimal -> Text):\n${text}`);
+          } else {
+            // Text -> decimal codes
+            const codes = input.split('').map(c => c.charCodeAt(0)).join(' ');
+            setWorkspaceOutput(`Encoded (Text -> Decimal):\n${codes}`);
+          }
+          break;
+        }
+        case 'url': {
+          let decoded = '';
+          let encodeErr = '';
+          try { decoded = decodeURIComponent(input.trim()); } catch (e) { decoded = `Error: ${e instanceof Error ? e.message : String(e)}`; encodeErr = decoded; }
+          const encoded = encodeURIComponent(input.trim());
+          if (encodeErr) {
+            setWorkspaceOutput(`URL Decoded:\n${decoded}\n\nURL Encoded:\n${encoded}`);
+          } else {
+            setWorkspaceOutput(`URL Decoded:\n${decoded}\n\n---\nURL Encoded:\n${encoded}`);
+          }
+          break;
+        }
+        case 'rot47': {
+          const result = input.split('').map(ch => {
+            const code = ch.charCodeAt(0);
+            if (code >= 33 && code <= 126) {
+              return String.fromCharCode(((code - 33 + 47) % 94) + 33);
+            }
+            return ch;
+          }).join('');
+          setWorkspaceOutput(`ROT47 (self-inverse — apply twice to restore original):\n${result}`);
+          break;
+        }
+        case 'morse': {
+          const isMorse = /^[.\- /{}]+$/.test(input.trim());
+          if (isMorse) {
+            // Decode morse
+            const tokens = input.trim().split(' ');
+            const decoded = tokens.map(tok => {
+              if (tok === '{' || tok === '}') return tok;
+              const ch = MORSE_DECODE[tok];
+              return ch ?? '?';
+            }).join('');
+            setWorkspaceOutput(`Decoded (Morse -> Text):\n${decoded}`);
+          } else {
+            // Encode to morse
+            const encoded = input.toUpperCase().split('').map(ch => {
+              if (ch === ' ') return '/';
+              if (ch === '{' || ch === '}') return ch;
+              return MORSE_ENCODE[ch] ?? '?';
+            }).join(' ');
+            setWorkspaceOutput(`Encoded (Text -> Morse):\n${encoded}`);
+          }
+          break;
+        }
+        case 'octal': {
+          const parts = input.trim().split(/\s+/);
+          if (parts.every(p => /^[0-7]+$/.test(p))) {
+            // Octal numbers -> text
+            const text = parts.map(p => String.fromCharCode(parseInt(p, 8))).join('');
+            setWorkspaceOutput(`Decoded (Octal -> Text):\n${text}`);
+          } else {
+            // Text -> octal numbers
+            const codes = input.split('').map(c => c.charCodeAt(0).toString(8)).join(' ');
+            setWorkspaceOutput(`Encoded (Text -> Octal):\n${codes}`);
+          }
+          break;
+        }
+        case 'reverse': {
+          const reversed = input.split('').reverse().join('');
+          setWorkspaceOutput(`Reversed:\n${reversed}`);
           break;
         }
       }
     } catch (err) {
       setWorkspaceOutput(`Error: ${err instanceof Error ? err.message : 'Processing failed'}`);
     }
-  }, [workspaceInput, workspaceTool, caesarShift]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceInput, workspaceTool, caesarShift, xorKey]);
+
+  // ── Code Runner ──
+  const runCodeSandbox = useCallback(() => {
+    const logs: string[] = [];
+    const mockConsole = { log: (...args: unknown[]) => logs.push(args.map(String).join(' ')) };
+    try {
+      // eslint-disable-next-line no-new-func
+      const fn = new Function('console', codeInput);
+      fn(mockConsole);
+      setCodeOutput(logs.join('\n') || '(no output — add console.log())');
+    } catch (e: unknown) {
+      setCodeOutput(`Error: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }, [codeInput]);
+
+  // ─── Workspace tool tabs (for render) ────────────────────────────────────
+  const WORKSPACE_TOOLS: WorkspaceTool[] = [
+    'base64', 'hex', 'caesar', 'xor', 'binary',
+    'decimal', 'url', 'rot47', 'morse', 'octal', 'reverse',
+  ];
 
   // ═══════════════════════════════════════════════════════════════════════════
   // RENDER
@@ -663,6 +983,7 @@ export const CTFChallenge: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col bg-gradient-to-br from-slate-50 to-green-50 dark:from-gray-950 dark:to-green-950 p-3 overflow-hidden">
+
       {/* ── Header ── */}
       <div className="flex items-center justify-between mb-3 flex-shrink-0">
         <div>
@@ -718,11 +1039,10 @@ export const CTFChallenge: React.FC = () => {
                   <span className="text-xs font-bold text-gray-900 dark:text-white pr-4">
                     {section.title}
                   </span>
-                  {isExpanded ? (
-                    <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                  )}
+                  {isExpanded
+                    ? <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                    : <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                  }
                 </button>
                 {isExpanded && (
                   <div className="px-4 pb-4 border-t border-gray-100 dark:border-gray-800">
@@ -742,22 +1062,21 @@ export const CTFChallenge: React.FC = () => {
       {/* ═══════════════════════════════════════════════════════════════════ */}
       {mainTab === 'sandbox' && (
         <div className="flex-1 min-h-0 flex flex-col gap-2 overflow-hidden">
+
           {/* ── Scoreboard & Controls Row ── */}
           <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
             {/* Score */}
             <div className="flex items-center gap-1.5 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-1.5">
               <Trophy className="w-3.5 h-3.5 text-amber-500" />
               <span className="text-xs font-bold text-gray-800 dark:text-gray-200">
-                {totalPoints}
-                <span className="text-gray-400 font-normal">/{maxPoints}</span>
+                {totalPoints}<span className="text-gray-400 font-normal">/{maxPoints}</span>
               </span>
             </div>
             {/* Solved */}
             <div className="flex items-center gap-1.5 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 px-2.5 py-1.5">
               <Flag className="w-3.5 h-3.5 text-green-500" />
               <span className="text-xs font-bold text-gray-800 dark:text-gray-200">
-                {solvedCount}
-                <span className="text-gray-400 font-normal">/{CHALLENGES.length}</span>
+                {solvedCount}<span className="text-gray-400 font-normal">/{CHALLENGES.length}</span>
               </span>
             </div>
             {/* Progress bar */}
@@ -771,16 +1090,12 @@ export const CTFChallenge: React.FC = () => {
               {maxPoints > 0 ? Math.round((totalPoints / maxPoints) * 100) : 0}%
             </span>
 
-            {/* Timer toggle */}
+            {/* Timer */}
             <div className="flex items-center gap-1 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 px-2 py-1">
               <button
                 onClick={() => {
-                  if (timerEnabled) {
-                    resetTimer();
-                    setTimerEnabled(false);
-                  } else {
-                    setTimerEnabled(true);
-                  }
+                  if (timerEnabled) { resetTimer(); setTimerEnabled(false); }
+                  else { setTimerEnabled(true); }
                 }}
                 className={`p-0.5 rounded transition-colors ${timerEnabled ? 'text-green-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
                 title={timerEnabled ? 'Disable timer' : 'Enable timer'}
@@ -833,7 +1148,7 @@ export const CTFChallenge: React.FC = () => {
             </button>
           </div>
 
-          {/* ── Workspace Panel (collapsible) ── */}
+          {/* ── Workspace Panel ── */}
           {showWorkspace && (
             <div className="bg-white dark:bg-gray-900 rounded-xl border border-blue-200 dark:border-blue-800 p-3 flex-shrink-0">
               <div className="flex items-center justify-between mb-2">
@@ -841,31 +1156,26 @@ export const CTFChallenge: React.FC = () => {
                   <Wrench className="w-3.5 h-3.5 text-blue-500" />
                   Decode / Encode Workspace
                 </h3>
-                <div className="flex gap-1">
-                  {(
-                    [
-                      ['base64', 'Base64'],
-                      ['hex', 'Hex'],
-                      ['caesar', 'Caesar'],
-                    ] as [WorkspaceTool, string][]
-                  ).map(([id, label]) => (
-                    <button
-                      key={id}
-                      onClick={() => {
-                        setWorkspaceTool(id);
-                        setWorkspaceOutput('');
-                      }}
-                      className={`px-2 py-0.5 text-[10px] rounded font-semibold transition-colors ${
-                        workspaceTool === id
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
               </div>
+
+              {/* Tool tabs — 2 rows via flex-wrap */}
+              <div className="flex flex-wrap gap-1 mb-2">
+                {WORKSPACE_TOOLS.map(id => (
+                  <button
+                    key={id}
+                    onClick={() => { setWorkspaceTool(id); setWorkspaceOutput(''); }}
+                    className={`px-2 py-0.5 text-[10px] rounded font-semibold transition-colors ${
+                      workspaceTool === id
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    {TOOL_LABELS[id]}
+                  </button>
+                ))}
+              </div>
+
+              {/* Caesar shift controls */}
               {workspaceTool === 'caesar' && (
                 <div className="flex items-center gap-2 mb-2">
                   <label className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">Shift:</label>
@@ -873,8 +1183,7 @@ export const CTFChallenge: React.FC = () => {
                     type="number"
                     value={caesarShift}
                     onChange={e => setCaesarShift(parseInt(e.target.value) || 0)}
-                    min={0}
-                    max={25}
+                    min={0} max={25}
                     className="w-14 px-1.5 py-0.5 text-[11px] rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:ring-1 focus:ring-blue-500"
                   />
                   <div className="flex gap-1">
@@ -894,14 +1203,45 @@ export const CTFChallenge: React.FC = () => {
                   </div>
                 </div>
               )}
+
+              {/* XOR key input */}
+              {workspaceTool === 'xor' && (
+                <div className="flex items-center gap-2 mb-2">
+                  <label className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">Key (hex):</label>
+                  <input
+                    type="text"
+                    value={xorKey}
+                    onChange={e => setXorKey(e.target.value.replace(/[^0-9a-fA-F]/g, '').slice(0, 2))}
+                    placeholder="61"
+                    maxLength={2}
+                    className="w-14 px-1.5 py-0.5 text-[11px] font-mono rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <span className="text-[10px] text-gray-400">
+                    {xorKey && !isNaN(parseInt(xorKey, 16))
+                      ? `= char "${String.fromCharCode(parseInt(xorKey, 16))}" (${parseInt(xorKey, 16)})`
+                      : ''}
+                  </span>
+                </div>
+              )}
+
+              {/* Input / Run / Output row */}
               <div className="flex gap-2">
-                <div className="flex-1">
+                <div className="flex-1 relative">
                   <textarea
                     value={workspaceInput}
                     onChange={e => setWorkspaceInput(e.target.value)}
                     placeholder="Enter text to encode/decode..."
-                    className="w-full h-16 px-2 py-1.5 text-[11px] font-mono rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 resize-none outline-none focus:ring-1 focus:ring-blue-500 placeholder-gray-400"
+                    className="w-full h-16 px-2 py-1.5 pr-6 text-[11px] font-mono rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 resize-none outline-none focus:ring-1 focus:ring-blue-500 placeholder-gray-400"
                   />
+                  {workspaceInput && (
+                    <button
+                      onClick={() => { setWorkspaceInput(''); setWorkspaceOutput(''); }}
+                      className="absolute top-1 right-1 p-0.5 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                      title="Clear"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
                 </div>
                 <button
                   onClick={runWorkspaceTool}
@@ -925,14 +1265,11 @@ export const CTFChallenge: React.FC = () => {
           <div className="flex gap-1 flex-shrink-0 flex-wrap">
             {CATEGORY_META.map(cat => {
               const catSolved = CHALLENGES.filter(c => c.category === cat.id && solvedIds.has(c.id)).length;
-              const catTotal = CHALLENGES.filter(c => c.category === cat.id).length;
+              const catTotal  = CHALLENGES.filter(c => c.category === cat.id).length;
               return (
                 <button
                   key={cat.id}
-                  onClick={() => {
-                    setSelectedCategory(cat.id);
-                    setActiveChallenge(null);
-                  }}
+                  onClick={() => { setSelectedCategory(cat.id); setActiveChallenge(null); }}
                   className={`flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg font-medium transition-all ${
                     selectedCategory === cat.id
                       ? `bg-gradient-to-r ${cat.color} text-white shadow-md`
@@ -940,11 +1277,7 @@ export const CTFChallenge: React.FC = () => {
                   }`}
                 >
                   {cat.label}
-                  <span
-                    className={`text-[9px] px-1 rounded ${
-                      selectedCategory === cat.id ? 'bg-white/20' : 'bg-gray-100 dark:bg-gray-700'
-                    }`}
-                  >
+                  <span className={`text-[9px] px-1 rounded ${selectedCategory === cat.id ? 'bg-white/20' : 'bg-gray-100 dark:bg-gray-700'}`}>
                     {catSolved}/{catTotal}
                   </span>
                 </button>
@@ -970,22 +1303,22 @@ export const CTFChallenge: React.FC = () => {
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          {solved ? (
-                            <Unlock className="w-3.5 h-3.5 text-green-500" />
-                          ) : (
-                            <Lock className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
-                          )}
-                          <span
-                            className={`text-sm font-semibold ${
-                              solved ? 'text-green-700 dark:text-green-400' : 'text-gray-900 dark:text-white'
-                            }`}
-                          >
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {solved
+                            ? <Unlock className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+                            : <Lock className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                          }
+                          <span className={`text-sm font-semibold ${solved ? 'text-green-700 dark:text-green-400' : 'text-gray-900 dark:text-white'}`}>
                             {ch.title}
                           </span>
                           <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${DIFF_STYLES[ch.difficulty]}`}>
                             {ch.difficulty}
                           </span>
+                          {ch.tool && (
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${TOOL_COLOR[ch.tool]}`}>
+                              {TOOL_LABELS[ch.tool]}
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="flex items-center gap-0.5 text-xs font-bold text-gray-500 dark:text-gray-400">
@@ -995,7 +1328,7 @@ export const CTFChallenge: React.FC = () => {
                           <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
                         </div>
                       </div>
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 line-clamp-1 ml-5.5">
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1 line-clamp-1 pl-5">
                         {ch.description.split('\n')[0]}
                       </p>
                     </button>
@@ -1022,13 +1355,11 @@ export const CTFChallenge: React.FC = () => {
                 {/* Title row */}
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2 flex-wrap">
                       {activeChallenge.title}
-                      {solvedIds.has(activeChallenge.id) && (
-                        <Check className="w-5 h-5 text-green-500" />
-                      )}
+                      {solvedIds.has(activeChallenge.id) && <Check className="w-5 h-5 text-green-500" />}
                     </h3>
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
                       <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${DIFF_STYLES[activeChallenge.difficulty]}`}>
                         {activeChallenge.difficulty}
                       </span>
@@ -1036,16 +1367,37 @@ export const CTFChallenge: React.FC = () => {
                         <Star className="w-3 h-3 text-amber-400" />
                         {activeChallenge.points} points
                       </span>
+                      {activeChallenge.tool && (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${TOOL_COLOR[activeChallenge.tool]}`}>
+                          Recommended: {TOOL_LABELS[activeChallenge.tool]}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
 
                 {/* Description */}
-                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 mb-4">
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 mb-3">
                   <pre className="text-xs text-gray-800 dark:text-gray-200 whitespace-pre-wrap font-mono leading-relaxed">
                     {activeChallenge.description}
                   </pre>
                 </div>
+
+                {/* Load into Workspace button */}
+                {(activeChallenge.tool || activeChallenge.data) && (
+                  <button
+                    onClick={loadIntoWorkspace}
+                    className="flex items-center gap-1.5 px-3 py-1.5 mb-4 text-[11px] font-semibold rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+                  >
+                    <Wrench className="w-3 h-3" />
+                    Load into Workspace
+                    {activeChallenge.tool && (
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ml-1 ${TOOL_COLOR[activeChallenge.tool]}`}>
+                        {TOOL_LABELS[activeChallenge.tool]}
+                      </span>
+                    )}
+                  </button>
+                )}
 
                 {/* Hints */}
                 <div className="mb-4">
@@ -1076,21 +1428,57 @@ export const CTFChallenge: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Code Runner (only for challenges with codeSnippet) */}
+                {activeChallenge.codeSnippet && (
+                  <div className="mb-4 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                    <div className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                      <Terminal className="w-3.5 h-3.5 text-green-500" />
+                      <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Code Runner</span>
+                    </div>
+                    <div className="p-3 bg-gray-950 dark:bg-gray-950">
+                      <pre className="text-[11px] font-mono text-green-400 leading-relaxed whitespace-pre-wrap mb-3">
+                        {activeChallenge.codeSnippet}
+                      </pre>
+                      <textarea
+                        value={codeInput}
+                        onChange={e => setCodeInput(e.target.value)}
+                        rows={4}
+                        placeholder="Edit and run JavaScript code here..."
+                        className="w-full px-2 py-1.5 text-[11px] font-mono rounded border border-gray-700 bg-gray-900 text-gray-100 resize-y outline-none focus:ring-1 focus:ring-green-500 placeholder-gray-600 mb-2"
+                      />
+                      <button
+                        onClick={runCodeSandbox}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                      >
+                        <Play className="w-3 h-3" />
+                        Run
+                      </button>
+                      {codeOutput && (
+                        <div className="mt-2 p-2 rounded bg-gray-800 border border-gray-700 text-[11px] font-mono text-green-300 whitespace-pre-wrap">
+                          {codeOutput}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Flag submission */}
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                  <label className="text-xs font-bold text-gray-600 dark:text-gray-400 mb-1.5 block">
-                    Submit Flag
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-gray-600 dark:text-gray-400">
+                      Submit Flag
+                    </label>
+                    {attempts > 0 && (
+                      <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                        {attempts} attempt{attempts !== 1 ? 's' : ''} this session
+                      </span>
+                    )}
+                  </div>
                   <div className="flex gap-2">
                     <input
                       value={flagInput}
-                      onChange={e => {
-                        setFlagInput(e.target.value);
-                        setFlagResult(null);
-                      }}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') submitFlag();
-                      }}
+                      onChange={e => { setFlagInput(e.target.value); setFlagResult(null); }}
+                      onKeyDown={e => { if (e.key === 'Enter') submitFlag(); }}
                       placeholder="FLAG{...}"
                       className="flex-1 px-3 py-2 text-sm rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 font-mono focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
                     />

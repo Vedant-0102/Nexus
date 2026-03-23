@@ -1,16 +1,37 @@
 import React, { useState, useMemo } from 'react';
+import { Copy, Check, BarChart2, Search } from 'lucide-react';
 
-type CipherType = 'caesar' | 'rot13' | 'vigenere' | 'atbash' | 'rail-fence' | 'substitution';
+type CipherType = 'caesar' | 'rot13' | 'vigenere' | 'atbash' | 'rail-fence' | 'substitution' | 'affine' | 'morse';
 
+// ── Cipher implementations ──────────────────────────────────────────────────
 function caesarEncrypt(text: string, shift: number): string {
   return text.replace(/[a-zA-Z]/g, ch => {
     const base = ch <= 'Z' ? 65 : 97;
     return String.fromCharCode(((ch.charCodeAt(0) - base + shift) % 26) + base);
   });
 }
-function caesarDecrypt(text: string, shift: number): string {
-  return caesarEncrypt(text, 26 - shift);
+function caesarDecrypt(text: string, shift: number): string { return caesarEncrypt(text, 26 - (shift % 26)); }
+
+function gcd(a: number, b: number): number { return b === 0 ? a : gcd(b, a % b); }
+function modInverse(a: number, m: number): number {
+  for (let x = 1; x < m; x++) if ((a * x) % m === 1) return x;
+  return -1;
 }
+function affineEncrypt(text: string, a: number, b: number): string {
+  return text.replace(/[a-zA-Z]/g, ch => {
+    const base = ch <= 'Z' ? 65 : 97;
+    return String.fromCharCode(((a * (ch.charCodeAt(0) - base) + b) % 26) + base);
+  });
+}
+function affineDecrypt(text: string, a: number, b: number): string {
+  const aInv = modInverse(a, 26);
+  if (aInv === -1) return 'ERROR: a has no modular inverse (must be coprime to 26)';
+  return text.replace(/[a-zA-Z]/g, ch => {
+    const base = ch <= 'Z' ? 65 : 97;
+    return String.fromCharCode((aInv * ((ch.charCodeAt(0) - base - b + 260)) % 26) + base);
+  });
+}
+const AFFINE_VALID_A = [1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23, 25];
 
 function vigenereEncrypt(text: string, key: string): string {
   if (!key) return text;
@@ -54,12 +75,9 @@ function railFenceEncrypt(text: string, rails: number): string {
   }
   return fence.flat().join('');
 }
-
 function railFenceDecrypt(text: string, rails: number): string {
   if (rails <= 1 || text.length === 0) return text;
   const len = text.length;
-
-  // 1. Build zigzag pattern to know which rail each position belongs to
   const pattern: number[] = [];
   let rail = 0, dir = 1;
   for (let i = 0; i < len; i++) {
@@ -68,20 +86,14 @@ function railFenceDecrypt(text: string, rails: number): string {
     else if (rail === rails - 1) dir = -1;
     rail += dir;
   }
-
-  // 2. Count how many characters belong to each rail
   const railLengths = new Array(rails).fill(0);
   for (const r of pattern) railLengths[r]++;
-
-  // 3. Split ciphertext into per-rail segments
   const railChars: string[] = [];
   let offset = 0;
   for (let r = 0; r < rails; r++) {
     railChars.push(text.substring(offset, offset + railLengths[r]));
     offset += railLengths[r];
   }
-
-  // 4. Read back in zigzag order, pulling next char from the appropriate rail
   const railPos = new Array(rails).fill(0);
   let result = '';
   for (let i = 0; i < len; i++) {
@@ -89,7 +101,6 @@ function railFenceDecrypt(text: string, rails: number): string {
     result += railChars[r][railPos[r]];
     railPos[r]++;
   }
-
   return result;
 }
 
@@ -104,7 +115,6 @@ function generateRandomSubstitution(): Record<string, string> {
   for (let i = 0; i < 26; i++) map[alpha[i]] = shuffled[i];
   return map;
 }
-
 function substitutionEncrypt(text: string, map: Record<string, string>): string {
   return text.replace(/[a-zA-Z]/g, ch => {
     const upper = ch.toUpperCase();
@@ -112,21 +122,63 @@ function substitutionEncrypt(text: string, map: Record<string, string>): string 
     return ch === upper ? mapped : mapped.toLowerCase();
   });
 }
-
 function substitutionDecrypt(text: string, map: Record<string, string>): string {
   const reverse: Record<string, string> = {};
   for (const [k, v] of Object.entries(map)) reverse[v] = k;
   return substitutionEncrypt(text, reverse);
 }
 
-const CIPHER_INFO: Record<CipherType, string> = {
-  caesar: 'Caesar Cipher: Shifts each letter by a fixed number. Used by Julius Caesar. Easily broken by frequency analysis.',
-  rot13: 'ROT13: Caesar cipher with shift=13. Self-inverse: encrypting twice returns the original text.',
-  vigenere: 'Vigenere Cipher: Uses a keyword to apply different Caesar shifts per letter. Stronger than simple Caesar.',
-  atbash: 'Atbash: Reverses the alphabet (A=Z, B=Y, ...). Ancient Hebrew cipher. Self-inverse.',
-  'rail-fence': 'Rail Fence: Writes text in zigzag across N rails, then reads off row by row. A transposition cipher.',
-  substitution: 'Substitution Cipher: Maps each letter to a different letter. 26! possible keys. Vulnerable to frequency analysis.',
+const MORSE: Record<string, string> = {
+  A:'.-', B:'-...', C:'-.-.', D:'-..', E:'.', F:'..-.', G:'--.', H:'....', I:'..',
+  J:'.---', K:'-.-', L:'.-..', M:'--', N:'-.', O:'---', P:'.--.', Q:'--.-', R:'.-.',
+  S:'...', T:'-', U:'..-', V:'...-', W:'.--', X:'-..-', Y:'-.--', Z:'--..',
+  '0':'-----', '1':'.----', '2':'..---', '3':'...--', '4':'....-', '5':'.....',
+  '6':'-....', '7':'--...', '8':'---..', '9':'----.'
 };
+const MORSE_REV: Record<string, string> = Object.fromEntries(Object.entries(MORSE).map(([k, v]) => [v, k]));
+
+function morseEncode(text: string): string {
+  return text.toUpperCase().split('').map(ch => {
+    if (ch === ' ') return '/';
+    return MORSE[ch] || '?';
+  }).join(' ');
+}
+function morseDecode(text: string): string {
+  return text.split(' / ').map(word =>
+    word.split(' ').map(code => MORSE_REV[code] || '?').join('')
+  ).join(' ');
+}
+
+// ── Frequency analysis ───────────────────────────────────────────────────────
+function letterFrequency(text: string): Record<string, number> {
+  const freq: Record<string, number> = {};
+  const letters = text.toUpperCase().replace(/[^A-Z]/g, '');
+  for (const ch of letters) freq[ch] = (freq[ch] || 0) + 1;
+  return freq;
+}
+
+// ── Info ─────────────────────────────────────────────────────────────────────
+const CIPHER_INFO: Record<CipherType, string> = {
+  caesar: 'Shifts each letter by a fixed number (1–25). Easily broken by brute force (only 25 keys).',
+  rot13: 'Caesar shift of 13. Self-inverse: applying twice returns the original. Not secure.',
+  vigenere: 'Uses a repeating keyword to apply different shifts per letter. Kasiski/Index of Coincidence attacks break it.',
+  atbash: 'Reverses the alphabet (A↔Z, B↔Y…). Ancient Hebrew cipher. Self-inverse.',
+  'rail-fence': 'Transposition cipher: writes text in a zigzag across N rails, reads off row by row.',
+  substitution: 'Maps each letter to a unique other letter. 26! ≈ 4×10²⁶ keys, but frequency analysis breaks it.',
+  affine: 'Encrypts with E(x) = (ax + b) mod 26. a must be coprime to 26. Generalizes Caesar (a=1).',
+  morse: 'Encodes characters as dot/dash sequences. Used in telegraphy. Not a cipher — no secret key.',
+};
+
+function CopyBtn({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
+      className="flex items-center gap-1 px-1.5 py-0.5 bg-blue-600 text-white rounded text-[10px]">
+      {copied ? <Check size={9} /> : <Copy size={9} />}
+      {copied ? 'Copied' : 'Copy'}
+    </button>
+  );
+}
 
 export const ClassicalCiphers: React.FC = () => {
   const [cipher, setCipher] = useState<CipherType>('caesar');
@@ -135,7 +187,10 @@ export const ClassicalCiphers: React.FC = () => {
   const [shift, setShift] = useState(3);
   const [vigenereKey, setVigenereKey] = useState('SECRET');
   const [rails, setRails] = useState(3);
+  const [affineA, setAffineA] = useState(5);
+  const [affineB, setAffineB] = useState(8);
   const [subMap, setSubMap] = useState<Record<string, string>>(() => generateRandomSubstitution());
+  const [panelTab, setPanelTab] = useState<'visual' | 'freq' | 'brute'>('visual');
 
   const output = useMemo(() => {
     try {
@@ -146,20 +201,22 @@ export const ClassicalCiphers: React.FC = () => {
         case 'atbash': return atbash(input);
         case 'rail-fence': return isEncrypt ? railFenceEncrypt(input, rails) : railFenceDecrypt(input, rails);
         case 'substitution': return isEncrypt ? substitutionEncrypt(input, subMap) : substitutionDecrypt(input, subMap);
+        case 'affine': return isEncrypt ? affineEncrypt(input, affineA, affineB) : affineDecrypt(input, affineA, affineB);
+        case 'morse': return isEncrypt ? morseEncode(input) : morseDecode(input);
         default: return input;
       }
     } catch { return 'Error'; }
-  }, [cipher, isEncrypt, input, shift, vigenereKey, rails, subMap]);
+  }, [cipher, isEncrypt, input, shift, vigenereKey, rails, affineA, affineB, subMap]);
 
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const shiftedAlphabet = useMemo(() => {
     if (cipher === 'caesar') return alphabet.split('').map((_, i) => alphabet[(i + shift) % 26]).join('');
     if (cipher === 'rot13') return alphabet.split('').map((_, i) => alphabet[(i + 13) % 26]).join('');
     if (cipher === 'atbash') return alphabet.split('').reverse().join('');
+    if (cipher === 'affine') return alphabet.split('').map((_, i) => alphabet[(affineA * i + affineB) % 26]).join('');
     return '';
-  }, [cipher, shift]);
+  }, [cipher, shift, affineA, affineB]);
 
-  // Vigenere visual: show key repeated over plaintext
   const vigenereVisual = useMemo(() => {
     if (cipher !== 'vigenere' || !vigenereKey) return null;
     const k = vigenereKey.toUpperCase();
@@ -180,7 +237,6 @@ export const ClassicalCiphers: React.FC = () => {
     return pairs.slice(0, 40);
   }, [cipher, vigenereKey, input, isEncrypt]);
 
-  // Rail fence visual
   const railFenceVisual = useMemo(() => {
     if (cipher !== 'rail-fence') return null;
     const grid: string[][] = Array.from({ length: rails }, () => Array(Math.min(input.length, 30)).fill(''));
@@ -194,34 +250,62 @@ export const ClassicalCiphers: React.FC = () => {
     return grid;
   }, [cipher, rails, input]);
 
+  // Brute force: try all 25 Caesar shifts
+  const bruteForce = useMemo(() => {
+    if (cipher !== 'caesar') return null;
+    return Array.from({ length: 25 }, (_, i) => {
+      const s = i + 1;
+      return { shift: s, text: caesarDecrypt(input, s) };
+    });
+  }, [cipher, input]);
+
+  // Frequency analysis
+  const freqData = useMemo(() => {
+    const freq = letterFrequency(output || input);
+    const total = Object.values(freq).reduce((a, b) => a + b, 0);
+    return alphabet.split('').map(ch => ({
+      ch,
+      count: freq[ch] || 0,
+      pct: total > 0 ? ((freq[ch] || 0) / total) * 100 : 0,
+    }));
+  }, [input, output]);
+  const maxFreq = Math.max(...freqData.map(d => d.pct), 1);
+
+  const selfInverse = cipher === 'rot13' || cipher === 'atbash' || cipher === 'morse';
   const selectClass = 'px-3 py-1.5 text-sm rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100';
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-slate-50 to-orange-50 dark:from-gray-950 dark:to-orange-950 p-3 overflow-hidden">
-      <div className="flex flex-wrap gap-2 mb-2 items-center">
+    <div className="h-full flex flex-col bg-gradient-to-br from-slate-50 to-orange-50 dark:from-gray-950 dark:to-orange-950 p-3 gap-2 overflow-hidden">
+
+      {/* Controls */}
+      <div className="flex flex-wrap gap-2 items-center">
         <select value={cipher} onChange={e => setCipher(e.target.value as CipherType)} className={selectClass}>
           <option value="caesar">Caesar</option>
           <option value="rot13">ROT13</option>
           <option value="vigenere">Vigenere</option>
           <option value="atbash">Atbash</option>
+          <option value="affine">Affine</option>
           <option value="rail-fence">Rail Fence</option>
           <option value="substitution">Substitution</option>
+          <option value="morse">Morse Code</option>
         </select>
-        {cipher !== 'rot13' && cipher !== 'atbash' && (
+
+        {!selfInverse && (
           <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
             {(['encrypt', 'decrypt'] as const).map(m => (
               <button key={m} onClick={() => setIsEncrypt(m === 'encrypt')}
-                className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${(m === 'encrypt') === isEncrypt ? 'bg-orange-600 text-white' : 'text-gray-600 dark:text-gray-300'}`}>
+                className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${(m === 'encrypt') === isEncrypt ? 'bg-orange-600 text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
                 {m === 'encrypt' ? 'Encrypt' : 'Decrypt'}
               </button>
             ))}
           </div>
         )}
+
         {cipher === 'caesar' && (
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-500">Shift:</span>
             <input type="range" min={1} max={25} value={shift} onChange={e => setShift(Number(e.target.value))} className="w-24" />
-            <span className="text-xs font-bold text-gray-700 dark:text-gray-300 w-6">{shift}</span>
+            <span className="text-xs font-bold text-orange-600 dark:text-orange-400 w-6">{shift}</span>
           </div>
         )}
         {cipher === 'vigenere' && (
@@ -229,6 +313,17 @@ export const ClassicalCiphers: React.FC = () => {
             <span className="text-xs text-gray-500">Key:</span>
             <input value={vigenereKey} onChange={e => setVigenereKey(e.target.value.replace(/[^a-zA-Z]/g, '').toUpperCase())}
               className="w-24 px-2 py-1 text-xs rounded bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 font-mono" />
+          </div>
+        )}
+        {cipher === 'affine' && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-gray-500">a:</span>
+            <select value={affineA} onChange={e => setAffineA(Number(e.target.value))} className="px-2 py-1 text-xs rounded bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100">
+              {AFFINE_VALID_A.map(v => <option key={v} value={v}>{v}</option>)}
+            </select>
+            <span className="text-xs text-gray-500">b:</span>
+            <input type="number" min={0} max={25} value={affineB} onChange={e => setAffineB(Math.max(0, Math.min(25, Number(e.target.value))))}
+              className="w-12 px-2 py-1 text-xs rounded bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 text-center" />
           </div>
         )}
         {cipher === 'rail-fence' && (
@@ -244,7 +339,8 @@ export const ClassicalCiphers: React.FC = () => {
         )}
       </div>
 
-      <div className="flex gap-3 mb-2 flex-1 min-h-0 overflow-hidden">
+      {/* IO */}
+      <div className="flex gap-3 flex-1 min-h-0 overflow-hidden" style={{ minHeight: 100 }}>
         <div className="flex-1 flex flex-col">
           <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Input</label>
           <textarea value={input} onChange={e => setInput(e.target.value)}
@@ -253,74 +349,116 @@ export const ClassicalCiphers: React.FC = () => {
         <div className="flex-1 flex flex-col">
           <div className="flex items-center justify-between mb-1">
             <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Output</label>
-            <button onClick={() => navigator.clipboard.writeText(output)} className="px-1.5 py-0.5 bg-blue-600 text-white rounded text-[10px]">Copy</button>
+            <CopyBtn text={output} />
           </div>
           <textarea readOnly value={output}
             className="flex-1 p-2 text-sm rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 font-mono resize-none" />
         </div>
       </div>
 
-      <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-2 overflow-auto max-h-40">
-        {(cipher === 'caesar' || cipher === 'rot13' || cipher === 'atbash') && shiftedAlphabet && (
-          <div className="mb-2">
-            <div className="text-[10px] text-gray-500 mb-1">Alphabet Mapping</div>
-            <div className="flex gap-0.5 text-[10px] font-mono">
-              {alphabet.split('').map((ch, i) => (
-                <div key={i} className="flex flex-col items-center w-5">
-                  <span className="text-gray-500">{ch}</span>
-                  <span className="text-orange-600 dark:text-orange-400">{'|'}</span>
-                  <span className="text-blue-600 dark:text-blue-400 font-bold">{shiftedAlphabet[i]}</span>
+      {/* Bottom panel */}
+      <div className="bg-white/70 dark:bg-gray-800/70 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden" style={{ maxHeight: 140 }}>
+        {/* Panel tabs */}
+        <div className="flex items-center gap-0 border-b border-gray-200 dark:border-gray-700 px-2">
+          {([['visual', 'Visual'], ['freq', 'Frequency'], ['brute', 'Brute Force']] as const).map(([key, label]) => (
+            <button key={key} onClick={() => setPanelTab(key)}
+              disabled={key === 'brute' && cipher !== 'caesar'}
+              className={`px-3 py-1.5 text-[10px] font-medium border-b-2 transition-colors ${panelTab === key ? 'border-orange-500 text-orange-600 dark:text-orange-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'} disabled:opacity-40 disabled:cursor-not-allowed`}>
+              {key === 'freq' && <BarChart2 size={9} className="inline mr-1" />}
+              {key === 'brute' && <Search size={9} className="inline mr-1" />}
+              {label}
+            </button>
+          ))}
+          <span className="ml-auto text-[10px] text-gray-400 pr-2">{CIPHER_INFO[cipher]}</span>
+        </div>
+
+        <div className="overflow-auto p-2" style={{ maxHeight: 100 }}>
+          {/* Visual panel */}
+          {panelTab === 'visual' && (
+            <>
+              {(cipher === 'caesar' || cipher === 'rot13' || cipher === 'atbash' || cipher === 'affine') && shiftedAlphabet && (
+                <div className="flex gap-0.5 text-[10px] font-mono">
+                  {alphabet.split('').map((ch, i) => (
+                    <div key={i} className="flex flex-col items-center w-5">
+                      <span className="text-gray-500">{ch}</span>
+                      <span className="text-orange-400">↓</span>
+                      <span className="text-blue-600 dark:text-blue-400 font-bold">{shiftedAlphabet[i]}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {vigenereVisual && (
+                <div className="flex gap-0.5 text-[10px] font-mono overflow-x-auto">
+                  {vigenereVisual.map((p, i) => (
+                    <div key={i} className="flex flex-col items-center w-5 min-w-[1.25rem]">
+                      <span className="text-gray-600 dark:text-gray-400">{p.plain}</span>
+                      <span className="text-orange-500">{p.key}</span>
+                      <span className="text-blue-600 dark:text-blue-400 font-bold">{p.result}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {railFenceVisual && (
+                <div>
+                  {railFenceVisual.map((row, r) => (
+                    <div key={r} className="flex gap-0.5 text-[10px] font-mono">
+                      {row.map((ch, c) => (
+                        <span key={c} className={`w-5 text-center ${ch ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-gray-300 dark:text-gray-700'}`}>{ch || '·'}</span>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {cipher === 'substitution' && (
+                <div className="flex gap-0.5 text-[10px] font-mono">
+                  {alphabet.split('').map((ch, i) => (
+                    <div key={i} className="flex flex-col items-center w-5">
+                      <span className="text-gray-500">{ch}</span>
+                      <span className="text-blue-600 dark:text-blue-400 font-bold">{subMap[ch]}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {cipher === 'morse' && (
+                <div className="text-[10px] font-mono text-gray-600 dark:text-gray-400 grid grid-cols-9 gap-x-3 gap-y-0.5">
+                  {Object.entries(MORSE).map(([ch, code]) => (
+                    <span key={ch}><span className="font-bold text-orange-600">{ch}</span> {code}</span>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Frequency analysis */}
+          {panelTab === 'freq' && (
+            <div className="flex items-end gap-0.5 h-16">
+              {freqData.map(({ ch, pct, count }) => (
+                <div key={ch} className="flex flex-col items-center flex-1 min-w-0" title={`${ch}: ${count} (${pct.toFixed(1)}%)`}>
+                  <div className="w-full rounded-t transition-all" style={{
+                    height: `${(pct / maxFreq) * 48}px`,
+                    backgroundColor: pct > 0 ? `hsl(${30 + (pct / maxFreq) * 200}, 70%, 55%)` : 'transparent',
+                    minHeight: pct > 0 ? 2 : 0
+                  }} />
+                  <span className="text-[8px] text-gray-500 font-mono">{ch}</span>
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
 
-        {vigenereVisual && (
-          <div className="mb-2">
-            <div className="text-[10px] text-gray-500 mb-1">Step-by-step</div>
-            <div className="flex gap-0.5 text-[10px] font-mono overflow-x-auto">
-              {vigenereVisual.map((p, i) => (
-                <div key={i} className="flex flex-col items-center w-5 min-w-[1.25rem]">
-                  <span className="text-gray-600 dark:text-gray-400">{p.plain}</span>
-                  <span className="text-orange-500">{p.key}</span>
-                  <span className="text-blue-600 dark:text-blue-400 font-bold">{p.result}</span>
+          {/* Brute force Caesar */}
+          {panelTab === 'brute' && bruteForce && (
+            <div className="space-y-0.5">
+              {bruteForce.map(({ shift: s, text }) => (
+                <div key={s} className="flex items-center gap-2 text-[10px] font-mono hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded px-1">
+                  <span className="text-orange-600 dark:text-orange-400 w-8 shrink-0">+{s}</span>
+                  <span className="text-gray-700 dark:text-gray-300 truncate flex-1">{text}</span>
+                  <button onClick={() => navigator.clipboard.writeText(text)}
+                    className="shrink-0 px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-gray-600 dark:text-gray-300 hover:bg-blue-200">Copy</button>
                 </div>
               ))}
             </div>
-          </div>
-        )}
-
-        {railFenceVisual && (
-          <div className="mb-2">
-            <div className="text-[10px] text-gray-500 mb-1">Rail Pattern</div>
-            {railFenceVisual.map((row, r) => (
-              <div key={r} className="flex gap-0.5 text-[10px] font-mono">
-                {row.map((ch, c) => (
-                  <span key={c} className={`w-5 text-center ${ch ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-gray-300 dark:text-gray-700'}`}>
-                    {ch || '.'}
-                  </span>
-                ))}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {cipher === 'substitution' && (
-          <div className="mb-2">
-            <div className="text-[10px] text-gray-500 mb-1">Substitution Key</div>
-            <div className="flex gap-0.5 text-[10px] font-mono">
-              {alphabet.split('').map((ch, i) => (
-                <div key={i} className="flex flex-col items-center w-5">
-                  <span className="text-gray-500">{ch}</span>
-                  <span className="text-blue-600 dark:text-blue-400 font-bold">{subMap[ch]}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="text-[10px] text-gray-500">{CIPHER_INFO[cipher]}</div>
+          )}
+        </div>
       </div>
     </div>
   );

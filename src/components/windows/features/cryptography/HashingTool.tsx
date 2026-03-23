@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { Clock, Copy, Check, Shield, ShieldAlert, ShieldX } from 'lucide-react';
 
 type HashAlgo = 'MD5' | 'SHA-1' | 'SHA-256' | 'SHA-384' | 'SHA-512';
 type OutputFormat = 'hex' | 'base64';
@@ -30,7 +31,6 @@ function md5(input: string): string {
     a=ii(a,b,c,d,k[4],6,-145523070);d=ii(d,a,b,c,k[11],10,-1120210379);c=ii(c,d,a,b,k[2],15,718787259);b=ii(b,c,d,a,k[9],21,-343485551);
     x[0]=(a+x[0])|0;x[1]=(b+x[1])|0;x[2]=(c+x[2])|0;x[3]=(d+x[3])|0;
   }
-
   const bytes = new TextEncoder().encode(input);
   const len = bytes.length;
   const buf = new Uint8Array(((len + 72) & ~63));
@@ -59,6 +59,55 @@ function toBase64(buf: ArrayBuffer): string {
   return btoa(String.fromCharCode(...new Uint8Array(buf)));
 }
 
+const ALGO_INFO: Record<HashAlgo, { bits: number; status: 'broken' | 'weak' | 'strong'; note: string }> = {
+  'MD5':     { bits: 128, status: 'broken', note: 'Collision attacks exist. Not suitable for security.' },
+  'SHA-1':   { bits: 160, status: 'weak',   note: 'Deprecated. Collision found in 2017 (SHAttered).' },
+  'SHA-256': { bits: 256, status: 'strong',  note: 'Recommended. Part of SHA-2 family. Widely used.' },
+  'SHA-384': { bits: 384, status: 'strong',  note: 'SHA-2 variant. Higher security margin than SHA-256.' },
+  'SHA-512': { bits: 512, status: 'strong',  note: 'SHA-2 variant. Maximum security in the SHA-2 family.' },
+};
+
+function StatusIcon({ status }: { status: 'broken' | 'weak' | 'strong' }) {
+  if (status === 'broken') return <ShieldX className="h-3.5 w-3.5 text-red-500" />;
+  if (status === 'weak')   return <ShieldAlert className="h-3.5 w-3.5 text-amber-500" />;
+  return <Shield className="h-3.5 w-3.5 text-green-500" />;
+}
+
+function CopyBtn({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <button onClick={copy}
+      className="flex items-center gap-0.5 px-2 py-0.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-[10px] transition-colors">
+      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+      {copied ? 'Copied' : 'Copy'}
+    </button>
+  );
+}
+
+// Byte grid visualizer — shows the hash as colored squares
+function ByteGrid({ hexHash }: { hexHash: string }) {
+  if (!hexHash || hexHash.length < 2) return null;
+  const bytes = hexHash.match(/.{2}/g) || [];
+  return (
+    <div className="flex flex-wrap gap-px mt-2">
+      {bytes.map((b, i) => {
+        const val = parseInt(b, 16);
+        const hue = (val / 255) * 280;
+        return (
+          <div key={i} title={`0x${b.toUpperCase()} (${val})`}
+            className="w-4 h-4 rounded-sm cursor-default transition-transform hover:scale-150 hover:z-10"
+            style={{ backgroundColor: `hsl(${hue}, 70%, 55%)` }} />
+        );
+      })}
+    </div>
+  );
+}
+
 export const HashingTool: React.FC = () => {
   const [algo, setAlgo] = useState<HashAlgo>('SHA-256');
   const [outputFmt, setOutputFmt] = useState<OutputFormat>('hex');
@@ -70,6 +119,8 @@ export const HashingTool: React.FC = () => {
   const [fileName, setFileName] = useState('');
   const [compareA, setCompareA] = useState('');
   const [compareB, setCompareB] = useState('');
+  const [timing, setTiming] = useState<number | null>(null);
+  const [allTimings, setAllTimings] = useState<Record<string, number>>({});
   const fileRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -87,11 +138,20 @@ export const HashingTool: React.FC = () => {
     if (allMode) {
       const algos: HashAlgo[] = ['MD5', 'SHA-1', 'SHA-256', 'SHA-384', 'SHA-512'];
       const results: Record<string, string> = {};
-      for (const a of algos) results[a] = await computeHash(data, a, outputFmt);
+      const timings: Record<string, number> = {};
+      for (const a of algos) {
+        const t0 = performance.now();
+        results[a] = await computeHash(data, a, outputFmt);
+        timings[a] = performance.now() - t0;
+      }
       setAllHashes(results);
+      setAllTimings(timings);
       setHash('');
     } else {
-      setHash(await computeHash(data, algo, outputFmt));
+      const t0 = performance.now();
+      const h = await computeHash(data, algo, outputFmt);
+      setTiming(performance.now() - t0);
+      setHash(h);
       setAllHashes({});
     }
   }, [algo, outputFmt, allMode, computeHash]);
@@ -100,7 +160,7 @@ export const HashingTool: React.FC = () => {
     if (inputMode !== 'text') return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      const data = new TextEncoder().encode(textInput).buffer;
+      const data = new TextEncoder().encode(textInput).buffer as ArrayBuffer;
       hashData(data);
     }, 150);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
@@ -114,31 +174,38 @@ export const HashingTool: React.FC = () => {
     hashData(data);
   };
 
-  const compareMatch = compareA.length > 0 && compareB.length > 0 ? compareA.toLowerCase().trim() === compareB.toLowerCase().trim() : null;
-  const hashLen = hash ? (outputFmt === 'hex' ? hash.length / 2 : Math.ceil(hash.length * 3 / 4)) : 0;
+  const compareMatch = compareA.length > 0 && compareB.length > 0
+    ? compareA.toLowerCase().trim() === compareB.toLowerCase().trim() : null;
+
+  const inputBytes = new TextEncoder().encode(textInput).length;
+  const hashBytes = hash ? (outputFmt === 'hex' ? hash.length / 2 : Math.ceil(hash.length * 3 / 4)) : 0;
+  const info = ALGO_INFO[algo];
 
   const selectClass = 'px-3 py-1.5 text-sm rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100';
 
   return (
     <div className="h-full flex flex-col bg-gradient-to-br from-slate-50 to-cyan-50 dark:from-gray-950 dark:to-cyan-950 p-3 overflow-hidden">
+      {/* Toolbar */}
       <div className="flex flex-wrap gap-2 mb-2 items-center">
         {!allMode && (
           <select value={algo} onChange={e => setAlgo(e.target.value as HashAlgo)} className={selectClass}>
-            {['MD5', 'SHA-1', 'SHA-256', 'SHA-384', 'SHA-512'].map(a => <option key={a} value={a}>{a}</option>)}
+            {(['MD5', 'SHA-1', 'SHA-256', 'SHA-384', 'SHA-512'] as HashAlgo[]).map(a => (
+              <option key={a} value={a}>{a}</option>
+            ))}
           </select>
         )}
         <select value={outputFmt} onChange={e => setOutputFmt(e.target.value as OutputFormat)} className={selectClass}>
           <option value="hex">Hex</option>
           <option value="base64">Base64</option>
         </select>
-        <label className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
-          <input type="checkbox" checked={allMode} onChange={e => setAllMode(e.target.checked)} className="rounded" />
+        <label className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 cursor-pointer select-none">
+          <input type="checkbox" checked={allMode} onChange={e => setAllMode(e.target.checked)} className="rounded accent-cyan-500" />
           All algorithms
         </label>
-        <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 ml-2">
+        <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 ml-1">
           {(['text', 'file'] as const).map(m => (
             <button key={m} onClick={() => setInputMode(m)}
-              className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${inputMode === m ? 'bg-blue-600 text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+              className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${inputMode === m ? 'bg-cyan-600 text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
               {m === 'text' ? 'Text' : 'File'}
             </button>
           ))}
@@ -146,58 +213,150 @@ export const HashingTool: React.FC = () => {
       </div>
 
       <div className="flex-1 min-h-0 flex gap-3 overflow-hidden">
-        <div className="flex-1 flex flex-col">
+        {/* Input side */}
+        <div className="flex-1 flex flex-col gap-2 min-w-0">
           {inputMode === 'text' ? (
-            <textarea value={textInput} onChange={e => setTextInput(e.target.value)} placeholder="Enter text to hash..."
-              className="flex-1 p-3 text-sm rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 font-mono resize-none" />
+            <>
+              <textarea
+                value={textInput}
+                onChange={e => setTextInput(e.target.value)}
+                placeholder="Enter text to hash..."
+                className="flex-1 p-3 text-sm rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 font-mono resize-none"
+              />
+              <div className="flex items-center gap-3 text-[10px] text-gray-400 px-1">
+                <span>{inputBytes} byte{inputBytes !== 1 ? 's' : ''}</span>
+                <span>{textInput.length} char{textInput.length !== 1 ? 's' : ''}</span>
+                {textInput.length > 0 && (
+                  <button onClick={() => setTextInput('')} className="ml-auto text-gray-400 hover:text-red-500">Clear</button>
+                )}
+              </div>
+            </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center bg-white dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer"
+            <div
+              className="flex-1 flex flex-col items-center justify-center bg-white dark:bg-gray-800 border-2 border-dashed border-cyan-300 dark:border-cyan-700 rounded-lg cursor-pointer hover:border-cyan-400 transition-colors"
               onClick={() => fileRef.current?.click()}>
               <input ref={fileRef} type="file" className="hidden" onChange={handleFile} />
-              <div className="text-sm text-gray-500">{fileName || 'Click to select a file'}</div>
+              <div className="text-2xl mb-2">📄</div>
+              <div className="text-sm text-gray-500 font-medium">{fileName || 'Click to select file'}</div>
+              {fileName && <div className="text-[10px] text-gray-400 mt-1">File loaded</div>}
             </div>
           )}
+
+          {/* Algorithm info */}
+          {!allMode && (
+            <div className={`rounded-lg p-2 border text-xs ${
+              info.status === 'broken' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' :
+              info.status === 'weak'   ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800' :
+              'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+            }`}>
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <StatusIcon status={info.status} />
+                <span className="font-semibold dark:text-white">{algo} — {info.bits}-bit</span>
+                <span className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                  info.status === 'broken' ? 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200' :
+                  info.status === 'weak'   ? 'bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200' :
+                  'bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200'
+                }`}>{info.status.toUpperCase()}</span>
+              </div>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400">{info.note}</p>
+            </div>
+          )}
+
+          {/* Compare hashes */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-2.5 border border-gray-200 dark:border-gray-700">
+            <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Compare Hashes</div>
+            <input value={compareA} onChange={e => setCompareA(e.target.value)} placeholder="Hash A"
+              className="w-full px-2 py-1 text-[10px] rounded mb-1 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 font-mono" />
+            <input value={compareB} onChange={e => setCompareB(e.target.value)} placeholder="Hash B"
+              className="w-full px-2 py-1 text-[10px] rounded bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 font-mono" />
+            {compareMatch !== null && (
+              <div className={`mt-1.5 text-xs font-bold flex items-center gap-1 ${compareMatch ? 'text-green-600' : 'text-red-500'}`}>
+                {compareMatch ? '✓ Hashes match' : '✗ Hashes do NOT match'}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="flex-1 flex flex-col gap-3">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
-            <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Hash Output</div>
+        {/* Output side */}
+        <div className="flex-1 flex flex-col gap-2 min-w-0">
+          <div className="flex-1 bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700 overflow-auto">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs font-semibold text-gray-700 dark:text-gray-300">Hash Output</div>
+              {timing !== null && !allMode && (
+                <div className="flex items-center gap-1 text-[10px] text-gray-400">
+                  <Clock className="h-3 w-3" />
+                  {timing < 1 ? '<1' : timing.toFixed(1)}ms
+                </div>
+              )}
+            </div>
+
             {allMode ? (
-              <div className="space-y-2">
-                {Object.entries(allHashes).map(([alg, h]) => (
-                  <div key={alg}>
-                    <div className="text-[10px] text-gray-500 mb-0.5">{alg}</div>
-                    <div className="flex items-center gap-1">
-                      <span className="flex-1 text-[10px] font-mono text-gray-800 dark:text-gray-200 break-all select-all">{h || '-'}</span>
-                      <button onClick={() => navigator.clipboard.writeText(h)} className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-[10px]">Copy</button>
+              <div className="space-y-3">
+                {(['MD5', 'SHA-1', 'SHA-256', 'SHA-384', 'SHA-512'] as HashAlgo[]).map(alg => {
+                  const h = allHashes[alg] || '';
+                  const ai = ALGO_INFO[alg];
+                  return (
+                    <div key={alg} className={`rounded-lg p-2 border ${
+                      ai.status === 'broken' ? 'border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-900/10' :
+                      ai.status === 'weak'   ? 'border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/10' :
+                      'border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-900/10'
+                    }`}>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <StatusIcon status={ai.status} />
+                        <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300">{alg}</span>
+                        <span className="text-[9px] text-gray-400">{ai.bits}-bit</span>
+                        {allTimings[alg] !== undefined && (
+                          <span className="ml-auto text-[9px] text-gray-400 flex items-center gap-0.5">
+                            <Clock className="h-2.5 w-2.5" />{allTimings[alg].toFixed(2)}ms
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="flex-1 text-[9px] font-mono text-gray-800 dark:text-gray-200 break-all select-all leading-relaxed">{h || '—'}</span>
+                        {h && <CopyBtn text={h} />}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <>
-                <div className="text-xs font-mono text-gray-800 dark:text-gray-200 break-all select-all min-h-[2rem]">{hash || '-'}</div>
+                <div className="text-xs font-mono text-gray-800 dark:text-gray-200 break-all select-all min-h-[2rem] leading-relaxed">
+                  {hash || <span className="text-gray-400 italic">—</span>}
+                </div>
                 {hash && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-[10px] text-gray-500">{hashLen} bytes ({hashLen * 8} bits)</span>
-                    <button onClick={() => navigator.clipboard.writeText(hash)} className="px-2 py-0.5 bg-blue-600 text-white rounded text-[10px]">Copy</button>
-                  </div>
+                  <>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-[10px] text-gray-400">{hashBytes} bytes · {hashBytes * 8} bits</span>
+                      <CopyBtn text={hash} />
+                    </div>
+                    {outputFmt === 'hex' && <ByteGrid hexHash={hash} />}
+                  </>
                 )}
               </>
             )}
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
-            <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Compare Hashes</div>
-            <input value={compareA} onChange={e => setCompareA(e.target.value)} placeholder="Hash A"
-              className="w-full px-2 py-1 text-xs rounded mb-1 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 font-mono" />
-            <input value={compareB} onChange={e => setCompareB(e.target.value)} placeholder="Hash B"
-              className="w-full px-2 py-1 text-xs rounded bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 font-mono" />
-            {compareMatch !== null && (
-              <div className={`mt-1.5 text-xs font-bold ${compareMatch ? 'text-green-600' : 'text-red-500'}`}>
-                {compareMatch ? 'Hashes match' : 'Hashes do NOT match'}
-              </div>
-            )}
+          {/* Strength comparison bar */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-2.5 border border-gray-200 dark:border-gray-700">
+            <div className="text-[10px] font-semibold text-gray-500 mb-2">Algorithm Strength Comparison</div>
+            {(['MD5', 'SHA-1', 'SHA-256', 'SHA-384', 'SHA-512'] as HashAlgo[]).map(a => {
+              const ai = ALGO_INFO[a];
+              const widthPct = (ai.bits / 512) * 100;
+              const isActive = !allMode && a === algo;
+              return (
+                <div key={a} className="flex items-center gap-2 mb-1 cursor-pointer" onClick={() => !allMode && setAlgo(a)}>
+                  <span className={`text-[9px] w-14 font-mono ${isActive ? 'font-bold text-cyan-600 dark:text-cyan-400' : 'text-gray-500'}`}>{a}</span>
+                  <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full transition-all ${
+                      ai.status === 'broken' ? 'bg-red-400' : ai.status === 'weak' ? 'bg-amber-400' : 'bg-green-500'
+                    } ${isActive ? 'opacity-100' : 'opacity-50'}`}
+                      style={{ width: `${widthPct}%` }} />
+                  </div>
+                  <span className="text-[9px] text-gray-400 w-8 text-right">{ai.bits}b</span>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

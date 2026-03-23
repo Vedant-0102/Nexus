@@ -11,7 +11,6 @@ import {
   Newspaper,
   Cpu,
   Sigma,
-  Shield,
   Music,
   Scissors
 } from 'lucide-react';
@@ -37,7 +36,6 @@ export const DesktopIcons: React.FC = () => {
       'news-folder': 'news-folder-window',
       'virtual-engine-folder': 'virtual-engine-folder-window',
       'math-folder': 'math-folder-window',
-      'crypt-folder': 'crypt-folder-window',
       'music-folder': 'music-folder-window',
       'editing-folder': 'editing-folder-window',
     };
@@ -56,9 +54,8 @@ export const DesktopIcons: React.FC = () => {
     { id: 'virtual-engine-folder', label: 'Engine', icon: <Cpu />, row: 1, col: 2 },
     { id: 'math-folder', label: 'Math', icon: <Sigma />, row: 1, col: 3 },
     { id: 'simulators-folder', label: 'Simulators', icon: <FlaskConical />, row: 2, col: 0 },
-    { id: 'crypt-folder', label: 'Crypt', icon: <Shield />, row: 2, col: 1 },
-    { id: 'music-folder', label: 'Music', icon: <Music />, row: 2, col: 2 },
-    { id: 'editing-folder', label: 'Editing', icon: <Scissors />, row: 2, col: 3 },
+    { id: 'music-folder', label: 'Music', icon: <Music />, row: 2, col: 1 },
+    { id: 'editing-folder', label: 'Editing', icon: <Scissors />, row: 2, col: 2 },
   ];
 
   return (
