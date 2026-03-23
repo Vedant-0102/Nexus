@@ -35,10 +35,16 @@ export const PunnettSquare: React.FC = () => {
       const row: CrossResult[] = [];
       for (let j = 0; j < 2; j++) {
         const a = g1[j], b = g2[i];
-        const sorted = a.toUpperCase() === a ? a + b : b + a;
-        const genotype = sorted;
-        const isDom = genotype[0].toUpperCase() === genotype[0];
-        const phenotype = isDom ? t.dom : t.rec;
+        // Sort alleles: dominant (uppercase) first
+        const alleles = [a, b].sort((x, y) => {
+          if (x.toUpperCase() === x && y.toUpperCase() !== y) return -1;
+          if (x.toUpperCase() !== x && y.toUpperCase() === y) return 1;
+          return x.localeCompare(y);
+        });
+        const genotype = alleles.join('');
+        // Check if dominant allele present
+        const hasDominant = genotype.split('').some(allele => allele.toUpperCase() === allele);
+        const phenotype = hasDominant ? t.dom : t.rec;
         row.push({ genotype, phenotype, probability: 0.25 });
       }
       grid.push(row);

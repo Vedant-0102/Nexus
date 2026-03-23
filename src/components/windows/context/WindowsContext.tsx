@@ -35,6 +35,7 @@ import { FolderContent } from '../features/system/FolderContent';
 import { ChessGame } from '../features/chess/ChessGame';
 import { DatabaseApp } from '../features/database/DatabaseApp';
 import { FileManager } from '../features/system/FileManager';
+import { ClassDiagram } from '../features/system/ClassDiagram';
 import { Wikipedia } from '../features/internet/Wikipedia';
 import { PingPong } from '../features/games/PingPong';
 import { CodeEditor } from '../features/development/CodeEditor';
@@ -168,7 +169,6 @@ import { SnellsLaw } from '../features/science/physics/SnellsLaw';
 import { DiffractionGrating } from '../features/science/physics/DiffractionGrating';
 import { Buoyancy } from '../features/science/physics/Buoyancy';
 import { TorqueRotation } from '../features/science/physics/TorqueRotation';
-import { BridgeStress } from '../features/science/physics/BridgeStress';
 import { GearTrain } from '../features/science/physics/GearTrain';
 import { HydraulicSystem } from '../features/science/physics/HydraulicSystem';
 import { SimpleMachines } from '../features/science/physics/SimpleMachines';
@@ -791,6 +791,20 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         isResizable: true,
         isMaximizable: true,
         defaultSize: { width: 800, height: 600 },
+      },
+      {
+        id: 'classdiagram',
+        title: 'Class Diagram',
+        content: <ClassDiagram />,
+        isOpen: openWindowIds.includes('classdiagram'),
+        isMinimized: minimizedWindowIds.includes('classdiagram'),
+        icon: <Folder className="h-5 w-5 text-violet-500" />,
+        zIndex: 100,
+        showInStartMenu: true,
+        showInTaskbar: false,
+        isResizable: true,
+        isMaximizable: true,
+        defaultSize: { width: 900, height: 650 },
       },
       {
         id: 'paint',
@@ -2239,20 +2253,6 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         defaultSize: { width: 1000, height: 700 },
       },
       // Physics/Engineering
-      {
-        id: 'bridge-stress',
-        title: 'Bridge Stress Tester',
-        content: <BridgeStress />,
-        isOpen: openWindowIds.includes('bridge-stress'),
-        isMinimized: minimizedWindowIds.includes('bridge-stress'),
-        icon: <Layers className="h-5 w-5 text-orange-500" />,
-        zIndex: 100,
-        showInStartMenu: false,
-        showInTaskbar: false,
-        isResizable: true,
-        isMaximizable: true,
-        defaultSize: { width: 1000, height: 700 },
-      },
       {
         id: 'gear-train',
         title: 'Gear Train Simulator',

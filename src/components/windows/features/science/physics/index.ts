@@ -20,7 +20,6 @@ export { SnellsLaw } from './SnellsLaw';
 export { DiffractionGrating } from './DiffractionGrating';
 export { Buoyancy } from './Buoyancy';
 export { TorqueRotation } from './TorqueRotation';
-export { BridgeStress } from './BridgeStress';
 export { GearTrain } from './GearTrain';
 export { HydraulicSystem } from './HydraulicSystem';
 export { SimpleMachines } from './SimpleMachines';

@@ -10,16 +10,9 @@ export const ScienceLab: React.FC = () => {
     <div className="h-full flex flex-col bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 p-4">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg">
-            <FlaskConical className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold dark:text-white">Science Lab</h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Interactive Chemistry & Physics Experiments
-            </p>
-          </div>
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold dark:text-white">Science Lab</h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Interactive Chemistry & Physics Experiments</p>
         </div>
 
         {/* Tabs */}

@@ -277,14 +277,9 @@ export const ElectromagneticLab: React.FC = () => {
   return (
     <div className="h-full w-full bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 p-6 overflow-auto">
       <div className="max-w-6xl mx-auto space-y-4">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl">
-            <Zap className="h-8 w-8 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold dark:text-white">Electromagnetic Lab</h1>
-            <p className="text-gray-600 dark:text-gray-400">Explore electric and magnetic fields</p>
-          </div>
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold dark:text-white">Electromagnetic Lab</h1>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">Explore electric and magnetic fields</p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>

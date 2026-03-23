@@ -254,14 +254,9 @@ export const MathTools: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 p-6 overflow-auto">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl">
-          <Calculator className="h-8 w-8 text-white" />
-        </div>
-        <div>
-          <h1 className="text-3xl font-bold dark:text-white">Math Tools</h1>
-          <p className="text-gray-600 dark:text-gray-400">Comprehensive mathematical toolkit</p>
-        </div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold dark:text-white">Math Tools</h1>
+        <p className="text-gray-600 dark:text-gray-400 text-sm">Comprehensive mathematical toolkit</p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">

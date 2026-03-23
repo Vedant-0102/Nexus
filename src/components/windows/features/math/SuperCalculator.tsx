@@ -229,14 +229,9 @@ export const SuperCalculator = () => {
   return (
     <div className="p-6 h-full bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:to-gray-800 overflow-auto">
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl">
-            <Calculator className="h-8 w-8 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold dark:text-white">Super Calculator</h1>
-            <p className="text-gray-600 dark:text-gray-400">Advanced Scientific & Programmer Calculator</p>
-          </div>
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold dark:text-white">Super Calculator</h1>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">Advanced Scientific & Programmer Calculator</p>
         </div>
 
         <div className="grid lg:grid-cols-4 gap-4">

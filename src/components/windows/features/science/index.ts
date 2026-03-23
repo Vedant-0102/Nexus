@@ -30,7 +30,6 @@ export { GraphTheory } from './math/GraphTheory';
 // Physics exports
 export { DopplerEffect } from './physics/DopplerEffect';
 export { QuantumTunneling } from './physics/QuantumTunneling';
-export { BridgeStress } from './physics/BridgeStress';
 export { GearTrain } from './physics/GearTrain';
 export { HydraulicSystem } from './physics/HydraulicSystem';
 export { SimpleMachines } from './physics/SimpleMachines';

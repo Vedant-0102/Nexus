@@ -30,7 +30,7 @@ export const FolderContent: React.FC<FolderContentProps> = ({ type }) => {
     } else if (type === 'chemistry') {
       return ['periodictable', 'molecularviewer', 'reactionsimulator', 'equation-balancer', 'titration-simulator', 'gas-laws', 'electrochemistry', 'spectroscopy', 'nuclear-decay', 'ph-scale', 'organic-chemistry', 'polymer-builder', 'chemistry-calculator', 'flame-test'].includes(app.id);
     } else if (type === 'physics') {
-      return ['projectilemotion', 'pendulum', 'spring', 'waves', 'collisions', 'electromagneticlab', 'optics-simulator', 'electric-field', 'magnetic-field', 'rocket-propulsion', 'doppler-effect', 'quantum-tunneling', 'bernoulli-principle', 'thermodynamics', 'special-relativity', 'black-hole', 'lc-circuit', 'snells-law', 'diffraction-grating', 'buoyancy', 'torque-rotation', 'bridge-stress', 'gear-train', 'hydraulic-system', 'simple-machines', 'electrical-circuit', 'truss-analysis'].includes(app.id);
+      return ['projectilemotion', 'pendulum', 'spring', 'waves', 'collisions', 'electromagneticlab', 'optics-simulator', 'electric-field', 'magnetic-field', 'rocket-propulsion', 'doppler-effect', 'quantum-tunneling', 'bernoulli-principle', 'thermodynamics', 'special-relativity', 'black-hole', 'lc-circuit', 'snells-law', 'diffraction-grating', 'buoyancy', 'torque-rotation', 'gear-train', 'hydraulic-system', 'simple-machines', 'electrical-circuit', 'truss-analysis'].includes(app.id);
     } else if (type === 'biology') {
       return ['cell-division', 'dna-replication', 'neuron-signal', 'heart-circulation', 'ecosystem-food-web', 'natural-selection', 'punnett-square', 'enzyme-substrate'].includes(app.id);
     } else if (type === 'math') {
