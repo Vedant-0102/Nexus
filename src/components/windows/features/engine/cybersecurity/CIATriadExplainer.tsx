@@ -159,7 +159,7 @@ const BulletList: React.FC<{ items: string[]; colorClass?: string }> = ({ items,
 // ─── Main Component ─────────────────────────────────────────────────────────────
 
 export const CIATriadExplainer: React.FC = () => {
-  const [mainTab, setMainTab] = useState<MainTab>('learn');
+  const [mainTab, setMainTab] = useState<MainTab>('sandbox');
   const [sandboxMode, setSandboxMode] = useState<SandboxMode>('triangle');
   const [activePillar, setActivePillar] = useState<Pillar | null>(null);
   const [learnExpandedPillar, setLearnExpandedPillar] = useState<Pillar | null>(null);
@@ -808,6 +808,19 @@ export const CIATriadExplainer: React.FC = () => {
 
   const renderSandboxTab = () => (
     <div className="space-y-3">
+      {/* Quick Start */}
+      <div className="flex items-start gap-2 px-3 py-2 bg-cyan-50 dark:bg-cyan-950/40 rounded-lg border border-cyan-200 dark:border-cyan-700 text-xs">
+        <span className="font-bold text-cyan-700 dark:text-cyan-400 flex-shrink-0 mt-0.5">How to use:</span>
+        <div className="flex flex-wrap gap-x-2 gap-y-1 text-gray-700 dark:text-gray-300 leading-relaxed">
+          <span><span className="font-semibold text-cyan-700 dark:text-cyan-400">Triangle:</span> Click each pillar (<strong>Confidentiality</strong>, <strong>Integrity</strong>, <strong>Availability</strong>) to learn what it means and how it can be attacked</span>
+          <span className="text-gray-400">·</span>
+          <span><span className="font-semibold text-cyan-700 dark:text-cyan-400">Scenarios:</span> Real-world breaches — identify which CIA pillar was violated</span>
+          <span className="text-gray-400">·</span>
+          <span><span className="font-semibold text-cyan-700 dark:text-cyan-400">Controls:</span> Match security measures to the pillar they protect</span>
+          <span className="text-gray-400">·</span>
+          <span><span className="font-semibold text-cyan-700 dark:text-cyan-400">Quiz:</span> Test your knowledge with multiple-choice questions</span>
+        </div>
+      </div>
       {/* Sandbox sub-navigation */}
       <div className="flex items-center justify-between">
         <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
@@ -888,7 +901,7 @@ export const CIATriadExplainer: React.FC = () => {
               }`}
           >
             <Cpu className="w-3.5 h-3.5" />
-            Sandbox
+            Try It
           </button>
         </div>
       </div>

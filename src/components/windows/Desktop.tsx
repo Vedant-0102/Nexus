@@ -149,7 +149,7 @@ export const Desktop = () => {
               <div className="w-16 h-16 border-t-2 border-white rounded-full animate-spin"></div>
             </div>
           </div>
-          <p className="text-white/90 text-xl animate-pulse mb-6">Starting Windows</p>
+          <p className="text-white/90 text-xl animate-pulse mb-6">Starting Nexus</p>
           <div className="w-full bg-white/20 rounded-full h-2.5 mb-4">
             <div
               className="bg-white h-2.5 rounded-full transition-all duration-500"

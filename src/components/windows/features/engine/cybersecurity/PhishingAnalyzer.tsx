@@ -382,7 +382,7 @@ function scoreURL(url: string): { score: number; indicators: PhishingIndicator[]
 
 export const PhishingAnalyzer: React.FC = () => {
   // Top-level tab state
-  const [mainTab, setMainTab] = useState<MainTab>('learn');
+  const [mainTab, setMainTab] = useState<MainTab>('sandbox');
 
   // Learn tab state
   const [expandedSection, setExpandedSection] = useState<string | null>('what');
@@ -714,7 +714,7 @@ export const PhishingAnalyzer: React.FC = () => {
               : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
           }`}
         >
-          <FlaskConical className="w-3.5 h-3.5" /> Sandbox
+          <FlaskConical className="w-3.5 h-3.5" /> Try It
         </button>
       </div>
 
@@ -750,6 +750,17 @@ export const PhishingAnalyzer: React.FC = () => {
         {/* ════════════════════════ SANDBOX TAB ════════════════════════ */}
         {mainTab === 'sandbox' && (
           <div className="space-y-3">
+            {/* Quick Start */}
+            <div className="flex items-start gap-2 px-3 py-2 bg-orange-50 dark:bg-orange-950/40 rounded-lg border border-orange-200 dark:border-orange-700 text-xs">
+              <span className="font-bold text-orange-700 dark:text-orange-400 flex-shrink-0 mt-0.5">How to use:</span>
+              <div className="flex flex-wrap gap-x-2 gap-y-1 text-gray-700 dark:text-gray-300 leading-relaxed">
+                <span><span className="font-semibold text-orange-700 dark:text-orange-400">Email Analyzer:</span> Pick a suspicious email from the buttons, then look for red-highlighted sections — those are the warning signs</span>
+                <span className="text-gray-400">·</span>
+                <span><span className="font-semibold text-orange-700 dark:text-orange-400">URL Scanner:</span> Paste a suspicious link to check for phishing indicators like fake domains or misleading paths</span>
+                <span className="text-gray-400">·</span>
+                <span><span className="font-semibold text-orange-700 dark:text-orange-400">Spot the Phish:</span> Two emails appear — pick which one is the phishing attempt to test your skills</span>
+              </div>
+            </div>
             {/* Sandbox Sub-Tabs */}
             <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
               {([

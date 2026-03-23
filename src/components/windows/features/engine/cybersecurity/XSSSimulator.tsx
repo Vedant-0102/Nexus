@@ -162,7 +162,7 @@ let nextConsoleId = 100;
 
 export const XSSSimulator: React.FC = () => {
   // Main state
-  const [mainTab, setMainTab] = useState<MainTab>('learn');
+  const [mainTab, setMainTab] = useState<MainTab>('sandbox');
   const [learnSection, setLearnSection] = useState<LearnSection>('overview');
 
   // Sandbox state
@@ -1007,6 +1007,19 @@ app.use(session({
 
   const renderSandboxContent = () => (
     <div className="space-y-3">
+      {/* Quick Start */}
+      <div className="flex items-start gap-2 px-3 py-2 bg-red-50 dark:bg-red-950/40 rounded-lg border border-red-200 dark:border-red-800 text-xs">
+        <span className="font-bold text-red-700 dark:text-red-400 flex-shrink-0 mt-0.5">How to use:</span>
+        <div className="flex flex-wrap gap-x-2 gap-y-1 text-gray-700 dark:text-gray-300 leading-relaxed">
+          <span><span className="font-semibold text-red-700 dark:text-red-400">1.</span> Mode is set to <strong>Vulnerable</strong> — click one of the preset payload buttons (e.g. "Basic Alert") to auto-fill an attack</span>
+          <span className="text-gray-400">·</span>
+          <span><span className="font-semibold text-red-700 dark:text-red-400">2.</span> The preview below shows what happens when the browser runs that code on an unsafe website</span>
+          <span className="text-gray-400">·</span>
+          <span><span className="font-semibold text-red-700 dark:text-red-400">3.</span> Switch to <strong>Sanitized</strong> mode to see how the same input is made safe — the attack no longer works</span>
+          <span className="text-gray-400">·</span>
+          <span><span className="font-semibold text-red-700 dark:text-red-400">4.</span> Try all 3 tabs: <strong>Reflected</strong>, <strong>Stored</strong>, and <strong>DOM</strong> — each is a different way XSS attacks work</span>
+        </div>
+      </div>
       {/* Mode Toggle + Reset */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
@@ -1385,7 +1398,7 @@ app.use(session({
               : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
           }`}
         >
-          <Play className="w-3.5 h-3.5" /> Sandbox
+          <Play className="w-3.5 h-3.5" /> Try It
         </button>
       </div>
 

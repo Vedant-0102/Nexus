@@ -321,7 +321,7 @@ const PROTOCOL_DETAILS = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const PacketSnifferVisualizer: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<TabId>('learn');
+  const [activeTab, setActiveTab] = useState<TabId>('sandbox');
   const [expandedLearn, setExpandedLearn] = useState<Set<LearnSection>>(new Set(['what-is']));
 
   // Sandbox state
@@ -1033,7 +1033,7 @@ export const PacketSnifferVisualizer: React.FC = () => {
                   : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
             >
-              {tab === 'learn' ? 'Learn' : 'Sandbox'}
+              {tab === 'learn' ? 'Learn' : 'Try It'}
             </button>
           ))}
         </div>
@@ -1070,6 +1070,19 @@ export const PacketSnifferVisualizer: React.FC = () => {
       {/* ── Sandbox Tab ── */}
       {activeTab === 'sandbox' && (
         <div className="flex-1 min-h-0 flex flex-col gap-2">
+          {/* Quick Start */}
+          <div className="flex-shrink-0 flex items-start gap-2 px-3 py-2 bg-indigo-50 dark:bg-indigo-950/40 rounded-lg border border-indigo-200 dark:border-indigo-700 text-xs">
+            <span className="font-bold text-indigo-700 dark:text-indigo-400 flex-shrink-0 mt-0.5">How to use:</span>
+            <div className="flex flex-wrap gap-x-2 gap-y-1 text-gray-700 dark:text-gray-300 leading-relaxed">
+              <span><span className="font-semibold text-indigo-700 dark:text-indigo-400">1.</span> Click <strong>Start Capture</strong> — simulated network traffic starts flowing between the nodes above</span>
+              <span className="text-gray-400">·</span>
+              <span><span className="font-semibold text-indigo-700 dark:text-indigo-400">2.</span> Each row in the list is one network request (HTTP = web page, DNS = domain lookup, TCP/UDP = connection types)</span>
+              <span className="text-gray-400">·</span>
+              <span><span className="font-semibold text-indigo-700 dark:text-indigo-400">3.</span> Click any row to inspect the full packet details — source, destination, size, and data</span>
+              <span className="text-gray-400">·</span>
+              <span><span className="font-semibold text-indigo-700 dark:text-indigo-400">4.</span> Use the colored buttons (HTTP, DNS, TCP...) to filter and show only specific traffic types</span>
+            </div>
+          </div>
           {/* Controls bar */}
           <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
             {!capturing ? (

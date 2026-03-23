@@ -615,6 +615,20 @@ const SandboxTab: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
+      {/* Quick Start */}
+      <div className="flex-shrink-0 flex items-start gap-2 px-3 py-2 mb-2 bg-emerald-50 dark:bg-emerald-950/40 rounded-lg border border-emerald-200 dark:border-emerald-700 text-xs">
+        <span className="font-bold text-emerald-700 dark:text-emerald-400 flex-shrink-0 mt-0.5">How to use:</span>
+        <div className="flex flex-wrap gap-x-2 gap-y-1 text-gray-700 dark:text-gray-300 leading-relaxed">
+          <span><span className="font-semibold text-emerald-700 dark:text-emerald-400">1.</span> Pick a scan type — <strong>Quick</strong> is fastest (25 common ports)</span>
+          <span className="text-gray-400">·</span>
+          <span><span className="font-semibold text-emerald-700 dark:text-emerald-400">2.</span> Click <strong>Start Scan</strong></span>
+          <span className="text-gray-400">·</span>
+          <span><span className="font-semibold text-emerald-700 dark:text-emerald-400">3.</span> Ports turn <span className="text-green-600 dark:text-green-400 font-semibold">green</span> (open), <span className="text-red-500 font-semibold">red</span> (closed), or <span className="text-yellow-600 dark:text-yellow-400 font-semibold">yellow</span> (blocked by firewall)</span>
+          <span className="text-gray-400">·</span>
+          <span><span className="font-semibold text-emerald-700 dark:text-emerald-400">4.</span> Click any port to see what service runs on it and its known security risks</span>
+        </div>
+      </div>
+
       {/* Top Controls Bar */}
       <div className="flex flex-wrap gap-2 mb-3 items-center">
         {/* Target IP */}
@@ -880,7 +894,7 @@ const SandboxTab: React.FC = () => {
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export const PortScannerVisualizer: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<TabId>('learn');
+  const [activeTab, setActiveTab] = useState<TabId>('sandbox');
 
   return (
     <div className="h-full flex flex-col bg-gradient-to-br from-slate-50 to-emerald-50 dark:from-gray-950 dark:to-emerald-950 p-3 overflow-hidden">
@@ -897,7 +911,7 @@ export const PortScannerVisualizer: React.FC = () => {
         <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 border border-gray-200 dark:border-gray-700">
           {([
             { id: 'learn' as TabId, label: 'Learn' },
-            { id: 'sandbox' as TabId, label: 'Sandbox' },
+            { id: 'sandbox' as TabId, label: 'Try It' },
           ]).map(tab => (
             <button
               key={tab.id}

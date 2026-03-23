@@ -675,7 +675,7 @@ Notable platforms to practice: PicoCTF (beginner-friendly), HackTheBox, TryHackM
 
 export const CTFChallenge: React.FC = () => {
   // ── Top-level state ──
-  const [mainTab, setMainTab] = useState<MainTab>('learn');
+  const [mainTab, setMainTab] = useState<MainTab>('sandbox');
 
   // ── Learn state ──
   const [expandedLearnSection, setExpandedLearnSection] = useState<number | null>(0);
@@ -1016,7 +1016,7 @@ export const CTFChallenge: React.FC = () => {
           }`}
         >
           <Terminal className="w-3.5 h-3.5" />
-          Sandbox
+          Play Challenges
         </button>
       </div>
 
@@ -1062,6 +1062,20 @@ export const CTFChallenge: React.FC = () => {
       {/* ═══════════════════════════════════════════════════════════════════ */}
       {mainTab === 'sandbox' && (
         <div className="flex-1 min-h-0 flex flex-col gap-2 overflow-hidden">
+
+          {/* Quick Start */}
+          <div className="flex-shrink-0 flex items-start gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-950/40 rounded-lg border border-amber-200 dark:border-amber-700 text-xs">
+            <span className="font-bold text-amber-700 dark:text-amber-400 flex-shrink-0 mt-0.5">How to play:</span>
+            <div className="flex flex-wrap gap-x-2 gap-y-1 text-gray-700 dark:text-gray-300 leading-relaxed">
+              <span><span className="font-semibold text-amber-700 dark:text-amber-400">1.</span> Click any challenge card below to open it — each one is a mini hacking puzzle</span>
+              <span className="text-gray-400">·</span>
+              <span><span className="font-semibold text-amber-700 dark:text-amber-400">2.</span> Read the description carefully — it hints at what technique to use (e.g. decode, decrypt, find the hidden data)</span>
+              <span className="text-gray-400">·</span>
+              <span><span className="font-semibold text-amber-700 dark:text-amber-400">3.</span> Use the tool or input provided to find the flag — it will look like <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">FLAG&#123;...&#125;</code></span>
+              <span className="text-gray-400">·</span>
+              <span><span className="font-semibold text-amber-700 dark:text-amber-400">4.</span> Stuck? Click <strong>Hint</strong> for a nudge. Points decrease with each hint used.</span>
+            </div>
+          </div>
 
           {/* ── Scoreboard & Controls Row ── */}
           <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">

@@ -279,7 +279,7 @@ Segmentation: Use firewalls to segment your network. Don't rely on a single peri
 ];
 
 export const FirewallRuleBuilder: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<TabId>('learn');
+  const [activeTab, setActiveTab] = useState<TabId>('sandbox');
   const [rules, setRules] = useState<FirewallRule[]>(DEFAULT_RULES);
   const [defaultPolicy, setDefaultPolicy] = useState<Action>('DENY');
   const [editingRule, setEditingRule] = useState<FirewallRule | null>(null);
@@ -475,6 +475,20 @@ export const FirewallRuleBuilder: React.FC = () => {
 
   const renderSandboxTab = () => (
     <div className="space-y-3">
+      {/* Quick Start */}
+      <div className="flex items-start gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-950/40 rounded-lg border border-blue-200 dark:border-blue-700 text-xs">
+        <span className="font-bold text-blue-700 dark:text-blue-400 flex-shrink-0 mt-0.5">How to use:</span>
+        <div className="flex flex-wrap gap-x-2 gap-y-1 text-gray-700 dark:text-gray-300 leading-relaxed">
+          <span><span className="font-semibold text-blue-700 dark:text-blue-400">1.</span> Click <strong>Templates</strong> to load a preset — "Web Server" is a great starting example</span>
+          <span className="text-gray-400">·</span>
+          <span><span className="font-semibold text-blue-700 dark:text-blue-400">2.</span> The rule table shows traffic rules in order — <span className="text-green-600 font-semibold">ALLOW</span> lets it through, <span className="text-red-500 font-semibold">DENY</span> blocks it. First matching rule wins.</span>
+          <span className="text-gray-400">·</span>
+          <span><span className="font-semibold text-blue-700 dark:text-blue-400">3.</span> Scroll down to <strong>Test a Packet</strong> — enter any source/destination IP and port, then click <strong>Simulate</strong></span>
+          <span className="text-gray-400">·</span>
+          <span><span className="font-semibold text-blue-700 dark:text-blue-400">4.</span> See which rule matched. <em>Tip: <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">0.0.0.0/0</code> means "any IP", <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">*</code> means "any port"</em></span>
+        </div>
+      </div>
+
       {/* Toolbar row */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
@@ -795,10 +809,15 @@ export const FirewallRuleBuilder: React.FC = () => {
 
       {/* Packet Simulator */}
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-        <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-          <Zap className="w-4 h-4 text-orange-500" />
-          Packet Simulator
-        </h3>
+        <div className="flex items-start justify-between mb-3">
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <Zap className="w-4 h-4 text-orange-500" />
+            Test a Packet
+          </h3>
+          <span className="text-[10px] text-gray-500 dark:text-gray-400 max-w-xs text-right leading-relaxed">
+            Simulate network traffic and see which rule matches. <strong>Source</strong> = where the request comes from, <strong>Dest</strong> = where it's going, <strong>Port</strong> = the service (80=web, 443=secure web, 22=SSH, 3306=database)
+          </span>
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-3">
           <div>
             <label className={labelCls}>Source IP</label>
@@ -1038,7 +1057,7 @@ export const FirewallRuleBuilder: React.FC = () => {
           }`}
         >
           <Play className="w-3.5 h-3.5" />
-          Sandbox
+          Try It
         </button>
       </div>
 

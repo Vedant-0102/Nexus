@@ -183,10 +183,11 @@ export const DesktopIcon = ({ label, icon, onClick, onDoubleClick, id, defaultX 
         <div className="h-12 w-12 flex items-center justify-center">
           {React.cloneElement(icon as React.ReactElement, {
             size: 36,
-            className: `text-white drop-shadow-md transition-transform duration-100 ${speedIntensity > 0.3 ? 'scale-110' : ''}`
+            className: `text-white transition-transform duration-100 ${speedIntensity > 0.3 ? 'scale-110' : ''}`,
+            style: { filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.9)) drop-shadow(0 0 6px rgba(0,0,0,0.7))' }
           })}
         </div>
-        <p className="text-sm text-white font-medium mt-1 text-center leading-tight drop-shadow-md line-clamp-2">
+        <p className="text-sm text-white font-medium mt-1 text-center leading-tight line-clamp-2" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.7)' }}>
           {label}
         </p>
       </div>
@@ -214,10 +215,11 @@ export const DesktopIcon = ({ label, icon, onClick, onDoubleClick, id, defaultX 
         <div className="h-12 w-12 flex items-center justify-center">
           {React.cloneElement(icon as React.ReactElement, {
             size: 36,
-            className: "text-white drop-shadow-md"
+            className: "text-white",
+            style: { filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.9)) drop-shadow(0 0 6px rgba(0,0,0,0.7))' }
           })}
         </div>
-        <p className="text-sm text-white font-medium mt-1 text-center leading-tight drop-shadow-md line-clamp-2">
+        <p className="text-sm text-white font-medium mt-1 text-center leading-tight line-clamp-2" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.7)' }}>
           {label}
         </p>
       </div>

@@ -152,7 +152,7 @@ const Section: React.FC<{ title: string; icon: React.ReactNode; children: React.
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export const PasswordCrackingDemo: React.FC = () => {
-  const [tab, setTab] = useState<ActiveTab>('learn');
+  const [tab, setTab] = useState<ActiveTab>('sandbox');
 
   // Sandbox state
   const [password, setPassword] = useState('');
@@ -298,7 +298,7 @@ export const PasswordCrackingDemo: React.FC = () => {
       <div className="flex gap-1 mb-3 flex-shrink-0 bg-gray-200/60 dark:bg-gray-800/60 rounded-lg p-0.5">
         {([
           { key: 'learn' as const, label: 'Learn', icon: <BookOpen className="w-3.5 h-3.5" /> },
-          { key: 'sandbox' as const, label: 'Sandbox', icon: <FlaskConical className="w-3.5 h-3.5" /> },
+          { key: 'sandbox' as const, label: 'Try It', icon: <FlaskConical className="w-3.5 h-3.5" /> },
         ]).map(t => (
           <button
             key={t.key}
@@ -661,6 +661,19 @@ export const PasswordCrackingDemo: React.FC = () => {
              SANDBOX TAB
              ════════════════════════════════════════════════════════════ */
           <div className="space-y-3 pb-4">
+            {/* Quick Start */}
+            <div className="flex items-start gap-2 px-3 py-2 bg-purple-50 dark:bg-purple-950/40 rounded-lg border border-purple-200 dark:border-purple-700 text-xs">
+              <span className="font-bold text-purple-700 dark:text-purple-400 flex-shrink-0 mt-0.5">How to use:</span>
+              <div className="flex flex-wrap gap-x-2 gap-y-1 text-gray-700 dark:text-gray-300 leading-relaxed">
+                <span><span className="font-semibold text-purple-700 dark:text-purple-400">1.</span> Type any password in the box above — try <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">password123</code> or your own</span>
+                <span className="text-gray-400">·</span>
+                <span><span className="font-semibold text-purple-700 dark:text-purple-400">2.</span> The strength meter and analysis appear instantly — see entropy, character set, and weaknesses</span>
+                <span className="text-gray-400">·</span>
+                <span><span className="font-semibold text-purple-700 dark:text-purple-400">3.</span> Pick an attack mode: <strong>Dictionary</strong> tries common words, <strong>Brute Force</strong> tries every combination</span>
+                <span className="text-gray-400">·</span>
+                <span><span className="font-semibold text-purple-700 dark:text-purple-400">4.</span> Click <strong>Start Attack</strong> and watch the cracker attempt to guess your password in real time</span>
+              </div>
+            </div>
             {/* Password Input & Strength Analysis */}
             <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
               <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5 block">

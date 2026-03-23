@@ -1078,7 +1078,7 @@ const severityBarColor = (severity: number): string => {
 // ───────────────────────── Component ─────────────────────────
 
 export const OWASPTop10: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<Tab>('learn');
+  const [activeTab, setActiveTab] = useState<Tab>('sandbox');
   const [expandedLearnSection, setExpandedLearnSection] = useState<string | null>('what-is-owasp');
   const [expandedVuln, setExpandedVuln] = useState<OWASPId | null>(null);
 
@@ -1384,6 +1384,19 @@ export const OWASPTop10: React.FC = () => {
 
   const renderSandboxList = () => (
     <div className="space-y-3">
+      {/* Quick Start */}
+      <div className="flex items-start gap-2 px-3 py-2 bg-sky-50 dark:bg-sky-950/40 rounded-lg border border-sky-200 dark:border-sky-700 text-xs">
+        <span className="font-bold text-sky-700 dark:text-sky-400 flex-shrink-0 mt-0.5">How to use:</span>
+        <div className="flex flex-wrap gap-x-2 gap-y-1 text-gray-700 dark:text-gray-300 leading-relaxed">
+          <span><span className="font-semibold text-sky-700 dark:text-sky-400">1.</span> Click any vulnerability card below (e.g. "Injection" or "Broken Access Control") to learn about it</span>
+          <span className="text-gray-400">·</span>
+          <span><span className="font-semibold text-sky-700 dark:text-sky-400">2.</span> See real attack examples, what damage they cause, and side-by-side vulnerable vs. safe code</span>
+          <span className="text-gray-400">·</span>
+          <span><span className="font-semibold text-sky-700 dark:text-sky-400">3.</span> Answer the quiz questions at the bottom of each card to test your understanding</span>
+          <span className="text-gray-400">·</span>
+          <span><span className="font-semibold text-sky-700 dark:text-sky-400">4.</span> Your progress is tracked — try to study and quiz all 10 vulnerabilities!</span>
+        </div>
+      </div>
       {/* Progress overview */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3">
         <div className="flex items-center justify-between mb-2">
@@ -1772,7 +1785,7 @@ export const OWASPTop10: React.FC = () => {
           }`}
         >
           <Terminal size={13} />
-          Sandbox
+          Explore
         </button>
       </div>
 

@@ -201,10 +201,27 @@ const ACCENT_RGB: Partial<Record<WindowThemeName, string>> = {
 
 export function getTheme(themeName: WindowThemeName, isDark: boolean): WindowTheme {
   const base = WINDOW_THEMES[themeName];
-  if (!isDark) return base;
 
-  // These themes already handle dark appropriately
-  if (themeName === 'dark' || themeName === 'glass') return base;
+  // Dark theme already handles itself
+  if (themeName === 'dark') return base;
+
+  // Glass theme: light mode uses dark text on semi-opaque white, dark mode uses white text
+  if (themeName === 'glass') {
+    if (!isDark) {
+      return {
+        ...base,
+        headerBg: 'rgba(255, 255, 255, 0.5)',
+        headerText: '#1f2937',
+        bodyBg: 'rgba(255, 255, 255, 0.6)',
+        bodyText: '#1f2937',
+        borderColor: 'rgba(0, 0, 0, 0.1)',
+        accentColor: '#0078D4',
+      };
+    }
+    return base;
+  }
+
+  if (!isDark) return base;
 
   // 'default' in dark mode becomes the dark theme
   if (themeName === 'default') return WINDOW_THEMES.dark;

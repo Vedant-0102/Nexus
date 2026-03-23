@@ -514,7 +514,7 @@ const getGrade = (score: number, total: number) => {
 
 export const SocialEngineeringWalkthroughs: React.FC = () => {
   // Top-level tab
-  const [activeTab, setActiveTab] = useState<Tab>('learn');
+  const [activeTab, setActiveTab] = useState<Tab>('sandbox');
 
   // Learn tab
   const [expandedSection, setExpandedSection] = useState<string | null>('what');
@@ -831,7 +831,7 @@ export const SocialEngineeringWalkthroughs: React.FC = () => {
           }`}
         >
           <Play className="w-3.5 h-3.5" />
-          Sandbox
+          Scenarios
         </button>
       </div>
 
@@ -866,6 +866,19 @@ export const SocialEngineeringWalkthroughs: React.FC = () => {
         {/* ━━━━━━━━━━━━━━━ SANDBOX TAB ━━━━━━━━━━━━━━━ */}
         {activeTab === 'sandbox' && sandboxView === 'list' && (
           <div className="space-y-3">
+            {/* Quick Start */}
+            <div className="flex items-start gap-2 px-3 py-2 bg-orange-50 dark:bg-orange-950/40 rounded-lg border border-orange-200 dark:border-orange-700 text-xs">
+              <span className="font-bold text-orange-700 dark:text-orange-400 flex-shrink-0 mt-0.5">How to use:</span>
+              <div className="flex flex-wrap gap-x-2 gap-y-1 text-gray-700 dark:text-gray-300 leading-relaxed">
+                <span><span className="font-semibold text-orange-700 dark:text-orange-400">1.</span> Pick a scenario card — each shows a real social engineering attack (e.g. "Phishing Email", "Pretexting Call")</span>
+                <span className="text-gray-400">·</span>
+                <span><span className="font-semibold text-orange-700 dark:text-orange-400">2.</span> Read through the attack step by step — see exactly how the attacker manipulates the victim</span>
+                <span className="text-gray-400">·</span>
+                <span><span className="font-semibold text-orange-700 dark:text-orange-400">3.</span> At decision points, choose how you would respond — your choices affect the outcome</span>
+                <span className="text-gray-400">·</span>
+                <span><span className="font-semibold text-orange-700 dark:text-orange-400">4.</span> At the end, see the defense strategy — what should have been done to prevent the attack</span>
+              </div>
+            </div>
             {/* Difficulty Filter */}
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Filter:</span>
