@@ -35,7 +35,6 @@ import { FolderContent } from '../features/system/FolderContent';
 import { ChessGame } from '../features/chess/ChessGame';
 import { DatabaseApp } from '../features/database/DatabaseApp';
 import { FileManager } from '../features/system/FileManager';
-import { ClassDiagram } from '../features/system/ClassDiagram';
 import { Wikipedia } from '../features/internet/Wikipedia';
 import { PingPong } from '../features/games/PingPong';
 import { CodeEditor } from '../features/development/CodeEditor';
@@ -792,20 +791,7 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         isMaximizable: true,
         defaultSize: { width: 800, height: 600 },
       },
-      {
-        id: 'classdiagram',
-        title: 'Class Diagram',
-        content: <ClassDiagram />,
-        isOpen: openWindowIds.includes('classdiagram'),
-        isMinimized: minimizedWindowIds.includes('classdiagram'),
-        icon: <Folder className="h-5 w-5 text-violet-500" />,
-        zIndex: 100,
-        showInStartMenu: true,
-        showInTaskbar: false,
-        isResizable: true,
-        isMaximizable: true,
-        defaultSize: { width: 900, height: 650 },
-      },
+
       {
         id: 'paint',
         title: 'Paint',

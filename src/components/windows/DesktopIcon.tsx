@@ -164,12 +164,13 @@ export const DesktopIcon = ({ label, icon, onClick, onDoubleClick, id, defaultX 
     return (
       <div
         ref={nodeRef}
-        className="flex flex-col items-center w-24 h-24 p-2 rounded cursor-move select-none"
+        className="flex flex-col items-center w-28 p-2 rounded cursor-move select-none"
         style={{
           position: 'fixed',
           left: displayX,
           top: displayY,
           zIndex: 50,
+          minHeight: '100px',
           transform: displayRotation ? `rotate(${displayRotation}rad)` : undefined,
           boxShadow: speedIntensity > 0.1
             ? `0 0 ${glowSize}px rgba(147, 51, 234, ${glowOpacity}), 0 0 ${glowSize * 2}px rgba(147, 51, 234, ${glowOpacity * 0.4})`
@@ -184,10 +185,11 @@ export const DesktopIcon = ({ label, icon, onClick, onDoubleClick, id, defaultX 
           {React.cloneElement(icon as React.ReactElement, {
             size: 36,
             className: `text-white transition-transform duration-100 ${speedIntensity > 0.3 ? 'scale-110' : ''}`,
-            style: { filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.55))' }
+            strokeWidth: 2,
+            style: { filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.55))', stroke: 'currentColor', fill: 'none' }
           })}
         </div>
-        <p className="text-sm text-white font-medium mt-1 text-center leading-tight line-clamp-2" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8), 0 1px 6px rgba(0,0,0,0.5)' }}>
+        <p className="text-sm text-white font-medium mt-1 text-center leading-tight line-clamp-2 pb-1 px-1 break-words" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8), 0 1px 6px rgba(0,0,0,0.5)', wordBreak: 'break-word' }}>
           {label}
         </p>
       </div>
@@ -207,8 +209,8 @@ export const DesktopIcon = ({ label, icon, onClick, onDoubleClick, id, defaultX 
     >
       <div
         ref={nodeRef}
-        className="absolute flex flex-col items-center w-24 h-24 p-2 rounded hover:bg-white/10 cursor-pointer select-none"
-        style={{ zIndex: 1 }}
+        className="absolute flex flex-col items-center w-28 p-2 rounded hover:bg-white/10 cursor-pointer select-none"
+        style={{ zIndex: 1, minHeight: '100px' }}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
       >
@@ -216,10 +218,11 @@ export const DesktopIcon = ({ label, icon, onClick, onDoubleClick, id, defaultX 
           {React.cloneElement(icon as React.ReactElement, {
             size: 36,
             className: "text-white",
-            style: { filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.55))' }
+            strokeWidth: 2,
+            style: { filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.55))', stroke: 'currentColor', fill: 'none' }
           })}
         </div>
-        <p className="text-sm text-white font-medium mt-1 text-center leading-tight line-clamp-2" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8), 0 1px 6px rgba(0,0,0,0.5)' }}>
+        <p className="text-sm text-white font-medium mt-1 text-center leading-tight line-clamp-2 pb-1 px-1 break-words" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8), 0 1px 6px rgba(0,0,0,0.5)', wordBreak: 'break-word' }}>
           {label}
         </p>
       </div>
