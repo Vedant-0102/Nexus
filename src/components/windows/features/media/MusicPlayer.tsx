@@ -195,7 +195,7 @@ export const MusicPlayer = () => {
   return (
     <div className="p-4 h-full">
       <h2 className="text-2xl font-semibold mb-4">Music Player</h2>
-      <div className="bg-white/50 p-6 rounded-lg max-w-md mx-auto">
+      <div className="bg-white/50 dark:bg-gray-800/80 p-6 rounded-lg max-w-md mx-auto">
         <div className="bg-gray-800 h-32 rounded-lg mb-4 flex items-center justify-center relative">
           <div className="text-white text-center">
             <div className="font-bold text-lg">{songs[currentSong].title}</div>

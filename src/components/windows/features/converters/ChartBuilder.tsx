@@ -796,7 +796,7 @@ export const ChartBuilder: React.FC = () => {
             <div className="lg:col-span-2">
               <Card className="p-6 dark:bg-gray-800 h-full">
                 <h3 className="text-lg font-semibold mb-4 dark:text-white">Preview</h3>
-                <div className="flex justify-center items-center bg-white rounded-lg p-4">
+                <div className="flex justify-center items-center bg-white dark:bg-gray-900 rounded-lg p-4">
                   <canvas
                     ref={canvasRef}
                     className="max-w-full"

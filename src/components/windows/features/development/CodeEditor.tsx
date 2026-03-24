@@ -185,7 +185,7 @@ export const CodeEditor: React.FC = () => {
         </div>
 
         {/* Preview */}
-        <div className="w-1/2 flex flex-col bg-white">
+        <div className="w-1/2 flex flex-col bg-white dark:bg-gray-900">
           <div className="p-2 bg-gray-800 border-b border-gray-700 text-sm text-gray-400">
             Preview
           </div>

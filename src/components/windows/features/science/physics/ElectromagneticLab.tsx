@@ -304,7 +304,7 @@ export const ElectromagneticLab: React.FC = () => {
                 ref={canvasRef}
                 width={800}
                 height={600}
-                className="w-full border-2 border-gray-300 dark:border-gray-600 rounded bg-white"
+                className="w-full border-2 border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-white"
               />
             </Card>
 

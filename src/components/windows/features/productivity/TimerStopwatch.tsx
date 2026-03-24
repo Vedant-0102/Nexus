@@ -132,7 +132,7 @@ export const TimerStopwatch = () => {
         </TabsList>
         
         <TabsContent value="timer" className="mt-4">
-          <div className="bg-white/50 p-6 rounded-lg flex flex-col items-center">
+          <div className="bg-white/50 dark:bg-gray-800/80 p-6 rounded-lg flex flex-col items-center">
             {!isTimerRunning && !isTimerComplete && (
               <div className="mb-4 grid grid-cols-2 gap-4 w-full max-w-xs">
                 <div>
@@ -198,7 +198,7 @@ export const TimerStopwatch = () => {
         </TabsContent>
         
         <TabsContent value="stopwatch" className="mt-4">
-          <div className="bg-white/50 p-6 rounded-lg flex flex-col items-center">
+          <div className="bg-white/50 dark:bg-gray-800/80 p-6 rounded-lg flex flex-col items-center">
             <div className="text-6xl font-bold my-6">
               {formatStopwatchTime(stopwatchTime)}
             </div>

@@ -315,3 +315,38 @@
 .animate-zoom-in {
   animation: zoom-in 0.5s ease-in-out;
 }
+
+/* ============================================================
+   DARK MODE CONTRAST AUTO-FIX
+   Uses :where(.dark) to keep specificity at (0,1,0) so that
+   any explicit dark:text-* / dark:bg-* utility (specificity
+   0,2,0) always wins — only bare classes without a dark
+   variant are affected.
+   ============================================================ */
+@layer utilities {
+  /* --- Text colours --- */
+  :where(.dark) .text-gray-500 { color: rgb(156 163 175); }   /* → gray-400 */
+  :where(.dark) .text-gray-600 { color: rgb(209 213 219); }   /* → gray-300 */
+  :where(.dark) .text-gray-700 { color: rgb(229 231 235); }   /* → gray-200 */
+  :where(.dark) .text-gray-800 { color: rgb(243 244 246); }   /* → gray-100 */
+  :where(.dark) .text-gray-900 { color: rgb(249 250 251); }   /* → gray-50  */
+  :where(.dark) .text-black    { color: rgb(249 250 251); }   /* → near-white */
+
+  /* --- Solid background colours that look broken in dark mode --- */
+  :where(.dark) .bg-white     { background-color: rgb(31 41 55);  }  /* → gray-800 */
+  :where(.dark) .bg-gray-50   { background-color: rgb(17 24 39);  }  /* → gray-900 */
+  :where(.dark) .bg-gray-100  { background-color: rgb(31 41 55);  }  /* → gray-800 */
+  :where(.dark) .bg-gray-200  { background-color: rgb(55 65 81);  }  /* → gray-700 */
+
+  /* --- Border colours --- */
+  :where(.dark) .border-gray-100 { border-color: rgb(55 65 81);   }  /* → gray-700 */
+  :where(.dark) .border-gray-200 { border-color: rgb(75 85 99);   }  /* → gray-600 */
+  :where(.dark) .border-gray-300 { border-color: rgb(107 114 128); } /* → gray-500 */
+
+  /* --- Light mode: dark text on dark bg needs to be light --- */
+  /* (for elements that stay dark in both modes, e.g. game canvases — nothing needed) */
+
+  /* --- Divide colours --- */
+  :where(.dark) .divide-gray-200 > * + * { border-color: rgb(55 65 81); }
+  :where(.dark) .divide-gray-100 > * + * { border-color: rgb(55 65 81); }
+}

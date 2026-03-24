@@ -175,7 +175,7 @@ export const Browser: React.FC = () => {
             </div>
 
             {/* Browser Content - Render all iframes but only show active */}
-            <div className="flex-1 relative bg-white">
+            <div className="flex-1 relative bg-white dark:bg-gray-900">
                 {tabs.map(tab => (
                     <div
                         key={tab.id}

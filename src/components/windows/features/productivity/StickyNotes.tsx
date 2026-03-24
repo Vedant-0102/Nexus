@@ -255,7 +255,7 @@ export const StickyNotes: React.FC = () => {
                         value={editContent}
                         onChange={(e) => setEditContent(e.target.value)}
                         onKeyDown={handleEditKeyDown}
-                        className="w-full p-2 rounded border-2 border-gray-400 bg-white/50 text-base resize-none"
+                        className="w-full p-2 rounded border-2 border-gray-400 bg-white/50 dark:bg-gray-700/50 dark:text-gray-100 dark:border-gray-500 text-base resize-none"
                         rows={5}
                         autoFocus
                       />

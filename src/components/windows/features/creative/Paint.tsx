@@ -296,7 +296,7 @@ export const Paint = () => {
           </div>
 
           {/* Canvas */}
-          <div className="border-2 border-gray-300 dark:border-gray-600 rounded overflow-hidden bg-white shadow-inner relative">
+          <div className="border-2 border-gray-300 dark:border-gray-600 rounded overflow-hidden bg-white dark:bg-white shadow-inner relative">
             <canvas
               ref={canvasRef}
               onMouseDown={startDrawing}

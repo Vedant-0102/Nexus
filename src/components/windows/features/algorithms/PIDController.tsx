@@ -959,7 +959,7 @@ export const PIDController: React.FC = () => {
                   className="sr-only peer"
                 />
                 <div className="w-8 h-4 bg-gray-300 dark:bg-gray-600 peer-checked:bg-teal-600 rounded-full transition-colors" />
-                <div className="absolute left-0.5 top-0.5 w-3 h-3 bg-white rounded-full transition-transform peer-checked:translate-x-4 shadow-sm" />
+                <div className="absolute left-0.5 top-0.5 w-3 h-3 bg-white dark:bg-white rounded-full transition-transform peer-checked:translate-x-4 shadow-sm" />
               </div>
             </label>
           </div>

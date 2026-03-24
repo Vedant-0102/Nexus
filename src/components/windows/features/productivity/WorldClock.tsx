@@ -65,7 +65,7 @@ export const WorldClock = () => {
             {locations.map((location) => (
               <div 
                 key={location.city}
-                className="bg-white/50 p-4 rounded-lg flex flex-col items-center"
+                className="bg-white/50 dark:bg-gray-800/80 p-4 rounded-lg flex flex-col items-center"
               >
                 <div className="text-4xl mb-1">{location.flag}</div>
                 <h3 className="text-lg font-semibold mb-1 text-gray-800 dark:text-gray-100">
@@ -83,7 +83,7 @@ export const WorldClock = () => {
         </TabsContent>
         
         <TabsContent value="map" className="mt-4">
-          <div className="bg-white/50 p-4 rounded-lg">
+          <div className="bg-white/50 dark:bg-gray-800/80 p-4 rounded-lg">
             <div className="relative">
               <div className="w-full h-64 relative overflow-hidden rounded-lg">
                 {/* World map SVG with timezone highlights */}

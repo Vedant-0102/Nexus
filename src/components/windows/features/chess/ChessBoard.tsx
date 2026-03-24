@@ -103,7 +103,15 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
 
         {/* Piece */}
         {piece && (
-          <div className="text-5xl select-none pointer-events-none">
+          <div
+            className="text-5xl select-none pointer-events-none leading-none"
+            style={{
+              color: piece.color === 'white' ? '#f0d9b5' : '#1a1008',
+              textShadow: piece.color === 'white'
+                ? '0 0 2px rgba(0,0,0,0.9), 0 1px 3px rgba(0,0,0,0.6)'
+                : '0 0 1px rgba(255,255,255,0.4), 0 1px 2px rgba(0,0,0,0.4)',
+            }}
+          >
             {PIECE_SYMBOLS[piece.color][piece.type]}
           </div>
         )}

@@ -668,7 +668,7 @@ export const FlashcardGame: React.FC = () => {
                     onClick={() => updateSettings({ [key]: !settings[key] })}
                     className={`relative w-11 h-6 rounded-full transition-colors ${settings[key] ? 'bg-purple-500' : 'bg-gray-300 dark:bg-gray-600'}`}
                   >
-                    <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${settings[key] ? 'translate-x-5' : ''}`} />
+                    <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white dark:bg-white rounded-full shadow transition-transform ${settings[key] ? 'translate-x-5' : ''}`} />
                   </button>
                 </div>
               ))}
