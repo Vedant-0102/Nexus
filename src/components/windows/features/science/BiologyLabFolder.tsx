@@ -1,6 +1,6 @@
 import React from 'react';
 import { useWindows } from '../../context/WindowsContext';
-import { Dna, Heart, Brain, Leaf, Microscope, Activity } from 'lucide-react';
+import { Dna, Heart, Brain, Microscope, Activity } from 'lucide-react';
 
 export const BiologyLabFolder: React.FC = () => {
   const { toggleWindow } = useWindows();
@@ -9,11 +9,7 @@ export const BiologyLabFolder: React.FC = () => {
     { id: 'cell-division', name: 'Cell Division', icon: <Microscope className="h-8 w-8 text-green-500" /> },
     { id: 'dna-replication', name: 'DNA Replication', icon: <Dna className="h-8 w-8 text-blue-500" /> },
     { id: 'neuron-signal', name: 'Neuron Signal', icon: <Brain className="h-8 w-8 text-purple-500" /> },
-    { id: 'ecosystem-sim', name: 'Ecosystem Simulator', icon: <Leaf className="h-8 w-8 text-emerald-500" /> },
-    { id: 'natural-selection', name: 'Natural Selection', icon: <Activity className="h-8 w-8 text-amber-500" /> },
     { id: 'heart-circulation', name: 'Heart & Circulation', icon: <Heart className="h-8 w-8 text-red-500" /> },
-    { id: 'genetics-punnett', name: 'Genetics & Punnett', icon: <Dna className="h-8 w-8 text-indigo-500" /> },
-    { id: 'enzyme-substrate', name: 'Enzyme-Substrate', icon: <Microscope className="h-8 w-8 text-cyan-500" /> },
   ];
 
   return (

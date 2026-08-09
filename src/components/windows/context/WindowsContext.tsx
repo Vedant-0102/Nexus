@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, useRef, useMemo, useCallback } from 'react';
 import { WindowType } from '../types/WindowTypes';
 import { WINDOW_THEMES, WALLPAPER_TO_THEME, WindowThemeName } from '../themes/windowThemes';
-import { Settings as SettingsIcon, Clock, FileText, Battery, Timer, Terminal as TerminalIcon, StickyNote, Gamepad, PaintBucket, Folder, Crown, Globe, RefreshCcw, Code, Layers, Flag, Cloud, Image, Table, Presentation, TrendingUp, Bitcoin, Trophy, Rocket, Briefcase, Repeat, FlaskConical, BarChart3, Beaker, Zap, Atom, QrCode, Plane, Ship, Palette, Sparkles, CheckCircle2, Eye, Newspaper, Cpu, Waves, Brain, ClipboardList, CheckSquare, Ruler, Weight, DollarSign, Sigma, Calculator, Grid3x3, PieChart, Calendar as CalendarIcon, GitBranch, Gauge, Thermometer, Droplet, Shield, Wind, Microscope, Dna, Heart, Circle, Lightbulb, Scan, Settings, Sun, Moon, Mountain, Star, Binary, CircuitBoard, MemoryStick, Cog, Wrench, Bolt, Lock, Key, Hash, Fingerprint, KeyRound, FileKey, AlertTriangle, Bug, Users, Database } from 'lucide-react';
+import { Settings as SettingsIcon, Clock, FileText, Battery, Timer, Terminal as TerminalIcon, StickyNote, Gamepad, PaintBucket, Folder, Crown, Globe, RefreshCcw, Code, Layers, Flag, Cloud, Image, Table, Presentation, TrendingUp, Bitcoin, Trophy, Rocket, Briefcase, Repeat, FlaskConical, BarChart3, Beaker, Zap, Atom, QrCode, Plane, Ship, Palette, Sparkles, CheckCircle2, Eye, Cpu, Waves, Brain, ClipboardList, CheckSquare, Ruler, Weight, DollarSign, Sigma, Calculator, Grid3x3, PieChart, Calendar as CalendarIcon, GitBranch, Gauge, Thermometer, Droplet, Shield, Wind, Microscope, Dna, Heart, Circle, Lightbulb, Scan, Settings, Sun, Moon, Mountain, Star, Binary, CircuitBoard, MemoryStick, Cog, Wrench, Bolt, Lock, Key, Hash, Fingerprint, KeyRound, FileKey, AlertTriangle, Bug, Users, Database } from 'lucide-react';
 import { Notepad } from '../features/office/Notepad';
 import { TextEditor } from '../features/office/TextEditor';
 import { FormBuilder } from '../features/office/FormBuilder';
@@ -106,7 +106,6 @@ import { Connect4 } from '../features/games/Connect4';
 import { GradientGenerator } from '../features/colors/GradientGenerator';
 import { PixelArtEditor as PixelArtEditorColors } from '../features/colors/PixelArtEditor';
 import { VirtualEngineFolder } from '../features/folders/VirtualEngineFolder';
-import { NewsFolder } from '../features/folders/NewsFolder';
 import { PixelArtEditor } from '../features/office/PixelArtEditor';
 import { InvoiceGenerator } from '../features/office/InvoiceGenerator';
 import { DVDScreensaver } from '../features/games/DVDScreensaver';
@@ -167,18 +166,11 @@ import { LCCircuit } from '../features/science/physics/LCCircuit';
 import { SnellsLaw } from '../features/science/physics/SnellsLaw';
 import { DiffractionGrating } from '../features/science/physics/DiffractionGrating';
 import { Buoyancy } from '../features/science/physics/Buoyancy';
-import { TorqueRotation } from '../features/science/physics/TorqueRotation';
-import { GearTrain } from '../features/science/physics/GearTrain';
 import { HydraulicSystem } from '../features/science/physics/HydraulicSystem';
 import { SimpleMachines } from '../features/science/physics/SimpleMachines';
 import { ElectricalCircuit } from '../features/science/physics/ElectricalCircuit';
-import { TrussAnalysis } from '../features/science/physics/TrussAnalysis';
 
 // Biology Lab - New
-import { EcosystemFoodWeb } from '../features/science/biology/EcosystemFoodWeb';
-import { NaturalSelection } from '../features/science/biology/NaturalSelection';
-import { PunnettSquare } from '../features/science/biology/PunnettSquare';
-import { EnzymeSubstrate } from '../features/science/biology/EnzymeSubstrate';
 
 // Earth & Space Sciences
 import { SolarSystem } from '../features/science/earthspace/SolarSystem';
@@ -249,8 +241,6 @@ interface WindowsContextType {
   minimizedWindows: string[];
   setWallpaper: (url: string) => void;
   wallpaper: string;
-  isShuttingDown: boolean;
-  handleShutdown: () => void;
   isDarkMode: boolean;
   windowThemeOverrides: Record<string, string>;
   setWindowTheme: (windowId: string, themeName: string) => void;
@@ -275,8 +265,6 @@ const WindowsContext = createContext<WindowsContextType>({
   minimizedWindows: [],
   setWallpaper: () => { },
   wallpaper: '',
-  isShuttingDown: false,
-  handleShutdown: () => { },
   isDarkMode: false,
   windowThemeOverrides: {},
   setWindowTheme: () => { },
@@ -290,14 +278,35 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [windows, setWindows] = useState<WindowType[]>([]);
   const [highestZIndex, setHighestZIndex] = useState(100);
   const [minimizedWindows, setMinimizedWindows] = useState<string[]>([]);
-  const [wallpaper, setWallpaper] = useState('');
-  const [isShuttingDown, setIsShuttingDown] = useState(false);
 
-  const [settings, setSettings] = useState<SettingsType>({
-    theme: 'light',
-    showClock: true,
-    showNotepad: true,
-    showBattery: true,
+  // Read persisted state synchronously in the initializers. Loading it in an
+  // effect raced with the effects that SAVE settings/wallpaper: on mount the
+  // save effect wrote the defaults over localStorage before the loaded state
+  // landed (guaranteed under StrictMode's double-mount), which is why the
+  // chosen theme and wallpaper reset on every refresh.
+  const [wallpaper, setWallpaper] = useState<string>(() => {
+    try {
+      return localStorage.getItem('win11-wallpaper') || '';
+    } catch { return ''; }
+  });
+
+  const [settings, setSettings] = useState<SettingsType>(() => {
+    const defaults: SettingsType = {
+      theme: 'light',
+      showClock: true,
+      showNotepad: true,
+      showBattery: true,
+    };
+    try {
+      const saved = localStorage.getItem('win11-settings');
+      if (saved) return { ...defaults, ...JSON.parse(saved) };
+      // Legacy fallback from before settings were stored as one object
+      const savedTheme = localStorage.getItem('win11-theme');
+      if (savedTheme) return { ...defaults, theme: savedTheme === 'dark' ? 'dark' : 'light' };
+    } catch (error) {
+      console.error('Error parsing saved settings:', error);
+    }
+    return defaults;
   });
 
   const isDarkMode = settings.theme === 'dark';
@@ -348,103 +357,13 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [windows]);
 
   useEffect(() => {
-    const isShutdown = localStorage.getItem('win11-is-shutdown') === 'true';
-    if (isShutdown) {
-      const shutdownScreen = document.createElement('div');
-      shutdownScreen.id = 'shutdown-screen';
-      shutdownScreen.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background: black;
-        z-index: 99999;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: rgba(255, 255, 255, 0.3);
-        font-family: 'Segoe UI', sans-serif;
-        font-size: 20px;
-      `;
-      shutdownScreen.innerHTML = '<p>Click anywhere to power on</p>';
+    // Power lifecycle is handled by SystemContext now; clear the legacy flag
+    // that used to trap the app in a black "click to power on" loop.
+    localStorage.removeItem('win11-is-shutdown');
 
-      shutdownScreen.addEventListener('click', () => {
-        shutdownScreen.style.background = '#0078D7';
-        shutdownScreen.innerHTML = `<div class="windows-loader"></div>`;
-        const style = document.createElement('style');
-        style.textContent = `
-          .windows-loader {
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top: 4px solid white;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-          }
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `;
-        document.body.appendChild(style);
-
-        localStorage.removeItem('win11-is-shutdown');
-
-        setTimeout(() => {
-          shutdownScreen.remove();
-          window.location.reload();
-        }, 2000);
-      });
-
-      document.body.appendChild(shutdownScreen);
-      setIsShuttingDown(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    const loadSavedState = () => {
-      const savedSettings = localStorage.getItem('win11-settings');
-      const savedWallpaper = localStorage.getItem('win11-wallpaper');
-      const savedOpenWindows = localStorage.getItem('win11-open-windows');
-      const savedMinimizedWindows = localStorage.getItem('win11-minimized-windows');
-      const savedTheme = localStorage.getItem('win11-theme');
-
-      if (savedSettings) {
-        try {
-          const parsedSettings = JSON.parse(savedSettings);
-          setSettings(parsedSettings);
-
-          // Apply theme immediately on load
-          if (parsedSettings.theme === 'dark') {
-            document.documentElement.classList.add('dark');
-          } else {
-            document.documentElement.classList.remove('dark');
-          }
-        } catch (error) {
-          console.error("Error parsing saved settings:", error);
-        }
-      } else if (savedTheme) {
-        // Fallback to old theme storage
-        const isDark = savedTheme === 'dark';
-        if (isDark) {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
-        setSettings(prev => ({ ...prev, theme: isDark ? 'dark' : 'light' }));
-      }
-
-      if (savedWallpaper) {
-        setWallpaper(savedWallpaper);
-      }
-
-      // Always start fresh - no window persistence across refreshes
-      initializeWindows([], []);
-    };
-
-    loadSavedState();
+    // Settings and wallpaper are loaded synchronously in their initializers.
+    // Windows always start fresh - no window persistence across refreshes.
+    initializeWindows([], []);
   }, []);
 
   // Helper to get or create window content (prevents remounting)
@@ -2029,62 +1948,6 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         defaultSize: { width: 1200, height: 800 },
       },
       {
-        id: 'ecosystem-food-web',
-        title: 'Ecosystem Food Web',
-        content: <EcosystemFoodWeb />,
-        isOpen: openWindowIds.includes('ecosystem-food-web'),
-        isMinimized: minimizedWindowIds.includes('ecosystem-food-web'),
-        icon: <Globe className="h-5 w-5 text-green-500" />,
-        zIndex: 100,
-        showInStartMenu: false,
-        showInTaskbar: false,
-        isResizable: true,
-        isMaximizable: true,
-        defaultSize: { width: 1100, height: 750 },
-      },
-      {
-        id: 'natural-selection',
-        title: 'Natural Selection',
-        content: <NaturalSelection />,
-        isOpen: openWindowIds.includes('natural-selection'),
-        isMinimized: minimizedWindowIds.includes('natural-selection'),
-        icon: <Dna className="h-5 w-5 text-emerald-500" />,
-        zIndex: 100,
-        showInStartMenu: false,
-        showInTaskbar: false,
-        isResizable: true,
-        isMaximizable: true,
-        defaultSize: { width: 1100, height: 750 },
-      },
-      {
-        id: 'punnett-square',
-        title: 'Punnett Square',
-        content: <PunnettSquare />,
-        isOpen: openWindowIds.includes('punnett-square'),
-        isMinimized: minimizedWindowIds.includes('punnett-square'),
-        icon: <Grid3x3 className="h-5 w-5 text-lime-500" />,
-        zIndex: 100,
-        showInStartMenu: false,
-        showInTaskbar: false,
-        isResizable: true,
-        isMaximizable: true,
-        defaultSize: { width: 1100, height: 750 },
-      },
-      {
-        id: 'enzyme-substrate',
-        title: 'Enzyme-Substrate Interaction',
-        content: <EnzymeSubstrate />,
-        isOpen: openWindowIds.includes('enzyme-substrate'),
-        isMinimized: minimizedWindowIds.includes('enzyme-substrate'),
-        icon: <FlaskConical className="h-5 w-5 text-amber-500" />,
-        zIndex: 100,
-        showInStartMenu: false,
-        showInTaskbar: false,
-        isResizable: true,
-        isMaximizable: true,
-        defaultSize: { width: 1100, height: 750 },
-      },
-      {
         id: 'doppler-effect',
         title: 'Doppler Effect',
         content: <DopplerEffect />,
@@ -2224,35 +2087,7 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         isMaximizable: true,
         defaultSize: { width: 1000, height: 700 },
       },
-      {
-        id: 'torque-rotation',
-        title: 'Torque & Rotational Motion',
-        content: <TorqueRotation />,
-        isOpen: openWindowIds.includes('torque-rotation'),
-        isMinimized: minimizedWindowIds.includes('torque-rotation'),
-        icon: <Settings className="h-5 w-5 text-orange-400" />,
-        zIndex: 100,
-        showInStartMenu: false,
-        showInTaskbar: false,
-        isResizable: true,
-        isMaximizable: true,
-        defaultSize: { width: 1000, height: 700 },
-      },
       // Physics/Engineering
-      {
-        id: 'gear-train',
-        title: 'Gear Train Simulator',
-        content: <GearTrain />,
-        isOpen: openWindowIds.includes('gear-train'),
-        isMinimized: minimizedWindowIds.includes('gear-train'),
-        icon: <Cog className="h-5 w-5 text-stone-400" />,
-        zIndex: 100,
-        showInStartMenu: false,
-        showInTaskbar: false,
-        isResizable: true,
-        isMaximizable: true,
-        defaultSize: { width: 1000, height: 700 },
-      },
       {
         id: 'hydraulic-system',
         title: 'Hydraulic System',
@@ -2288,20 +2123,6 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         isOpen: openWindowIds.includes('electrical-circuit'),
         isMinimized: minimizedWindowIds.includes('electrical-circuit'),
         icon: <Zap className="h-5 w-5 text-yellow-500" />,
-        zIndex: 100,
-        showInStartMenu: false,
-        showInTaskbar: false,
-        isResizable: true,
-        isMaximizable: true,
-        defaultSize: { width: 1000, height: 700 },
-      },
-      {
-        id: 'truss-analysis',
-        title: 'Truss Analysis',
-        content: <TrussAnalysis />,
-        isOpen: openWindowIds.includes('truss-analysis'),
-        isMinimized: minimizedWindowIds.includes('truss-analysis'),
-        icon: <Layers className="h-5 w-5 text-slate-400" />,
         zIndex: 100,
         showInStartMenu: false,
         showInTaskbar: false,
@@ -4033,21 +3854,6 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
       isMaximizable: true,
     };
 
-    const newsFolderWindow: WindowType = {
-      id: 'news-folder-window',
-      title: 'News & Data',
-      content: <NewsFolder />,
-      isOpen: openWindowIds.includes('news-folder-window'),
-      isMinimized: minimizedWindowIds.includes('news-folder-window'),
-      icon: <Newspaper className="h-5 w-5 text-blue-500" />,
-      zIndex: FOLDER_ZINDEX,
-      defaultSize: { width: 800, height: 600 },
-      showInStartMenu: true,
-      showInTaskbar: true,
-      isResizable: true,
-      isMaximizable: true,
-    };
-
     const virtualEngineFolderWindow: WindowType = {
       id: 'virtual-engine-folder-window',
       title: 'Virtual Engine',
@@ -4255,7 +4061,6 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
       biologyFolderWindow,
       utilitiesFolderWindow,
       colorsFolderWindow,
-      newsFolderWindow,
       virtualEngineFolderWindow,
       mathFolderWindow,
       cryptFolderWindow,
@@ -4432,61 +4237,6 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setMinimizedWindows(prev => prev.filter(winId => winId !== id));
   };
 
-  const handleShutdown = () => {
-    setIsShuttingDown(true);
-
-    setWindows(prevWindows =>
-      prevWindows.map(window => ({
-        ...window,
-        isOpen: false,
-        isMinimized: false
-      }))
-    );
-    setMinimizedWindows([]);
-
-    const shutdownContainer = document.createElement('div');
-    shutdownContainer.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: #0078D7;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 99999;
-    `;
-
-    shutdownContainer.innerHTML = `<div class="shutdown-loader"></div>`;
-
-    const style = document.createElement('style');
-    style.textContent = `
-      .shutdown-loader {
-        border: 4px solid rgba(255, 255, 255, 0.3);
-        border-radius: 50%;
-        border-top: 4px solid white;
-        width: 40px;
-        height: 40px;
-        animation: shutdownSpin 1s linear infinite;
-      }
-      @keyframes shutdownSpin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-    `;
-
-    document.body.appendChild(style);
-    document.body.appendChild(shutdownContainer);
-
-    setTimeout(() => {
-      shutdownContainer.style.transition = 'background 0.5s ease-in-out';
-      shutdownContainer.style.background = 'black';
-      shutdownContainer.innerHTML = '';
-      document.body.style.cursor = 'none';
-      localStorage.setItem('win11-is-shutdown', 'true');
-    }, 6000);
-  };
 
   return (
     <WindowsContext.Provider
@@ -4502,8 +4252,6 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         minimizedWindows,
         setWallpaper,
         wallpaper,
-        isShuttingDown,
-        handleShutdown,
         isDarkMode,
         windowThemeOverrides,
         setWindowTheme,

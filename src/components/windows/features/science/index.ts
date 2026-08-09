@@ -12,10 +12,7 @@ export { CellDivision } from './biology/CellDivision';
 export { DNAReplication } from './biology/DNAReplication';
 export { NeuronSignal } from './biology/NeuronSignal';
 export { HeartCirculation } from './biology/HeartCirculation';
-export { EcosystemFoodWeb } from './biology/EcosystemFoodWeb';
-export { NaturalSelection } from './biology/NaturalSelection';
-export { PunnettSquare } from './biology/PunnettSquare';
-export { EnzymeSubstrate } from './biology/EnzymeSubstrate';
+
 
 // Math exports
 export { FunctionGrapher3D } from './math/FunctionGrapher3D';
@@ -30,11 +27,9 @@ export { GraphTheory } from './math/GraphTheory';
 // Physics exports
 export { DopplerEffect } from './physics/DopplerEffect';
 export { QuantumTunneling } from './physics/QuantumTunneling';
-export { GearTrain } from './physics/GearTrain';
 export { HydraulicSystem } from './physics/HydraulicSystem';
 export { SimpleMachines } from './physics/SimpleMachines';
 export { ElectricalCircuit } from './physics/ElectricalCircuit';
-export { TrussAnalysis } from './physics/TrussAnalysis';
 
 // Earth & Space exports
 export { SolarSystem } from './earthspace/SolarSystem';

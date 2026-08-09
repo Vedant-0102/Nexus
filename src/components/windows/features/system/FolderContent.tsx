@@ -30,9 +30,9 @@ export const FolderContent: React.FC<FolderContentProps> = ({ type }) => {
     } else if (type === 'chemistry') {
       return ['periodictable', 'molecularviewer', 'reactionsimulator', 'equation-balancer', 'titration-simulator', 'gas-laws', 'electrochemistry', 'spectroscopy', 'nuclear-decay', 'ph-scale', 'organic-chemistry', 'polymer-builder', 'chemistry-calculator', 'flame-test'].includes(app.id);
     } else if (type === 'physics') {
-      return ['projectilemotion', 'pendulum', 'spring', 'waves', 'collisions', 'electromagneticlab', 'optics-simulator', 'electric-field', 'magnetic-field', 'rocket-propulsion', 'doppler-effect', 'quantum-tunneling', 'bernoulli-principle', 'thermodynamics', 'special-relativity', 'black-hole', 'lc-circuit', 'snells-law', 'diffraction-grating', 'buoyancy', 'torque-rotation', 'gear-train', 'hydraulic-system', 'simple-machines', 'electrical-circuit', 'truss-analysis'].includes(app.id);
+      return ['projectilemotion', 'pendulum', 'spring', 'waves', 'collisions', 'electromagneticlab', 'optics-simulator', 'electric-field', 'magnetic-field', 'rocket-propulsion', 'doppler-effect', 'quantum-tunneling', 'bernoulli-principle', 'thermodynamics', 'special-relativity', 'black-hole', 'lc-circuit', 'snells-law', 'diffraction-grating', 'buoyancy', 'hydraulic-system', 'simple-machines', 'electrical-circuit'].includes(app.id);
     } else if (type === 'biology') {
-      return ['cell-division', 'dna-replication', 'neuron-signal', 'heart-circulation', 'ecosystem-food-web', 'natural-selection', 'punnett-square', 'enzyme-substrate'].includes(app.id);
+      return ['cell-division', 'dna-replication', 'neuron-signal', 'heart-circulation'].includes(app.id);
     } else if (type === 'math') {
       return ['supercalculator', 'geometry-calculator', 'quadratic-solver', 'linear-system-solver', 'matrix-calculator', 'graph-plotter', 'statistics-calculator', 'derivative-calculator', 'integral-calculator', 'trig-calculator', 'number-theory', 'percentage-calculator', '3d-function-grapher', 'fractal-generator', 'fourier-transform', 'calculus-visualizer', 'linear-algebra', 'prime-sieve', 'graph-theory', 'probability-dist'].includes(app.id);
     } else if (type === 'utilities') {

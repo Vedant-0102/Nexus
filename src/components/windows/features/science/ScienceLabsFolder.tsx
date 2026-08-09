@@ -22,12 +22,11 @@ export const ScienceLabsFolder: React.FC = () => {
     { id: 'thermodynamics', name: 'Thermodynamics', icon: <Thermometer className="h-8 w-8 text-red-500" />, category: 'Physics' },
     { id: 'quantum-tunneling', name: 'Quantum Tunneling', icon: <Atom className="h-8 w-8 text-purple-600" />, category: 'Physics' },
     { id: 'special-relativity', name: 'Special Relativity', icon: <Zap className="h-8 w-8 text-yellow-600" />, category: 'Physics' },
-    { id: 'black-hole', name: 'Black Hole Gravity', icon: <FlaskConical className="h-8 w-8 text-gray-800" />, category: 'Physics' },
+    { id: 'black-hole', name: 'Black Hole Gravity', icon: <FlaskConical className="h-8 w-8 text-gray-800 dark:text-gray-200" />, category: 'Physics' },
     { id: 'lc-circuit', name: 'LC Circuit', icon: <Zap className="h-8 w-8 text-orange-500" />, category: 'Physics' },
     { id: 'snells-law', name: 'Snell\'s Law', icon: <Eye className="h-8 w-8 text-teal-500" />, category: 'Physics' },
     { id: 'diffraction', name: 'Diffraction Grating', icon: <Waves className="h-8 w-8 text-violet-500" />, category: 'Physics' },
     { id: 'buoyancy', name: 'Buoyancy', icon: <Droplet className="h-8 w-8 text-blue-600" />, category: 'Physics' },
-    { id: 'torque-rotation', name: 'Torque & Rotation', icon: <FlaskConical className="h-8 w-8 text-amber-600" />, category: 'Physics' },
   ];
 
   const categories = ['Chemistry', 'Physics'];

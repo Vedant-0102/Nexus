@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useWindows } from './context/WindowsContext';
+import { useSystem, PowerAction } from './context/SystemContext';
 import {
   Search, Power, Settings,
-  Gamepad, Briefcase, Newspaper, Sparkles, Repeat,
-  Folder, Cpu, Sigma, FlaskConical, Shield
+  Gamepad, Briefcase, Sparkles, Repeat,
+  Folder, Cpu, Sigma, FlaskConical, Shield,
+  Moon, Lock, LogOut, RotateCcw
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -18,7 +20,6 @@ const PINNED_APP_IDS = ['settings', 'browser', 'calendar', 'terminal', 'weather'
 const FOLDER_ITEMS = [
   { windowId: 'games-folder-window', label: 'Games', icon: <Gamepad className="h-5 w-5" /> },
   { windowId: 'office-folder-window', label: 'Office Suite', icon: <Briefcase className="h-5 w-5" /> },
-  { windowId: 'news-folder-window', label: 'News & Data', icon: <Newspaper className="h-5 w-5" /> },
   { windowId: 'colors-folder-window', label: 'Colors', icon: <Sparkles className="h-5 w-5" /> },
   { windowId: 'converters-folder-window', label: 'Converters', icon: <Repeat className="h-5 w-5" /> },
   { windowId: 'utilities-folder-window', label: 'Utilities', icon: <Folder className="h-5 w-5" /> },
@@ -30,9 +31,9 @@ const FOLDER_ITEMS = [
 
 export const StartMenu: React.FC<StartMenuProps> = ({ isOpen, onClose }) => {
   const { windows, toggleWindow } = useWindows();
+  const { power } = useSystem();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredApps, setFilteredApps] = useState<any[]>([]);
-  const [isShuttingDown, setIsShuttingDown] = useState(false);
 
   const pinnedApps = windows.filter(w => PINNED_APP_IDS.includes(w.id));
 
@@ -55,40 +56,12 @@ export const StartMenu: React.FC<StartMenuProps> = ({ isOpen, onClose }) => {
     onClose();
   };
 
-  const handlePowerOff = () => {
-    setIsShuttingDown(true);
-
-    sessionStorage.setItem('win11-shutdown-action', 'true');
-
-    setTimeout(() => {
-      document.body.style.backgroundColor = '#000';
-      document.body.innerHTML = `
-        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: white;">
-          <div style="font-size: 24px; margin-bottom: 20px;">Shutting down...</div>
-          <div style="width: 80px; height: 80px; border: 4px solid #333; border-top: 4px solid #fff; border-radius: 50%; margin: 0 auto; animation: spin 1s linear infinite;"></div>
-          <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
-        </div>
-      `;
-
-      setTimeout(() => {
-        document.body.innerHTML = '';
-        document.body.style.backgroundColor = '#000';
-      }, 5000);
-    }, 1000);
+  const handlePower = (action: PowerAction) => {
+    onClose();
+    power(action);
   };
 
   if (!isOpen) return null;
-
-  if (isShuttingDown) {
-    return (
-      <div className="fixed inset-0 bg-black flex items-center justify-center z-[1000]">
-        <div className="text-center text-white">
-          <div className="text-2xl mb-5">Shutting down...</div>
-          <div className="w-16 h-16 border-4 border-gray-600 border-t-white rounded-full animate-spin mx-auto"></div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div
@@ -190,11 +163,40 @@ export const StartMenu: React.FC<StartMenuProps> = ({ isOpen, onClose }) => {
           </PopoverTrigger>
           <PopoverContent className="w-48 p-2">
             <button
-              onClick={handlePowerOff}
-              className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-red-500/10 transition-colors"
+              onClick={() => handlePower('sleep')}
+              className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-gray-200/70 dark:hover:bg-gray-700/70 transition-colors text-sm"
+            >
+              <Moon size={16} className="text-blue-400" />
+              <span>Sleep</span>
+            </button>
+            <button
+              onClick={() => handlePower('lock')}
+              className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-gray-200/70 dark:hover:bg-gray-700/70 transition-colors text-sm"
+            >
+              <Lock size={16} className="text-gray-500 dark:text-gray-400" />
+              <span>Lock</span>
+            </button>
+            <button
+              onClick={() => handlePower('signout')}
+              className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-gray-200/70 dark:hover:bg-gray-700/70 transition-colors text-sm"
+            >
+              <LogOut size={16} className="text-gray-500 dark:text-gray-400" />
+              <span>Sign out</span>
+            </button>
+            <div className="my-1 border-t border-gray-200 dark:border-gray-700" />
+            <button
+              onClick={() => handlePower('restart')}
+              className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-gray-200/70 dark:hover:bg-gray-700/70 transition-colors text-sm"
+            >
+              <RotateCcw size={16} className="text-gray-500 dark:text-gray-400" />
+              <span>Restart</span>
+            </button>
+            <button
+              onClick={() => handlePower('shutdown')}
+              className="w-full flex items-center gap-2 p-2 rounded-md hover:bg-red-500/10 transition-colors text-sm"
             >
               <Power size={16} className="text-red-500" />
-              <span className="text-red-500">Shutdown</span>
+              <span className="text-red-500">Shut down</span>
             </button>
           </PopoverContent>
         </Popover>
