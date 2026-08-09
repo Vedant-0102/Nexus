@@ -292,8 +292,19 @@ export const UniverseSimulator: React.FC = () => {
   useEffect(() => { cameraModeRef.current = cameraMode; }, [cameraMode]);
   useEffect(() => { selectedBodyRef.current = selectedBody; }, [selectedBody]);
 
+  // Single source of truth for the viewing distance so the fly-to transition
+  // and follow mode land on exactly the same spot (they used to disagree, and
+  // small planets like Mercury put the camera nearly inside the surface).
+  const getFollowOffset = (body: { name: string; radius: number }) => {
+    const d = body.name === 'Sun' ? 20 : Math.max(body.radius * 5, 6);
+    return new THREE.Vector3(d, d * 0.5, d);
+  };
+
   const focusPlanet = (name: string) => {
     setSelectedBody(name);
+    // Selecting a body means "take me there and stay with it" — enable follow
+    // so the camera keeps tracking the planet along its orbit after arrival.
+    setCameraMode('follow');
     const body = bodiesRef.current.find(b => b.name === name);
     if (!body?.mesh || !controlsRef.current || !cameraRef.current) return;
 
@@ -314,37 +325,39 @@ export const UniverseSimulator: React.FC = () => {
     (body.mesh.material as THREE.MeshStandardMaterial).emissive.setHex(0x00FFFF);
     (body.mesh.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.5;
     
-    // Smooth camera transition
-    const targetPos = body.mesh.position.clone();
-    const distance = body.name === 'Sun' ? 20 : body.radius * 5;
-    const cameraOffset = new THREE.Vector3(distance, distance * 0.5, distance);
-    const newCameraPos = targetPos.clone().add(cameraOffset);
-    
-    // Animate camera
+    // Smooth camera transition. The planet keeps orbiting during the flight,
+    // so recompute the destination from its LIVE position every frame —
+    // flying to a snapshot meant arriving where the planet used to be.
+    const cameraOffset = getFollowOffset(body);
     const startPos = cameraRef.current.position.clone();
     const startTarget = controlsRef.current.target.clone();
     let progress = 0;
-    
+
     // Cancel any ongoing camera animation
     if (cameraAnimRef.current) {
       cancelAnimationFrame(cameraAnimRef.current);
       cameraAnimRef.current = null;
     }
-    
+
     const animateCamera = () => {
+      const livePos = body.mesh!.position;
+      const liveCameraPos = livePos.clone().add(cameraOffset);
+
       progress += 0.05;
       if (progress >= 1) {
-        cameraRef.current!.position.copy(newCameraPos);
-        controlsRef.current!.target.copy(targetPos);
+        cameraRef.current!.position.copy(liveCameraPos);
+        controlsRef.current!.target.copy(livePos);
         cameraAnimRef.current = null;
         return;
       }
-      
-      cameraRef.current!.position.lerpVectors(startPos, newCameraPos, progress);
-      controlsRef.current!.target.lerpVectors(startTarget, targetPos, progress);
+
+      // Ease-out so the approach decelerates into the follow orbit
+      const t = 1 - Math.pow(1 - progress, 3);
+      cameraRef.current!.position.lerpVectors(startPos, liveCameraPos, t);
+      controlsRef.current!.target.lerpVectors(startTarget, livePos, t);
       cameraAnimRef.current = requestAnimationFrame(animateCamera);
     };
-    
+
     animateCamera();
   };
 
@@ -352,8 +365,9 @@ export const UniverseSimulator: React.FC = () => {
     if (!containerRef.current) return;
 
     const scene = new THREE.Scene();
-    const isDark = document.documentElement.classList.contains('dark');
-    scene.background = new THREE.Color(isDark ? 0x000814 : 0xf0f2f5);
+    // Space is always dark: the app is deliberately fixed-dark regardless of
+    // the OS theme (white starfield + dark UI chrome need a dark scene).
+    scene.background = new THREE.Color(0x000814);
     sceneRef.current = scene;
 
     const starsGeometry = new THREE.BufferGeometry();
@@ -545,18 +559,15 @@ export const UniverseSimulator: React.FC = () => {
         });
       }
       
-      // Follow camera mode (using refs to avoid stale closures)
-      if (cameraModeRef.current === 'follow' && cameraRef.current && controlsRef.current) {
+      // Follow camera mode (using refs to avoid stale closures). Skipped while
+      // the fly-to transition is animating so the two loops don't fight.
+      if (cameraModeRef.current === 'follow' && !cameraAnimRef.current && cameraRef.current && controlsRef.current) {
         const followBody = bodies.find(b => b.name === selectedBodyRef.current);
         if (followBody?.mesh) {
-          const offset = new THREE.Vector3(
-            followBody.radius * 4,
-            followBody.radius * 3,
-            followBody.radius * 4
-          );
-          const targetPos = followBody.mesh.position.clone().add(offset);
-          cameraRef.current.position.lerp(targetPos, 0.05);
-          controlsRef.current.target.lerp(followBody.mesh.position, 0.05);
+          // Same offset as the fly-to transition, so arrival is seamless
+          const targetPos = followBody.mesh.position.clone().add(getFollowOffset(followBody));
+          cameraRef.current.position.lerp(targetPos, 0.08);
+          controlsRef.current.target.lerp(followBody.mesh.position, 0.15);
         }
       } else if (autoRotateRef.current && cameraRef.current && controlsRef.current) {
         const time = Date.now() * 0.0001;
@@ -682,7 +693,7 @@ export const UniverseSimulator: React.FC = () => {
   const selectedColor = selectedPlanet ? `#${selectedPlanet.color.toString(16).padStart(6, '0')}` : '#fff';
 
   return (
-    <div className="h-full flex bg-[#f0f2f5] dark:bg-[#0a0e1a] overflow-hidden">
+    <div className="h-full flex bg-[#0a0e1a] overflow-hidden">
       {/* Left: 3D Scene */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Controls bar */}
