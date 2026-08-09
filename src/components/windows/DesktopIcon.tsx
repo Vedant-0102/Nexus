@@ -1,5 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import Draggable from 'react-draggable';
+import React, { useState, useRef, useEffect } from 'react';
 import { usePhysicsBody } from './hooks/usePhysicsBody';
 import { usePhysics } from './context/PhysicsContext';
 
@@ -13,15 +12,40 @@ interface DesktopIconProps {
   defaultY?: number;
 }
 
+const POSITIONS_STORAGE_KEY = 'desktop-icon-positions';
+
+const loadSavedPosition = (id: string): { x: number; y: number } | null => {
+  try {
+    const raw = localStorage.getItem(POSITIONS_STORAGE_KEY);
+    if (!raw) return null;
+    const map = JSON.parse(raw);
+    const pos = map[id];
+    if (pos && typeof pos.x === 'number' && typeof pos.y === 'number') return pos;
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+const savePosition = (id: string, pos: { x: number; y: number }) => {
+  try {
+    const raw = localStorage.getItem(POSITIONS_STORAGE_KEY);
+    const map = raw ? JSON.parse(raw) : {};
+    map[id] = pos;
+    localStorage.setItem(POSITIONS_STORAGE_KEY, JSON.stringify(map));
+  } catch {
+    // storage unavailable — position just won't persist
+  }
+};
+
 export const DesktopIcon = ({ label, icon, onClick, onDoubleClick, id, defaultX = 0, defaultY = 0 }: DesktopIconProps) => {
-  // Always start at grid defaults — physics mode manages its own positions
-  const [position, setPosition] = useState({ x: defaultX, y: defaultY });
+  // Icons stay exactly where the user put them (persisted per icon).
+  // They only move via an explicit user drag; physics mode manages its own positions.
+  const [position, setPosition] = useState(() => loadSavedPosition(id) ?? { x: defaultX, y: defaultY });
 
   const nodeRef = useRef<HTMLDivElement>(null);
-  // Use refs (not state) for drag tracking - state updates are async and cause click-swallowing races
-  const isDraggingRef = useRef(false);
-  const dragStartPos = useRef({ x: 0, y: 0 });
   const physicsIsDragging = useRef(false);
+  const dragMoved = useRef(false);
 
   // Physics integration - position is now absolute screen coords, no elementRef workaround needed
   const { engine } = usePhysics();
@@ -36,78 +60,69 @@ export const DesktopIcon = ({ label, icon, onClick, onDoubleClick, id, defaultX 
     friction: 0.2,
   });
 
-  // Reset position to grid defaults when physics is turned off
+  // When physics is turned off, restore the position the user chose
+  // (falling back to the grid default if they never moved this icon).
   const prevPhysicsRef = useRef(isPhysicsActive);
   useEffect(() => {
     if (prevPhysicsRef.current && !isPhysicsActive) {
-      const defaultPos = { x: defaultX, y: defaultY };
-      setPosition(defaultPos);
-      try {
-        const savedPositions = localStorage.getItem('win11-icon-positions');
-        const positions = savedPositions ? JSON.parse(savedPositions) : {};
-        positions[id] = defaultPos;
-        localStorage.setItem('win11-icon-positions', JSON.stringify(positions));
-      } catch (error) {
-        console.error("Error saving icon positions:", error);
-      }
+      setPosition(loadSavedPosition(id) ?? { x: defaultX, y: defaultY });
     }
     prevPhysicsRef.current = isPhysicsActive;
-  }, [isPhysicsActive, defaultX, defaultY, id]);
+  }, [isPhysicsActive, id, defaultX, defaultY]);
 
-  const savePosition = useCallback((newPosition: { x: number; y: number }) => {
-    try {
-      const savedPositions = localStorage.getItem('win11-icon-positions');
-      const positions = savedPositions ? JSON.parse(savedPositions) : {};
-      positions[id] = newPosition;
-      localStorage.setItem('win11-icon-positions', JSON.stringify(positions));
-    } catch (error) {
-      console.error("Error saving icon positions:", error);
-    }
-  }, [id]);
+  // Normal mode drag: the icon moves only while the user is actively dragging it,
+  // and the final spot is saved so it stays put across reloads.
+  const handleDragMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const origin = { x: position.x, y: position.y };
+    dragMoved.current = false;
 
-  const handleDragStart = (_e: any, data: { x: number; y: number }) => {
-    dragStartPos.current = { x: data.x, y: data.y };
-    isDraggingRef.current = false;
-  };
+    const clamp = (x: number, y: number) => ({
+      x: Math.min(Math.max(0, x), window.innerWidth - 112),
+      y: Math.min(Math.max(0, y), window.innerHeight - 140),
+    });
 
-  const handleDrag = (_e: any, data: { x: number; y: number }) => {
-    const distance = Math.sqrt(
-      Math.pow(data.x - dragStartPos.current.x, 2) +
-      Math.pow(data.y - dragStartPos.current.y, 2)
-    );
-    if (distance > 5) {
-      isDraggingRef.current = true;
-    }
-  };
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const dx = moveEvent.clientX - startX;
+      const dy = moveEvent.clientY - startY;
+      // Small movements stay a click, not a drag
+      if (!dragMoved.current && Math.hypot(dx, dy) < 5) return;
+      dragMoved.current = true;
+      setPosition(clamp(origin.x + dx, origin.y + dy));
+    };
 
-  const handleDragStop = (_e: any, data: { x: number; y: number }) => {
-    const newPosition = { x: data.x, y: data.y };
-    setPosition(newPosition);
-    savePosition(newPosition);
-    // Reset dragging after a short delay so the click handler can check it
-    setTimeout(() => { isDraggingRef.current = false; }, 100);
+    const handleMouseUp = (upEvent: MouseEvent) => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      if (dragMoved.current) {
+        savePosition(id, clamp(origin.x + upEvent.clientX - startX, origin.y + upEvent.clientY - startY));
+      }
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
   };
 
   const handleClick = () => {
-    if (!isDraggingRef.current) {
-      if (isPhysicsActive) {
-        // Prevent opening apps during physics mode
-        alert('⚠️ Cannot open applications while Physics Mode is active.\n\nPlease disable Physics Mode first to open applications.');
-        return;
-      }
-      onClick();
+    if (dragMoved.current) return;
+    if (isPhysicsActive) {
+      // Prevent opening apps during physics mode
+      alert('⚠️ Cannot open applications while Physics Mode is active.\n\nPlease disable Physics Mode first to open applications.');
+      return;
     }
+    onClick();
   };
 
   const handleDoubleClick = () => {
-    if (!isDraggingRef.current) {
-      if (isPhysicsActive) {
-        // Prevent opening apps during physics mode
-        alert('⚠️ Cannot open applications while Physics Mode is active.\n\nPlease disable Physics Mode first to open applications.');
-        return;
-      }
-      onDoubleClick();
+    if (dragMoved.current) return;
+    if (isPhysicsActive) {
+      // Prevent opening apps during physics mode
+      alert('⚠️ Cannot open applications while Physics Mode is active.\n\nPlease disable Physics Mode first to open applications.');
+      return;
     }
+    onDoubleClick();
   };
 
   // Physics mode: fixed positioning with screen-space coordinates from the engine
@@ -196,36 +211,27 @@ export const DesktopIcon = ({ label, icon, onClick, onDoubleClick, id, defaultX 
     );
   }
 
-  // Normal mode: draggable within the full-screen parent container
+  // Normal mode: icon sits where the user placed it; drag to relocate, click to open
   return (
-    <Draggable
-      position={position}
-      onStart={handleDragStart}
-      onDrag={handleDrag}
-      onStop={handleDragStop}
-      bounds="parent"
-      nodeRef={nodeRef}
-      grid={[10, 10]}
+    <div
+      ref={nodeRef}
+      className="absolute flex flex-col items-center w-28 p-2 rounded hover:bg-white/10 cursor-pointer select-none"
+      style={{ zIndex: 1, minHeight: '100px', left: position.x, top: position.y }}
+      onMouseDown={handleDragMouseDown}
+      onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
     >
-      <div
-        ref={nodeRef}
-        className="absolute flex flex-col items-center w-28 p-2 rounded hover:bg-white/10 cursor-pointer select-none"
-        style={{ zIndex: 1, minHeight: '100px' }}
-        onClick={handleClick}
-        onDoubleClick={handleDoubleClick}
-      >
-        <div className="h-12 w-12 flex items-center justify-center">
-          {React.cloneElement(icon as React.ReactElement, {
-            size: 36,
-            className: "text-white",
-            strokeWidth: 2,
-            style: { filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.55))', stroke: 'currentColor', fill: 'none' }
-          })}
-        </div>
-        <p className="text-sm text-white font-medium mt-1 text-center leading-tight line-clamp-2 pb-1 px-1 break-words" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8), 0 1px 6px rgba(0,0,0,0.5)', wordBreak: 'break-word' }}>
-          {label}
-        </p>
+      <div className="h-12 w-12 flex items-center justify-center">
+        {React.cloneElement(icon as React.ReactElement, {
+          size: 36,
+          className: "text-white",
+          strokeWidth: 2,
+          style: { filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.55))', stroke: 'currentColor', fill: 'none' }
+        })}
       </div>
-    </Draggable>
+      <p className="text-sm text-white font-medium mt-1 text-center leading-tight line-clamp-2 pb-1 px-1 break-words" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8), 0 1px 6px rgba(0,0,0,0.5)', wordBreak: 'break-word' }}>
+        {label}
+      </p>
+    </div>
   );
 };
