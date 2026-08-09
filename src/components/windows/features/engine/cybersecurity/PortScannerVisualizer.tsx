@@ -848,14 +848,14 @@ const SandboxTab: React.FC = () => {
             </div>
             <div className="flex-1 overflow-auto p-2 font-mono text-[11px] leading-relaxed">
               {scanLog.length === 0 ? (
-                <div className="text-gray-600">
+                <div className="text-gray-500">
                   <div className="text-green-500">root@kali:~# nmap --help</div>
                   <div className="text-gray-400 mt-1">Nmap 7.94 ( https://nmap.org )</div>
                   <div className="text-gray-500 mt-1">Usage: nmap [Scan Type] [Options] {'<target>'}</div>
                   <div className="text-gray-500 mt-2">Select a scan mode above and click "Start Scan"</div>
-                  <div className="text-gray-600 mt-1">  Quick:  Scans 25 common service ports</div>
-                  <div className="text-gray-600">  Full:   Scans all ports 1-1024</div>
-                  <div className="text-gray-600">  Custom: Specify your own port range</div>
+                  <div className="text-gray-500 mt-1">  Quick:  Scans 25 common service ports</div>
+                  <div className="text-gray-500">  Full:   Scans all ports 1-1024</div>
+                  <div className="text-gray-500">  Custom: Specify your own port range</div>
                   <div className="text-gray-500 mt-2">All scans are simulated for educational purposes.</div>
                 </div>
               ) : (

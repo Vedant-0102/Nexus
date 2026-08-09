@@ -986,7 +986,7 @@ export const PasswordCrackingDemo: React.FC = () => {
                     );
                   })}
                   {!isRunning && !isCracked && recentGuesses.length === 0 && (
-                    <div className="text-gray-600">
+                    <div className="text-gray-500">
                       $ ready -- enter a password above and click Start Attack
                     </div>
                   )}
