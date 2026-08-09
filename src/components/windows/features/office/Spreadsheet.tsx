@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { Table, Download, Plus, Trash2, Copy, Scissors, FileSpreadsheet, Bold, Italic, Underline, Strikethrough, WrapText, AlignLeft, AlignCenter, AlignRight, Calculator, TrendingUp, PieChart, BarChart3, Undo, Redo, SortAsc, Percent, DollarSign, Hash, Calendar, ClipboardPaste } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -40,17 +40,28 @@ const FONT_FAMILIES = [
 ];
 const FONT_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 28, 36, 48, 72];
 
+const STORAGE_KEY = 'secure-nexus-spreadsheet';
+
 export const Spreadsheet: React.FC = () => {
-  const [cells, setCells] = useState<Cell[][]>(
-    Array(INITIAL_ROWS).fill(null).map(() =>
+  const [cells, setCells] = useState<Cell[][]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && Array.isArray(parsed[0]) && parsed[0][0] && typeof parsed[0][0].value === 'string') {
+          return parsed;
+        }
+      }
+    } catch { /* corrupted save — start fresh */ }
+    return Array(INITIAL_ROWS).fill(null).map(() =>
       Array(INITIAL_COLS).fill(null).map(() => ({ value: '', style: {} }))
-    )
-  );
+    );
+  });
   const [selectedCell, setSelectedCell] = useState<[number, number] | null>([0, 0]);
   const [selectedRange, setSelectedRange] = useState<{ start: [number, number]; end: [number, number] } | null>(null);
   const [isSelecting, setIsSelecting] = useState(false);
   const [activeTab, setActiveTab] = useState('sheet');
-  const [clipboard, setClipboard] = useState<Cell | null>(null);
+  const [clipboard, setClipboard] = useState<Cell[][] | null>(null);
   const [history, setHistory] = useState<HistoryState[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [formulaBar, setFormulaBar] = useState('');
@@ -63,6 +74,8 @@ export const Spreadsheet: React.FC = () => {
   // Editing state - single overlay input instead of per-cell textareas
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
+  // 'quick' = started by typing (arrows commit + move, like Excel); 'full' = F2/double-click (arrows move the caret)
+  const [editMode, setEditMode] = useState<'quick' | 'full'>('full');
   const editInputRef = useRef<HTMLInputElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const formulaInputRef = useRef<HTMLInputElement>(null);
@@ -79,9 +92,18 @@ export const Spreadsheet: React.FC = () => {
 
   const columns = cells[0] ? cells[0].map((_, idx) => getColumnLabel(idx)) : [];
 
+  // Debounced autosave so work survives closing the window
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cells)); } catch { /* quota exceeded */ }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [cells]);
+
   const saveToHistory = useCallback(() => {
     const newHistory = history.slice(0, historyIndex + 1);
     newHistory.push({ cells: JSON.parse(JSON.stringify(cells)), selectedCell });
+    if (newHistory.length > 100) newHistory.shift();
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
   }, [cells, selectedCell, history, historyIndex]);
@@ -125,12 +147,12 @@ export const Spreadsheet: React.FC = () => {
     };
   };
 
-  const getCellValue = (cellRef: string): string => {
+  const getCellValue = (cellRef: string, grid: Cell[][] = cells): string => {
     const { startRow, startCol } = parseRange(cellRef, cellRef);
-    return cells[startRow]?.[startCol]?.value || '0';
+    return grid[startRow]?.[startCol]?.value || '0';
   };
 
-  const evaluateFormula = (formula: string): string => {
+  const evaluateFormula = (formula: string, grid: Cell[][] = cells): string => {
     try {
       const upperFormula = formula.toUpperCase();
 
@@ -142,7 +164,7 @@ export const Spreadsheet: React.FC = () => {
           let sum = 0;
           for (let r = startRow; r <= endRow; r++) {
             for (let c = startCol; c <= endCol; c++) {
-              const val = parseFloat(cells[r]?.[c]?.value || '0');
+              const val = parseFloat(grid[r]?.[c]?.value || '0');
               if (!isNaN(val)) sum += val;
             }
           }
@@ -158,7 +180,7 @@ export const Spreadsheet: React.FC = () => {
           let sum = 0, count = 0;
           for (let r = startRow; r <= endRow; r++) {
             for (let c = startCol; c <= endCol; c++) {
-              const val = parseFloat(cells[r]?.[c]?.value || '0');
+              const val = parseFloat(grid[r]?.[c]?.value || '0');
               if (!isNaN(val)) { sum += val; count++; }
             }
           }
@@ -174,7 +196,7 @@ export const Spreadsheet: React.FC = () => {
           const values: number[] = [];
           for (let r = startRow; r <= endRow; r++) {
             for (let c = startCol; c <= endCol; c++) {
-              const val = parseFloat(cells[r]?.[c]?.value || '0');
+              const val = parseFloat(grid[r]?.[c]?.value || '0');
               if (!isNaN(val)) values.push(val);
             }
           }
@@ -188,7 +210,7 @@ export const Spreadsheet: React.FC = () => {
         const match = formula.match(/=IF\(([A-Z]+\d+)([><=!]+)(\d+),\s*"?([^,"]+)"?,\s*"?([^)]+)"?\)/i);
         if (match) {
           const [, cellRef, operator, value, trueVal, falseVal] = match;
-          const cellValue = parseFloat(getCellValue(cellRef));
+          const cellValue = parseFloat(getCellValue(cellRef, grid));
           const compareValue = parseFloat(value);
 
           let condition = false;
@@ -203,19 +225,16 @@ export const Spreadsheet: React.FC = () => {
         }
       }
 
-      if (upperFormula.match(/^=[A-Z]+\d+[\+\-\*\/][A-Z]+\d+$/)) {
-        const match = formula.match(/=([A-Z]+\d+)([\+\-\*\/])([A-Z]+\d+)/i);
-        if (match) {
-          const [, cell1, op, cell2] = match;
-          const val1 = parseFloat(getCellValue(cell1));
-          const val2 = parseFloat(getCellValue(cell2));
-
-          if (!isNaN(val1) && !isNaN(val2)) {
-            if (op === '+') return (val1 + val2).toString();
-            if (op === '-') return (val1 - val2).toString();
-            if (op === '*') return (val1 * val2).toString();
-            if (op === '/') return val2 !== 0 ? (val1 / val2).toString() : '#DIV/0';
-          }
+      // General arithmetic with cell refs, constants, and parentheses: =A1*2+(B3-1)/C2
+      const expr = formula.slice(1).replace(/[A-Z]+\d+/gi, (ref) => {
+        const num = parseFloat(getCellValue(ref.toUpperCase(), grid));
+        return isNaN(num) ? '0' : `(${num})`;
+      });
+      if (/^[-+*/().\d\s]+$/.test(expr) && /\d/.test(expr)) {
+        const result = new Function(`"use strict"; return (${expr});`)();
+        if (typeof result === 'number') {
+          if (!isFinite(result)) return '#DIV/0';
+          return parseFloat(result.toFixed(10)).toString();
         }
       }
 
@@ -223,6 +242,22 @@ export const Spreadsheet: React.FC = () => {
     } catch {
       return '#ERROR';
     }
+  };
+
+  // Recompute every formula cell against the new grid. Two passes let simple
+  // formula → formula chains settle (A1=B1+1 where B1 is itself a formula).
+  const recalculateAll = (newCells: Cell[][]): Cell[][] => {
+    for (let pass = 0; pass < 2; pass++) {
+      for (let r = 0; r < newCells.length; r++) {
+        for (let c = 0; c < newCells[r].length; c++) {
+          const cell = newCells[r][c];
+          if (cell.formula) {
+            newCells[r][c] = { ...cell, value: evaluateFormula(cell.formula, newCells) };
+          }
+        }
+      }
+    }
+    return newCells;
   };
 
   const formatCellValue = (cell: Cell): string => {
@@ -246,62 +281,27 @@ export const Spreadsheet: React.FC = () => {
     }
   };
 
-  const getCellDependencies = (formula: string): string[] => {
-    const dependencies: string[] = [];
-    const cellRefPattern = /[A-Z]+\d+/g;
-    const matches = formula.match(cellRefPattern);
-    if (matches) {
-      matches.forEach(ref => {
-        if (!dependencies.includes(ref)) {
-          dependencies.push(ref);
-        }
-      });
-    }
-    return dependencies;
-  };
-
-  const recalculateDependentCells = (changedRow: number, changedCol: number, newCells: Cell[][]) => {
-    const changedCellRef = `${columns[changedCol]}${changedRow + 1}`;
-
-    for (let r = 0; r < newCells.length; r++) {
-      for (let c = 0; c < newCells[r].length; c++) {
-        const cell = newCells[r][c];
-        if (cell.formula) {
-          const dependencies = getCellDependencies(cell.formula);
-          if (dependencies.includes(changedCellRef)) {
-            newCells[r][c] = {
-              ...cell,
-              value: evaluateFormula(cell.formula)
-            };
-          }
-        }
-      }
-    }
-
-    return newCells;
-  };
-
   const handleCellChange = (rowIdx: number, colIdx: number, value: string) => {
     saveToHistory();
-    let newCells = [...cells.map(row => [...row])];
-    const isFormula = value.startsWith('=');
+    const newCells = cells.map(row => [...row]);
+    const isFormula = value.startsWith('=') && value.length > 1;
 
     newCells[rowIdx][colIdx] = {
       ...newCells[rowIdx][colIdx],
-      value: isFormula ? evaluateFormula(value) : value,
+      value: isFormula ? '' : value,
       formula: isFormula ? value : undefined
     };
 
-    newCells = recalculateDependentCells(rowIdx, colIdx, newCells);
-    setCells(newCells);
+    setCells(recalculateAll(newCells));
   };
 
   // --- Editing helpers ---
-  const startEditing = useCallback((initialValue?: string) => {
+  const startEditing = useCallback((initialValue?: string, mode: 'quick' | 'full' = 'full') => {
     if (!selectedCell) return;
     const [row, col] = selectedCell;
     const cell = cells[row][col];
     setIsEditing(true);
+    setEditMode(mode);
     setEditValue(initialValue ?? (cell.formula || cell.value));
     // Focus happens via useEffect
   }, [selectedCell, cells]);
@@ -334,38 +334,27 @@ export const Spreadsheet: React.FC = () => {
     }
   }, [isEditing]);
 
-  const handleCellClick = (rowIdx: number, colIdx: number, event: React.MouseEvent) => {
-    if (isEditing) confirmEdit();
-
-    if (event.shiftKey && selectedCell) {
-      setSelectedRange({
-        start: selectedCell,
-        end: [rowIdx, colIdx]
-      });
-    } else {
-      setSelectedCell([rowIdx, colIdx]);
-      setSelectedRange(null);
-      const cell = cells[rowIdx][colIdx];
-      setFormulaBar(cell.formula || cell.value);
-    }
-  };
-
   const handleCellDoubleClick = (rowIdx: number, colIdx: number) => {
     setSelectedCell([rowIdx, colIdx]);
     setSelectedRange(null);
     const cell = cells[rowIdx][colIdx];
-    startEditing(cell.formula || cell.value);
+    startEditing(cell.formula || cell.value, 'full');
   };
 
-  // Mouse drag range selection
+  // Mouse selection: shift+click extends from the anchor, plain click moves it
   const handleCellMouseDown = (rowIdx: number, colIdx: number, event: React.MouseEvent) => {
     if (event.button !== 0) return;
     if (isEditing) confirmEdit();
-    setSelectedCell([rowIdx, colIdx]);
-    setSelectedRange(null);
-    setIsSelecting(true);
-    const cell = cells[rowIdx][colIdx];
-    setFormulaBar(cell.formula || cell.value);
+
+    if (event.shiftKey && selectedCell) {
+      setSelectedRange({ start: selectedCell, end: [rowIdx, colIdx] });
+    } else {
+      setSelectedCell([rowIdx, colIdx]);
+      setSelectedRange(null);
+      setIsSelecting(true);
+      const cell = cells[rowIdx][colIdx];
+      setFormulaBar(cell.formula || cell.value);
+    }
     // Focus grid so arrow keys work after clicking a cell
     gridRef.current?.focus();
   };
@@ -385,11 +374,15 @@ export const Spreadsheet: React.FC = () => {
     return () => window.removeEventListener('mouseup', handleMouseUp);
   }, []);
 
+  // The formula bar commits on Enter (not per keystroke — that spammed
+  // undo history and re-rendered the whole grid on every character)
   const handleFormulaBarChange = (value: string) => {
     setFormulaBar(value);
-    if (selectedCell) {
-      handleCellChange(selectedCell[0], selectedCell[1], value);
-    }
+  };
+
+  const commitFormulaBar = () => {
+    if (selectedCell) handleCellChange(selectedCell[0], selectedCell[1], formulaBar);
+    gridRef.current?.focus();
   };
 
   const applyStyle = (style: Partial<CellStyle>) => {
@@ -419,29 +412,58 @@ export const Spreadsheet: React.FC = () => {
     setCells(newCells);
   };
 
+  const getRangeBounds = useCallback(() => {
+    if (selectedRange) {
+      const { start, end } = selectedRange;
+      return {
+        r1: Math.min(start[0], end[0]), r2: Math.max(start[0], end[0]),
+        c1: Math.min(start[1], end[1]), c2: Math.max(start[1], end[1]),
+      };
+    }
+    if (selectedCell) return { r1: selectedCell[0], r2: selectedCell[0], c1: selectedCell[1], c2: selectedCell[1] };
+    return null;
+  }, [selectedRange, selectedCell]);
+
   const copyCell = () => {
-    if (!selectedCell) return;
-    const [row, col] = selectedCell;
-    setClipboard(JSON.parse(JSON.stringify(cells[row][col])));
+    const b = getRangeBounds();
+    if (!b) return;
+    const block: Cell[][] = [];
+    for (let r = b.r1; r <= b.r2; r++) {
+      const rowArr: Cell[] = [];
+      for (let c = b.c1; c <= b.c2; c++) rowArr.push(JSON.parse(JSON.stringify(cells[r][c])));
+      block.push(rowArr);
+    }
+    setClipboard(block);
+    // Mirror to the system clipboard as tab-separated text so it pastes into real apps
+    try {
+      navigator.clipboard?.writeText(block.map(row => row.map(c => formatCellValue(c)).join('\t')).join('\n'));
+    } catch { /* clipboard API unavailable */ }
   };
 
   const cutCell = () => {
-    if (!selectedCell) return;
+    const b = getRangeBounds();
+    if (!b) return;
     copyCell();
-    const [row, col] = selectedCell;
     saveToHistory();
-    const newCells = [...cells.map(r => [...r])];
-    newCells[row][col] = { value: '', style: {} };
-    setCells(newCells);
+    const newCells = cells.map(r => [...r]);
+    for (let r = b.r1; r <= b.r2; r++) {
+      for (let c = b.c1; c <= b.c2; c++) newCells[r][c] = { value: '', style: {} };
+    }
+    setCells(recalculateAll(newCells));
   };
 
   const pasteCell = () => {
     if (!selectedCell || !clipboard) return;
     saveToHistory();
     const [row, col] = selectedCell;
-    const newCells = [...cells.map(r => [...r])];
-    newCells[row][col] = JSON.parse(JSON.stringify(clipboard));
-    setCells(newCells);
+    const newCells = cells.map(r => [...r]);
+    clipboard.forEach((rowArr, dr) => rowArr.forEach((cell, dc) => {
+      const r = row + dr, c = col + dc;
+      if (r < newCells.length && c < newCells[0].length) {
+        newCells[r][c] = JSON.parse(JSON.stringify(cell));
+      }
+    }));
+    setCells(recalculateAll(newCells));
   };
 
   const deleteCell = useCallback(() => {
@@ -460,7 +482,7 @@ export const Spreadsheet: React.FC = () => {
       const [row, col] = selectedCell;
       newCells[row][col] = { value: '', style: {} };
     }
-    setCells(newCells);
+    setCells(recalculateAll(newCells));
   }, [selectedCell, selectedRange, cells, saveToHistory]);
 
   const insertRow = (index?: number) => {
@@ -562,7 +584,8 @@ export const Spreadsheet: React.FC = () => {
     };
   };
 
-  const stats = calculateStats();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const stats = useMemo(() => calculateStats(), [cells]);
 
   const activeStyle = selectedCell ? cells[selectedCell[0]]?.[selectedCell[1]]?.style : undefined;
   const activeFont = activeStyle?.fontFamily || 'Arial';
@@ -606,6 +629,12 @@ export const Spreadsheet: React.FC = () => {
     }
   }, [resizingCol, resizeStartX, resizeStartWidth]);
 
+  // Scroll a cell into view — scoped to this grid so two open spreadsheets don't collide
+  const scrollCellIntoView = useCallback((rc: [number, number]) => {
+    const el = gridRef.current?.querySelector(`[data-cell="${rc[0]}-${rc[1]}"]`);
+    el?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, []);
+
   // Navigation helper
   const moveSelection = useCallback((dRow: number, dCol: number) => {
     if (!selectedCell) return;
@@ -618,124 +647,153 @@ export const Spreadsheet: React.FC = () => {
     setFormulaBar(cell.formula || cell.value);
   }, [selectedCell, cells, columns.length]);
 
-  // Keyboard handler - navigation + editing
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't intercept if focus is in formula bar
-      if (document.activeElement === formulaInputRef.current) {
-        if (e.key === 'Enter') {
+  // Shift+Arrow: grow the range from the anchor cell, Excel-style
+  const extendSelection = (dRow: number, dCol: number) => {
+    if (!selectedCell) return;
+    const endBase = selectedRange ? selectedRange.end : selectedCell;
+    const newEnd: [number, number] = [
+      Math.max(0, Math.min(cells.length - 1, endBase[0] + dRow)),
+      Math.max(0, Math.min(columns.length - 1, endBase[1] + dCol)),
+    ];
+    setSelectedRange({ start: selectedCell, end: newEnd });
+    scrollCellIntoView(newEnd);
+  };
+
+  // Ctrl+Arrow: jump to the edge of the current data block, like Excel
+  const findJumpTarget = (row: number, col: number, dRow: number, dCol: number): [number, number] => {
+    const filled = (r: number, c: number) => !!(cells[r]?.[c]?.value || cells[r]?.[c]?.formula);
+    const inBounds = (r: number, c: number) => r >= 0 && r < cells.length && c >= 0 && c < columns.length;
+    let r = row, c = col;
+    if (!inBounds(r + dRow, c + dCol)) return [r, c];
+    if (filled(r, c) && filled(r + dRow, c + dCol)) {
+      // Inside a block: run to its far edge
+      while (inBounds(r + dRow, c + dCol) && filled(r + dRow, c + dCol)) { r += dRow; c += dCol; }
+    } else {
+      // In (or entering) a gap: run to the next filled cell, or the sheet edge
+      r += dRow; c += dCol;
+      while (inBounds(r + dRow, c + dCol) && !filled(r, c)) { r += dRow; c += dCol; }
+    }
+    return [r, c];
+  };
+
+  const jumpTo = (rc: [number, number]) => {
+    setSelectedCell(rc);
+    setSelectedRange(null);
+    const cell = cells[rc[0]][rc[1]];
+    setFormulaBar(cell.formula || cell.value);
+    scrollCellIntoView(rc);
+  };
+
+  // Keyboard handler, attached to the grid itself (not window) so it never
+  // fights other open apps and never fires when the sheet isn't focused.
+  // The edit overlay input is a child of the grid, so its keys bubble here too.
+  const handleGridKeyDown = (e: React.KeyboardEvent) => {
+    if (!selectedCell) return;
+
+    if (isEditing) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        confirmEdit();
+        moveSelection(e.shiftKey ? -1 : 1, 0);
+      } else if (e.key === 'Tab') {
+        e.preventDefault();
+        confirmEdit();
+        moveSelection(0, e.shiftKey ? -1 : 1);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        cancelEdit();
+      } else if (editMode === 'quick' && e.key.startsWith('Arrow')) {
+        // Excel behavior: an edit started by typing commits when you press an arrow
+        e.preventDefault();
+        confirmEdit();
+        if (e.key === 'ArrowUp') moveSelection(-1, 0);
+        else if (e.key === 'ArrowDown') moveSelection(1, 0);
+        else if (e.key === 'ArrowLeft') moveSelection(0, -1);
+        else if (e.key === 'ArrowRight') moveSelection(0, 1);
+      }
+      // Everything else goes to the edit input
+      return;
+    }
+
+    // Ctrl/Cmd shortcuts
+    if (e.ctrlKey || e.metaKey) {
+      const k = e.key.toLowerCase();
+      if (k === 'c') { e.preventDefault(); copyCell(); }
+      else if (k === 'x') { e.preventDefault(); cutCell(); }
+      else if (k === 'v') { e.preventDefault(); pasteCell(); }
+      else if (k === 'z') { e.preventDefault(); undo(); }
+      else if (k === 'y') { e.preventDefault(); redo(); }
+      else if (k === 'a') { e.preventDefault(); setSelectedRange({ start: [0, 0], end: [cells.length - 1, columns.length - 1] }); }
+      else if (k === 'b') { e.preventDefault(); applyStyle({ bold: !activeStyle?.bold }); }
+      else if (k === 'i') { e.preventDefault(); applyStyle({ italic: !activeStyle?.italic }); }
+      else if (k === 'u') { e.preventDefault(); applyStyle({ underline: !activeStyle?.underline }); }
+      else if (e.key === 'Home') { e.preventDefault(); jumpTo([0, 0]); }
+      else if (e.key.startsWith('Arrow')) {
+        e.preventDefault();
+        const [dR, dC] = e.key === 'ArrowUp' ? [-1, 0] : e.key === 'ArrowDown' ? [1, 0] : e.key === 'ArrowLeft' ? [0, -1] : [0, 1];
+        jumpTo(findJumpTarget(selectedCell[0], selectedCell[1], dR, dC));
+      }
+      return;
+    }
+
+    // Shift+Arrow extends the selection range
+    if (e.shiftKey && e.key.startsWith('Arrow')) {
+      e.preventDefault();
+      if (e.key === 'ArrowUp') extendSelection(-1, 0);
+      else if (e.key === 'ArrowDown') extendSelection(1, 0);
+      else if (e.key === 'ArrowLeft') extendSelection(0, -1);
+      else if (e.key === 'ArrowRight') extendSelection(0, 1);
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowUp': e.preventDefault(); moveSelection(-1, 0); break;
+      case 'ArrowDown': e.preventDefault(); moveSelection(1, 0); break;
+      case 'ArrowLeft': e.preventDefault(); moveSelection(0, -1); break;
+      case 'ArrowRight': e.preventDefault(); moveSelection(0, 1); break;
+      case 'Tab': e.preventDefault(); moveSelection(0, e.shiftKey ? -1 : 1); break;
+      case 'Home': e.preventDefault(); moveSelection(0, -columns.length); break;
+      case 'End': {
+        e.preventDefault();
+        let last = 0;
+        cells[selectedCell[0]].forEach((c, i) => { if (c.value || c.formula) last = i; });
+        moveSelection(0, last - selectedCell[1]);
+        break;
+      }
+      case 'PageDown': e.preventDefault(); moveSelection(15, 0); break;
+      case 'PageUp': e.preventDefault(); moveSelection(-15, 0); break;
+      case 'Enter':
+      case 'F2':
+        e.preventDefault();
+        startEditing(undefined, 'full');
+        break;
+      case 'Delete':
+      case 'Backspace':
+        e.preventDefault();
+        deleteCell();
+        break;
+      case 'Escape':
+        setSelectedRange(null);
+        break;
+      default:
+        // Start editing if a printable character is typed
+        if (e.key.length === 1 && !e.altKey) {
           e.preventDefault();
-          if (selectedCell) handleCellChange(selectedCell[0], selectedCell[1], formulaBar);
-          formulaInputRef.current?.blur();
-          gridRef.current?.focus();
+          startEditing(e.key, 'quick');
         }
-        if (e.key === 'Escape') {
-          formulaInputRef.current?.blur();
-          gridRef.current?.focus();
-        }
-        return;
-      }
-
-      // Don't intercept if focus is in any other input/textarea/select (not part of spreadsheet grid)
-      const activeEl = document.activeElement;
-      if (activeEl &&
-          activeEl !== editInputRef.current &&
-          (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT')) {
-        return;
-      }
-
-      if (!selectedCell) return;
-
-      // Ctrl shortcuts (work in both modes)
-      if (e.ctrlKey || e.metaKey) {
-        if (e.key === 'c') { e.preventDefault(); copyCell(); return; }
-        if (e.key === 'x') { e.preventDefault(); cutCell(); return; }
-        if (e.key === 'v') { e.preventDefault(); pasteCell(); return; }
-        if (e.key === 'z') { e.preventDefault(); undo(); return; }
-        if (e.key === 'y') { e.preventDefault(); redo(); return; }
-        if (e.key === 'b') { e.preventDefault(); applyStyle({ bold: !cells[selectedCell[0]]?.[selectedCell[1]]?.style?.bold }); return; }
-        if (e.key === 'i') { e.preventDefault(); applyStyle({ italic: !cells[selectedCell[0]]?.[selectedCell[1]]?.style?.italic }); return; }
-        if (e.key === 'u') { e.preventDefault(); applyStyle({ underline: !cells[selectedCell[0]]?.[selectedCell[1]]?.style?.underline }); return; }
-        return;
-      }
-
-      if (isEditing) {
-        // In edit mode
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          confirmEdit();
-          moveSelection(1, 0); // Move down after confirm
-        } else if (e.key === 'Tab') {
-          e.preventDefault();
-          confirmEdit();
-          moveSelection(0, e.shiftKey ? -1 : 1); // Move right (or left with shift)
-        } else if (e.key === 'Escape') {
-          e.preventDefault();
-          cancelEdit();
-        }
-        // Let other keys pass through to the input
-        return;
-      }
-
-      // Navigation mode (not editing)
-      switch (e.key) {
-        case 'ArrowUp':
-          e.preventDefault();
-          moveSelection(-1, 0);
-          break;
-        case 'ArrowDown':
-          e.preventDefault();
-          moveSelection(1, 0);
-          break;
-        case 'ArrowLeft':
-          e.preventDefault();
-          moveSelection(0, -1);
-          break;
-        case 'ArrowRight':
-          e.preventDefault();
-          moveSelection(0, 1);
-          break;
-        case 'Tab':
-          e.preventDefault();
-          moveSelection(0, e.shiftKey ? -1 : 1);
-          break;
-        case 'Enter':
-          e.preventDefault();
-          startEditing();
-          break;
-        case 'F2':
-          e.preventDefault();
-          startEditing();
-          break;
-        case 'Delete':
-        case 'Backspace':
-          e.preventDefault();
-          deleteCell();
-          break;
-        default:
-          // Start editing if a printable character is typed
-          if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
-            e.preventDefault();
-            startEditing(e.key);
-          }
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedCell, isEditing, editValue, clipboard, historyIndex, formulaBar, confirmEdit, cancelEdit, startEditing, moveSelection, deleteCell, cells]);
+        break;
+    }
+  };
 
   // Scroll selected cell into view
   useEffect(() => {
-    if (!selectedCell || !gridRef.current) return;
-    const [row, col] = selectedCell;
-    const cellId = `cell-${row}-${col}`;
-    const cellEl = document.getElementById(cellId);
-    if (cellEl) {
-      cellEl.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-    }
-  }, [selectedCell]);
+    if (selectedCell) scrollCellIntoView(selectedCell);
+  }, [selectedCell, scrollCellIntoView]);
+
+  // Focus the grid on mount so keyboard navigation works immediately
+  useEffect(() => {
+    gridRef.current?.focus();
+  }, []);
 
   const getColWidth = (idx: number) => colWidths[idx] || DEFAULT_COL_WIDTH;
 
@@ -784,14 +842,33 @@ export const Spreadsheet: React.FC = () => {
                 type="text"
                 value={formulaBar}
                 onChange={(e) => handleFormulaBarChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    commitFormulaBar();
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    if (selectedCell) {
+                      const cell = cells[selectedCell[0]][selectedCell[1]];
+                      setFormulaBar(cell.formula || cell.value);
+                    }
+                    gridRef.current?.focus();
+                  }
+                }}
                 className="flex-1 px-2 py-1 border rounded text-xs dark:bg-gray-700 dark:text-white dark:border-gray-600 font-mono focus:ring-1 focus:ring-green-500 focus:border-green-500"
-                placeholder="Enter value or formula (=SUM, =AVG, =IF...)"
+                placeholder="Enter value or formula, press Enter to apply (=SUM, =A1*2+B1...)"
               />
             </div>
           </div>
 
-          {/* Ribbon Toolbar */}
-          <div className="flex items-end px-1 py-0.5 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800 shrink-0 overflow-x-auto">
+          {/* Ribbon Toolbar — buttons don't steal focus, so keyboard navigation keeps working after a click */}
+          <div
+            className="flex items-end px-1 py-0.5 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800 shrink-0 overflow-x-auto"
+            onMouseDown={(e) => {
+              const target = e.target as HTMLElement;
+              if (target.closest('button')) e.preventDefault();
+            }}
+          >
             {/* Undo/Redo */}
             <div className="flex items-center gap-0.5 px-0.5 self-center">
               <Button onClick={undo} size="sm" variant="ghost" disabled={historyIndex <= 0} title="Undo (Ctrl+Z)" className="h-7 w-7 p-0">
@@ -830,7 +907,7 @@ export const Spreadsheet: React.FC = () => {
               <div className="flex items-center gap-0.5">
                 <select
                   value={activeFont}
-                  onChange={(e) => applyStyle({ fontFamily: e.target.value })}
+                  onChange={(e) => { applyStyle({ fontFamily: e.target.value }); gridRef.current?.focus(); }}
                   className="h-7 text-[10px] pl-1 pr-0.5 border rounded dark:bg-gray-700 dark:text-white dark:border-gray-600 w-[88px] cursor-pointer focus:ring-1 focus:ring-green-500"
                   title="Font Family"
                 >
@@ -840,7 +917,7 @@ export const Spreadsheet: React.FC = () => {
                 </select>
                 <select
                   value={activeFontSize}
-                  onChange={(e) => applyStyle({ fontSize: parseInt(e.target.value) })}
+                  onChange={(e) => { applyStyle({ fontSize: parseInt(e.target.value) }); gridRef.current?.focus(); }}
                   className="h-7 text-[10px] pl-1 pr-0.5 border rounded dark:bg-gray-700 dark:text-white dark:border-gray-600 w-11 cursor-pointer focus:ring-1 focus:ring-green-500"
                   title="Font Size"
                 >
@@ -941,7 +1018,7 @@ export const Spreadsheet: React.FC = () => {
           </div>
 
           {/* Spreadsheet Grid */}
-          <div ref={gridRef} className="flex-1 overflow-auto relative focus:outline-none" tabIndex={0}>
+          <div ref={gridRef} className="flex-1 overflow-auto relative focus:outline-none" tabIndex={0} onKeyDown={handleGridKeyDown}>
             <table className="border-collapse" style={{ tableLayout: 'fixed' }}>
               <thead className="sticky top-0 z-10">
                 <tr>
@@ -990,7 +1067,7 @@ export const Spreadsheet: React.FC = () => {
                       return (
                         <td
                           key={colIdx}
-                          id={`cell-${rowIdx}-${colIdx}`}
+                          data-cell={`${rowIdx}-${colIdx}`}
                           className={`border-r border-b dark:border-gray-600 p-0 relative ${
                             isSelected
                               ? 'ring-2 ring-green-500 ring-inset z-[2]'
@@ -1006,9 +1083,6 @@ export const Spreadsheet: React.FC = () => {
                           }}
                           onMouseDown={(e) => handleCellMouseDown(rowIdx, colIdx, e)}
                           onMouseEnter={() => handleCellMouseEnter(rowIdx, colIdx)}
-                          onClick={(e) => {
-                            if (!isSelecting) handleCellClick(rowIdx, colIdx, e);
-                          }}
                           onDoubleClick={() => handleCellDoubleClick(rowIdx, colIdx)}
                         >
                           {/* Editing overlay */}
@@ -1142,7 +1216,23 @@ export const Spreadsheet: React.FC = () => {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-blue-600 dark:text-blue-400 font-bold">-</span>
-                    <span>Ctrl+B/I/U for Bold, Italic, Underline</span>
+                    <span>Shift+Arrows select a range, Ctrl+A selects all</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-600 dark:text-blue-400 font-bold">-</span>
+                    <span>Ctrl+Arrows jump across data blocks, Ctrl+Home goes to A1</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-600 dark:text-blue-400 font-bold">-</span>
+                    <span>Ctrl+C/X/V copy, cut, and paste whole ranges</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-600 dark:text-blue-400 font-bold">-</span>
+                    <span>Ctrl+B/I/U for Bold, Italic, Underline · Ctrl+Z/Y undo, redo</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-600 dark:text-blue-400 font-bold">-</span>
+                    <span>Formulas support full arithmetic: =A1*2+(B3-1)/C2</span>
                   </li>
                 </ul>
               </div>
