@@ -12,40 +12,13 @@ interface DesktopIconProps {
   defaultY?: number;
 }
 
-const POSITIONS_STORAGE_KEY = 'desktop-icon-positions';
-
-const loadSavedPosition = (id: string): { x: number; y: number } | null => {
-  try {
-    const raw = localStorage.getItem(POSITIONS_STORAGE_KEY);
-    if (!raw) return null;
-    const map = JSON.parse(raw);
-    const pos = map[id];
-    if (pos && typeof pos.x === 'number' && typeof pos.y === 'number') return pos;
-    return null;
-  } catch {
-    return null;
-  }
-};
-
-const savePosition = (id: string, pos: { x: number; y: number }) => {
-  try {
-    const raw = localStorage.getItem(POSITIONS_STORAGE_KEY);
-    const map = raw ? JSON.parse(raw) : {};
-    map[id] = pos;
-    localStorage.setItem(POSITIONS_STORAGE_KEY, JSON.stringify(map));
-  } catch {
-    // storage unavailable — position just won't persist
-  }
-};
-
 export const DesktopIcon = ({ label, icon, onClick, onDoubleClick, id, defaultX = 0, defaultY = 0 }: DesktopIconProps) => {
-  // Icons stay exactly where the user put them (persisted per icon).
-  // They only move via an explicit user drag; physics mode manages its own positions.
-  const [position, setPosition] = useState(() => loadSavedPosition(id) ?? { x: defaultX, y: defaultY });
+  // Icons are fixed to their grid slots — no dragging in normal mode.
+  // Physics mode manages its own positions.
+  const [position, setPosition] = useState({ x: defaultX, y: defaultY });
 
   const nodeRef = useRef<HTMLDivElement>(null);
   const physicsIsDragging = useRef(false);
-  const dragMoved = useRef(false);
 
   // Physics integration - position is now absolute screen coords, no elementRef workaround needed
   const { engine } = usePhysics();
@@ -60,53 +33,16 @@ export const DesktopIcon = ({ label, icon, onClick, onDoubleClick, id, defaultX 
     friction: 0.2,
   });
 
-  // When physics is turned off, restore the position the user chose
-  // (falling back to the grid default if they never moved this icon).
+  // Reset position to grid defaults when physics is turned off
   const prevPhysicsRef = useRef(isPhysicsActive);
   useEffect(() => {
     if (prevPhysicsRef.current && !isPhysicsActive) {
-      setPosition(loadSavedPosition(id) ?? { x: defaultX, y: defaultY });
+      setPosition({ x: defaultX, y: defaultY });
     }
     prevPhysicsRef.current = isPhysicsActive;
-  }, [isPhysicsActive, id, defaultX, defaultY]);
-
-  // Normal mode drag: the icon moves only while the user is actively dragging it,
-  // and the final spot is saved so it stays put across reloads.
-  const handleDragMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0) return;
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const origin = { x: position.x, y: position.y };
-    dragMoved.current = false;
-
-    const clamp = (x: number, y: number) => ({
-      x: Math.min(Math.max(0, x), window.innerWidth - 112),
-      y: Math.min(Math.max(0, y), window.innerHeight - 140),
-    });
-
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const dx = moveEvent.clientX - startX;
-      const dy = moveEvent.clientY - startY;
-      // Small movements stay a click, not a drag
-      if (!dragMoved.current && Math.hypot(dx, dy) < 5) return;
-      dragMoved.current = true;
-      setPosition(clamp(origin.x + dx, origin.y + dy));
-    };
-
-    const handleMouseUp = (upEvent: MouseEvent) => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      if (dragMoved.current) {
-        savePosition(id, clamp(origin.x + upEvent.clientX - startX, origin.y + upEvent.clientY - startY));
-      }
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  };
+  }, [isPhysicsActive, defaultX, defaultY]);
 
   const handleClick = () => {
-    if (dragMoved.current) return;
     if (isPhysicsActive) {
       // Prevent opening apps during physics mode
       alert('⚠️ Cannot open applications while Physics Mode is active.\n\nPlease disable Physics Mode first to open applications.');
@@ -116,7 +52,6 @@ export const DesktopIcon = ({ label, icon, onClick, onDoubleClick, id, defaultX 
   };
 
   const handleDoubleClick = () => {
-    if (dragMoved.current) return;
     if (isPhysicsActive) {
       // Prevent opening apps during physics mode
       alert('⚠️ Cannot open applications while Physics Mode is active.\n\nPlease disable Physics Mode first to open applications.');
@@ -211,13 +146,12 @@ export const DesktopIcon = ({ label, icon, onClick, onDoubleClick, id, defaultX 
     );
   }
 
-  // Normal mode: icon sits where the user placed it; drag to relocate, click to open
+  // Normal mode: fixed grid position, click to open
   return (
     <div
       ref={nodeRef}
       className="absolute flex flex-col items-center w-28 p-2 rounded hover:bg-white/10 cursor-pointer select-none"
       style={{ zIndex: 1, minHeight: '100px', left: position.x, top: position.y }}
-      onMouseDown={handleDragMouseDown}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
     >
