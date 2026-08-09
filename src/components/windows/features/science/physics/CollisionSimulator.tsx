@@ -18,6 +18,7 @@ export const CollisionSimulator: React.FC = () => {
   const [mass2, setMass2] = useState(5);
   const [vel2Init, setVel2Init] = useState(-3);
   const [elasticity, setElasticity] = useState(1.0);
+  const [friction, setFriction] = useState(0.1);
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [speed, setSpeed] = useState(1);
@@ -44,8 +45,9 @@ export const CollisionSimulator: React.FC = () => {
   isRunningRef.current = isRunning;
   isPausedRef.current = isPaused;
 
-  const paramsRef = useRef({ mass1, vel1Init, mass2, vel2Init, elasticity, speed });
-  paramsRef.current = { mass1, vel1Init, mass2, vel2Init, elasticity, speed };
+  const paramsRef = useRef({ mass1, vel1Init, mass2, vel2Init, elasticity, friction, speed });
+  paramsRef.current = { mass1, vel1Init, mass2, vel2Init, elasticity, friction, speed };
+  const frameCountRef = useRef(0);
 
   const initBalls = useCallback((): [Ball, Ball] => {
     const canvas = canvasRef.current;
@@ -331,7 +333,7 @@ export const CollisionSimulator: React.FC = () => {
       setDisplayVel2(vel2Init);
       renderCanvas(b1, b2);
     }
-  }, [mass1, vel1Init, mass2, vel2Init, elasticity, isRunning, renderCanvas, initBalls]);
+  }, [mass1, vel1Init, mass2, vel2Init, elasticity, friction, isRunning, renderCanvas, initBalls]);
 
   // Animation loop
   useEffect(() => {
@@ -366,6 +368,14 @@ export const CollisionSimulator: React.FC = () => {
       for (let s = 0; s < steps; s++) {
         b1.x += b1.vx * pxSpeed * dt;
         b2.x += b2.vx * pxSpeed * dt;
+
+        // Ground friction: kinetic friction decelerates at μ·g opposing
+        // motion, and never reverses direction (clamps to rest instead)
+        const fricDecel = paramsRef.current.friction * 9.8 * dt;
+        for (const b of [b1, b2]) {
+          if (Math.abs(b.vx) <= fricDecel) b.vx = 0;
+          else b.vx -= Math.sign(b.vx) * fricDecel;
+        }
 
         if (b1.x - b1.r < 4) { b1.x = b1.r + 4; b1.vx = Math.abs(b1.vx) * 0.85; }
         if (b1.x + b1.r > W - 4) { b1.x = W - 4 - b1.r; b1.vx = -Math.abs(b1.vx) * 0.85; }
@@ -404,6 +414,14 @@ export const CollisionSimulator: React.FC = () => {
       if (collisionFlashRef.current > 0) {
         collisionFlashRef.current--;
         setCollisionFlash(collisionFlashRef.current);
+      }
+
+      // With friction on, velocities change between collisions too — refresh
+      // the conservation panel a few times a second so it doesn't go stale
+      frameCountRef.current++;
+      if (paramsRef.current.friction > 0 && frameCountRef.current % 10 === 0) {
+        setDisplayVel1(b1.vx);
+        setDisplayVel2(b2.vx);
       }
 
       renderCanvas(b1, b2);
@@ -513,6 +531,20 @@ export const CollisionSimulator: React.FC = () => {
             </p>
           </div>
 
+          <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-2 border border-amber-200 dark:border-amber-800">
+            <h3 className="text-xs font-semibold text-amber-700 dark:text-amber-300 mb-1">Surface Friction</h3>
+            <label className="flex justify-between text-[10px] font-medium dark:text-gray-300 mb-0.5">
+              <span>Coefficient (μ)</span>
+              <span className="font-mono text-amber-600 dark:text-amber-400">{friction.toFixed(2)}</span>
+            </label>
+            <input type="range" min={0} max={1} step={0.05} value={friction}
+              onChange={e => setFriction(Number(e.target.value))}
+              className="w-full accent-amber-500 h-1.5" disabled={isRunning && !isPaused} />
+            <p className="text-[9px] text-center mt-1 dark:text-gray-400 font-medium">
+              {friction <= 0.01 ? 'Frictionless (ice)' : friction < 0.3 ? 'Low (smooth floor)' : friction < 0.7 ? 'Medium (asphalt)' : 'High (rubber)'}
+            </p>
+          </div>
+
           {/* Speed control */}
           <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-2">
             <label className="text-xs font-medium dark:text-gray-300 block mb-1.5">Speed</label>
@@ -555,7 +587,7 @@ export const CollisionSimulator: React.FC = () => {
                 <div className="flex justify-between font-medium">
                   <span>Momentum</span>
                   <span className={Math.abs(currMom - initMom) < 0.01 ? 'text-green-600 dark:text-green-400' : ''}>
-                    {Math.abs(currMom - initMom) < 0.01 ? '✓ Conserved' : `Δ=${(currMom - initMom).toFixed(2)}`}
+                    {Math.abs(currMom - initMom) < 0.01 ? '✓ Conserved' : friction > 0 ? `Δ=${(currMom - initMom).toFixed(2)} (friction)` : `Δ=${(currMom - initMom).toFixed(2)}`}
                   </span>
                 </div>
                 <div className="flex justify-between text-[9px] dark:text-gray-400 mt-0.5">
