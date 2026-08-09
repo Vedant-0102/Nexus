@@ -161,12 +161,27 @@ function defaultShape(type: ShapeItem['type']): ShapeItem {
   };
 }
 
+const STORAGE_KEY = 'secure-nexus-presentation';
+
+const DEFAULT_SLIDES: Slide[] = [
+  { id: '1', title: 'Welcome', content: 'My Presentation', background: '#3b82f6', layout: 'title', titleSize: 60, contentSize: 24, titleAlign: 'center', contentAlign: 'center', notes: '', transition: 'fade', fontFamily: FONT_FAMILIES[0].value },
+  { id: '2', title: 'Agenda', content: '', background: '#8b5cf6', layout: 'content', bulletPoints: ['Introduction', 'Main Topics', 'Conclusion'], titleSize: 48, contentSize: 20, titleAlign: 'left', contentAlign: 'left', notes: '', transition: 'slide', fontFamily: FONT_FAMILIES[0].value },
+  { id: '3', title: 'Thank You', content: 'Questions?', background: '#10b981', layout: 'title', titleSize: 60, contentSize: 32, titleAlign: 'center', contentAlign: 'center', notes: '', transition: 'zoom', fontFamily: FONT_FAMILIES[0].value },
+];
+
 export const Presentation: React.FC = () => {
-  const [slides, setSlides] = useState<Slide[]>([
-    { id: '1', title: 'Welcome', content: 'My Presentation', background: '#3b82f6', layout: 'title', titleSize: 60, contentSize: 24, titleAlign: 'center', contentAlign: 'center', notes: '', transition: 'fade', fontFamily: FONT_FAMILIES[0].value },
-    { id: '2', title: 'Agenda', content: '', background: '#8b5cf6', layout: 'content', bulletPoints: ['Introduction', 'Main Topics', 'Conclusion'], titleSize: 48, contentSize: 20, titleAlign: 'left', contentAlign: 'left', notes: '', transition: 'slide', fontFamily: FONT_FAMILIES[0].value },
-    { id: '3', title: 'Thank You', content: 'Questions?', background: '#10b981', layout: 'title', titleSize: 60, contentSize: 32, titleAlign: 'center', contentAlign: 'center', notes: '', transition: 'zoom', fontFamily: FONT_FAMILIES[0].value }
-  ]);
+  const [slides, setSlides] = useState<Slide[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].id && typeof parsed[0].title === 'string') {
+          return parsed;
+        }
+      }
+    } catch { /* corrupted save — start fresh */ }
+    return DEFAULT_SLIDES;
+  });
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPresenting, setIsPresenting] = useState(false);
   const [activeTab, setActiveTab] = useState('edit');
@@ -199,6 +214,10 @@ export const Presentation: React.FC = () => {
   const [history, setHistory] = useState<Slide[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const isUndoRedoRef = useRef(false);
+  // While a drag/resize is in progress, don't record every pointermove in
+  // history — one entry is pushed on pointer-up instead
+  const suppressHistoryRef = useRef(false);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   const presentationRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -223,19 +242,32 @@ export const Presentation: React.FC = () => {
   // Which corner is being resized
   const [resizeCorner, setResizeCorner] = useState<'tl' | 'tr' | 'bl' | 'br' | null>(null);
 
-  // Push to undo history when slides change (but not from undo/redo)
+  // Debounced autosave so decks survive closing the window
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(slides)); } catch { /* quota exceeded */ }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [slides]);
+
+  const pushHistory = useCallback((snap: Slide[]) => {
+    setHistory(prev => {
+      const newHistory = prev.slice(0, historyIndex + 1);
+      newHistory.push(snap);
+      if (newHistory.length > MAX_HISTORY) newHistory.shift();
+      return newHistory;
+    });
+    setHistoryIndex(prev => Math.min(prev + 1, MAX_HISTORY - 1));
+  }, [historyIndex]);
+
+  // Push to undo history when slides change (but not from undo/redo or mid-drag)
   useEffect(() => {
     if (isUndoRedoRef.current) {
       isUndoRedoRef.current = false;
       return;
     }
-    setHistory(prev => {
-      const newHistory = prev.slice(0, historyIndex + 1);
-      newHistory.push(slides);
-      if (newHistory.length > MAX_HISTORY) newHistory.shift();
-      return newHistory;
-    });
-    setHistoryIndex(prev => Math.min(prev + 1, MAX_HISTORY - 1));
+    if (suppressHistoryRef.current) return;
+    pushHistory(slides);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slides]);
 
@@ -257,9 +289,12 @@ export const Presentation: React.FC = () => {
     }
   }, [history, historyIndex]);
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts — only when focus is inside this app, so shortcuts
+  // never fire while another window on the desktop is being used
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const container = isPresenting ? presentationRef.current : rootRef.current;
+      if (!container?.contains(document.activeElement) && document.activeElement !== container) return;
       if (isPresenting) {
         switch (e.key) {
           case 'ArrowRight': case 'ArrowDown': case ' ':
@@ -277,6 +312,45 @@ export const Presentation: React.FC = () => {
       } else {
         const target = e.target as HTMLElement;
         const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT';
+
+        // Arrow keys nudge the selected shape (Shift for bigger steps)
+        if (!isInput && selectedShapeRef.current !== null && e.key.startsWith('Arrow')) {
+          e.preventDefault();
+          const step = e.shiftKey ? 5 : 1;
+          const idx = selectedShapeRef.current;
+          const curSlides = slidesRef.current;
+          const curSlide = currentSlideRef.current;
+          const shape = curSlides[curSlide]?.shapes?.[idx];
+          if (shape) {
+            const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
+            const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
+            const newSlides = [...curSlides];
+            const shapes = [...(newSlides[curSlide].shapes || [])];
+            shapes[idx] = {
+              ...shape,
+              x: Math.max(0, Math.min(100 - shape.width, shape.x + dx)),
+              y: Math.max(0, Math.min(100 - shape.height, shape.y + dy)),
+            };
+            newSlides[curSlide] = { ...newSlides[curSlide], shapes };
+            setSlides(newSlides);
+          }
+          return;
+        }
+
+        // PageUp/PageDown flip through slides in the editor
+        if (!isInput && (e.key === 'PageDown' || e.key === 'PageUp')) {
+          e.preventDefault();
+          setCurrentSlide(prev => e.key === 'PageDown'
+            ? Math.min(slidesRef.current.length - 1, prev + 1)
+            : Math.max(0, prev - 1));
+          return;
+        }
+
+        // Escape deselects the shape
+        if (e.key === 'Escape' && selectedShapeRef.current !== null) {
+          setSelectedShape(null);
+          return;
+        }
 
         // Delete selected shape (using refs to avoid stale closures)
         if ((e.key === 'Delete' || e.key === 'Backspace') && selectedShapeRef.current !== null && !isInput) {
@@ -454,6 +528,10 @@ export const Presentation: React.FC = () => {
       setIsResizingShape(false);
       setResizeCorner(null);
       setSnapGuides({});
+      if (suppressHistoryRef.current) {
+        suppressHistoryRef.current = false;
+        pushHistory(slidesRef.current);
+      }
     };
 
     if (isDraggingShape || isResizingShape) {
@@ -500,6 +578,10 @@ export const Presentation: React.FC = () => {
     const handlePointerUp = () => {
       setDraggingTextBox(null);
       setResizingTextBox(null);
+      if (suppressHistoryRef.current) {
+        suppressHistoryRef.current = false;
+        pushHistory(slidesRef.current);
+      }
     };
 
     if (draggingTextBox || resizingTextBox) {
@@ -515,6 +597,13 @@ export const Presentation: React.FC = () => {
 
   // Deselect when switching slides
   useEffect(() => { setSelectedShape(null); }, [currentSlide]);
+
+  // Keep keyboard shortcuts alive: focus the presentation view when it opens,
+  // and the editor root when it comes back
+  useEffect(() => {
+    if (isPresenting) presentationRef.current?.focus();
+    else rootRef.current?.focus();
+  }, [isPresenting]);
 
   // Scale slide canvas to fit container without scrolling
   useEffect(() => {
@@ -581,10 +670,11 @@ export const Presentation: React.FC = () => {
   };
 
   const deleteSlide = (index: number) => {
-    if (slides.length > 1) {
-      setSlides(slides.filter((_, i) => i !== index));
-      if (currentSlide >= slides.length - 1) setCurrentSlide(Math.max(0, slides.length - 2));
-    }
+    if (slides.length <= 1) return;
+    const newSlides = slides.filter((_, i) => i !== index);
+    setSlides(newSlides);
+    // Keep pointing at the same slide (or its neighbor) after removal
+    setCurrentSlide(prev => Math.min(prev > index ? prev - 1 : prev, newSlides.length - 1));
   };
 
   const updateSlide = (index: number, updates: Partial<Slide>) => {
@@ -637,18 +727,50 @@ export const Presentation: React.FC = () => {
   };
 
   const exportToPDF = () => {
+    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    const shapeHtml = (sh: ShapeItem) => {
+      const common = `position:absolute;left:${sh.x}%;top:${sh.y}%;width:${sh.width}%;height:${sh.height}%;opacity:${sh.opacity};${sh.rotation ? `transform:rotate(${sh.rotation}deg);` : ''}`;
+      const border = sh.borderWidth > 0 ? `border:${sh.borderWidth}px solid ${sh.borderColor};` : '';
+      if (sh.type === 'circle') return `<div style="${common}${border}background:${sh.color};border-radius:50%;"></div>`;
+      if (sh.type === 'triangle') return `<div style="${common}background:${sh.color};clip-path:polygon(50% 0%,0% 100%,100% 100%);"></div>`;
+      if (sh.type === 'text') return `<div style="${common}${border}${sh.color !== 'transparent' ? `background:${sh.color};` : ''}display:flex;align-items:center;justify-content:center;color:${sh.textColor || '#fff'};font-size:${sh.fontSize || 16}px;font-weight:600;text-align:center;overflow:hidden;">${esc(sh.text || '')}</div>`;
+      return `<div style="${common}${border}background:${sh.color};border-radius:4px;"></div>`;
+    };
+
+    const contentHtml = (slide: Slide) => {
+      const size = slide.contentSize || 24;
+      if ((slide.layout === 'content' || slide.layout === 'two-column') && slide.bulletPoints) {
+        const cols = slide.layout === 'two-column' ? 'columns:2;column-gap:48px;' : '';
+        return `<ul style="font-size:${size}px;list-style:none;padding:0;margin:0;${cols}">${slide.bulletPoints.map(p => `<li style="margin:10px 0;">&bull; ${esc(p)}</li>`).join('')}</ul>`;
+      }
+      if (slide.layout === 'image') {
+        return `<div style="display:flex;gap:32px;align-items:center;height:100%;">
+          <p style="flex:1;font-size:${size}px;margin:0;">${esc(slide.content)}</p>
+          ${slide.imageUrl ? `<img src="${slide.imageUrl}" style="flex:1;max-width:50%;max-height:90%;object-fit:contain;border-radius:8px;" />` : ''}
+        </div>`;
+      }
+      return `<p style="font-size:${size}px;text-align:${slide.contentAlign || 'center'};margin:0;">${esc(slide.content)}</p>`;
+    };
+
     const pdfContent = slides.map((slide, idx) => `
-      <div style="page-break-after: always; width: 100%; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: ${slide.background}; color: white; padding: 40px; font-family: ${slide.fontFamily || 'Arial, sans-serif'};">
-        <h1 style="font-size: ${slide.titleSize || 48}px; text-align: ${slide.titleAlign || 'center'}; margin-bottom: 20px;">${slide.title}</h1>
-        ${slide.layout === 'content' && slide.bulletPoints ? `<ul style="font-size: ${slide.contentSize || 20}px; list-style: none; padding: 0;">${slide.bulletPoints.map(p => `<li style="margin: 10px 0;">&bull; ${p}</li>`).join('')}</ul>` : `<p style="font-size: ${slide.contentSize || 24}px; text-align: ${slide.contentAlign || 'center'};">${slide.content}</p>`}
-        ${slide.notes ? `<div style="position: absolute; bottom: 20px; font-size: 12px; opacity: 0.7;">Notes: ${slide.notes}</div>` : ''}
-        <div style="position: absolute; bottom: 10px; right: 20px; font-size: 14px;">Slide ${idx + 1} of ${slides.length}</div>
+      <div style="page-break-after:always;position:relative;width:100%;height:100vh;overflow:hidden;background:${slide.background};color:white;font-family:${slide.fontFamily || 'Arial, sans-serif'};">
+        <div style="position:absolute;left:${slide.titleX ?? 3}%;top:${slide.titleY ?? 3}%;width:${slide.titleW ?? 90}%;height:${slide.titleH ?? 12}%;display:flex;align-items:center;">
+          <h1 style="font-size:${slide.titleSize || 48}px;text-align:${slide.titleAlign || 'center'};margin:0;width:100%;">${esc(slide.title)}</h1>
+        </div>
+        <div style="position:absolute;left:${slide.contentX ?? 5}%;top:${slide.contentY ?? 18}%;width:${slide.contentW ?? 80}%;height:${slide.contentH ?? 55}%;overflow:hidden;">
+          ${contentHtml(slide)}
+        </div>
+        ${(slide.shapes || []).map(shapeHtml).join('')}
+        ${slide.notes ? `<div style="position:absolute;bottom:20px;left:20px;font-size:12px;opacity:0.7;">Notes: ${esc(slide.notes)}</div>` : ''}
+        <div style="position:absolute;bottom:10px;right:20px;font-size:14px;opacity:0.8;">Slide ${idx + 1} of ${slides.length}</div>
       </div>`).join('');
-    const htmlContent = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${slides[0]?.title || 'Presentation'}</title><style>body{margin:0;font-family:Arial,sans-serif}@media print{body{margin:0}div{page-break-after:always}}</style></head><body>${pdfContent}</body></html>`;
+    const htmlContent = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${esc(slides[0]?.title || 'Presentation')}</title><style>body{margin:0;font-family:Arial,sans-serif}@media print{body{margin:0}div{page-break-after:always}}</style></head><body>${pdfContent}</body></html>`;
     const blob = new Blob([htmlContent], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = `${slides[0]?.title.replace(/\s+/g, '-') || 'presentation'}.html`; a.click(); URL.revokeObjectURL(url);
+    const a = document.createElement('a'); a.href = url; a.download = `${slides[0]?.title.replace(/\s+/g, '-') || 'presentation'}.html`; a.click();
     const pw = window.open(url); if (pw) { pw.onload = () => { setTimeout(() => { pw.print(); }, 250); }; }
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
   };
 
   const applyTheme = (colors: string[]) => { setSlides(slides.map((s, i) => ({ ...s, background: colors[i % colors.length] }))); };
@@ -676,6 +798,7 @@ export const Presentation: React.FC = () => {
     const shape = slides[currentSlide]?.shapes?.[idx];
     if (!shape) return;
     dragStartRef.current = { mx: e.clientX, my: e.clientY, sx: shape.x, sy: shape.y };
+    suppressHistoryRef.current = true;
     setIsDraggingShape(true);
   };
 
@@ -687,6 +810,7 @@ export const Presentation: React.FC = () => {
     const shape = slides[currentSlide]?.shapes?.[selectedShape];
     if (!shape) return;
     resizeStartRef.current = { mx: e.clientX, my: e.clientY, sw: shape.width, sh: shape.height, sx: shape.x, sy: shape.y };
+    suppressHistoryRef.current = true;
     setResizeCorner(corner);
     setIsResizingShape(true);
   };
@@ -701,6 +825,7 @@ export const Presentation: React.FC = () => {
     const ox = boxId === 'title' ? (slide.titleX ?? 3) : (slide.contentX ?? 5);
     const oy = boxId === 'title' ? (slide.titleY ?? 3) : (slide.contentY ?? 18);
     textBoxDragStart.current = { mx: e.clientX, my: e.clientY, ox, oy };
+    suppressHistoryRef.current = true;
     setDraggingTextBox(boxId);
     setSelectedShape(null);
   };
@@ -714,6 +839,7 @@ export const Presentation: React.FC = () => {
     const ow = boxId === 'title' ? (slide.titleW ?? defaultW) : (slide.contentW ?? defaultW);
     const oh = boxId === 'title' ? (slide.titleH ?? defaultH) : (slide.contentH ?? defaultH);
     textBoxResizeStart.current = { mx: e.clientX, my: e.clientY, ow, oh };
+    suppressHistoryRef.current = true;
     setResizingTextBox(boxId);
     setSelectedShape(null);
   };
@@ -727,7 +853,7 @@ export const Presentation: React.FC = () => {
     const slide = slides[currentSlide];
     const progress = ((currentSlide + 1) / slides.length) * 100;
     return (
-      <div ref={presentationRef} className="h-full flex flex-col bg-black relative select-none" onMouseMove={resetControlsTimeout} tabIndex={0}>
+      <div ref={presentationRef} className="h-full flex flex-col bg-black relative select-none outline-none" onMouseMove={resetControlsTimeout} tabIndex={0}>
         <div className="absolute top-0 left-0 right-0 z-50 h-1 bg-black/30"><div className="h-full bg-white/70 transition-all duration-300" style={{ width: `${progress}%` }} /></div>
         <div key={animationKey} className={`flex-1 flex flex-col items-center justify-center p-12 text-white transition-all duration-500 relative overflow-hidden ${slide.transition === 'fade' ? 'animate-fade-in' : slide.transition === 'slide' ? 'animate-slide-in' : slide.transition === 'zoom' ? 'animate-zoom-in' : ''}`} style={{ ...bgStyleFn(slide.background), fontFamily: slide.fontFamily }}>
           {/* Title - positioned */}
@@ -783,7 +909,7 @@ export const Presentation: React.FC = () => {
 
   // ============================  EDITOR MODE  ============================
   return (
-    <div className="h-full flex bg-gray-50 dark:bg-gray-900">
+    <div ref={rootRef} tabIndex={0} className="h-full flex bg-gray-50 dark:bg-gray-900 outline-none">
       <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={importPresentation} />
       <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
 
