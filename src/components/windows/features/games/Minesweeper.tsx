@@ -240,14 +240,14 @@ export const Minesweeper: React.FC = () => {
     // Color coding based on number
     const colors = [
       '',
-      'text-blue-600',   // 1
-      'text-green-600',  // 2
-      'text-red-600',    // 3
-      'text-purple-700', // 4
-      'text-rose-700',   // 5
-      'text-cyan-600',   // 6
-      'text-black',      // 7
-      'text-gray-600'    // 8
+      'text-blue-600 dark:text-blue-400',     // 1
+      'text-green-600 dark:text-green-400',   // 2
+      'text-red-600 dark:text-red-400',       // 3
+      'text-purple-700 dark:text-purple-400', // 4
+      'text-rose-700 dark:text-rose-400',     // 5
+      'text-cyan-600 dark:text-cyan-400',     // 6
+      'text-black dark:text-white',           // 7
+      'text-gray-600 dark:text-gray-300'      // 8
     ];
     
     return (

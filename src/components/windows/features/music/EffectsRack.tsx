@@ -231,12 +231,12 @@ export function EffectsRack() {
       </div>
 
       {/* Signal Flow */}
-      <div className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-600">
+      <div className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-400">
         <span>Input</span>
         {slots.map((s, i) => (
           <React.Fragment key={i}>
             <span>→</span>
-            <span className={s.enabled ? `text-${EFFECT_COLORS[s.type]}-400` : 'text-gray-700'}>
+            <span className={s.enabled ? `text-${EFFECT_COLORS[s.type]}-400` : 'text-gray-500'}>
               {s.type}
             </span>
           </React.Fragment>

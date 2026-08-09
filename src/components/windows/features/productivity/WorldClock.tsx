@@ -132,7 +132,7 @@ export const WorldClock = () => {
               </div>
               
               <div className="mt-4 text-center">
-                <p className="text-gray-600 mb-2">
+                <p className="text-gray-600 dark:text-gray-400 mb-2">
                   Current time in highlighted locations:
                 </p>
                 <div className="flex flex-wrap justify-center gap-2">

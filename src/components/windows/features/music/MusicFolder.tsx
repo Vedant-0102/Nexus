@@ -14,7 +14,7 @@ const MUSIC_APPS = [
 ];
 
 export function MusicFolder() {
-  const { openWindow } = useWindows();
+  const { toggleWindow } = useWindows();
 
   return (
     <div className="h-full bg-gray-900 text-white p-6 overflow-auto">
@@ -22,7 +22,7 @@ export function MusicFolder() {
         {MUSIC_APPS.map(app => (
           <button
             key={app.id}
-            onClick={() => openWindow(app.id)}
+            onClick={() => toggleWindow(app.id)}
             className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gray-800 hover:bg-gray-700 transition-colors group"
           >
             <span className="text-3xl group-hover:scale-110 transition-transform">{app.icon}</span>

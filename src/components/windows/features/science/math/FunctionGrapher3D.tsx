@@ -123,7 +123,7 @@ export const FunctionGrapher3D: React.FC = () => {
 
     // Draw grid if enabled
     if (showGrid) {
-      ctx.strokeStyle = '#e0e0e0';
+      ctx.strokeStyle = isDark ? 'rgba(148,163,184,0.25)' : 'rgba(100,116,139,0.25)';
       ctx.lineWidth = 0.5;
 
       for (let x = -range; x <= range; x += step * 5) {

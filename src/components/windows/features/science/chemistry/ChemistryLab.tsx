@@ -22,6 +22,9 @@ interface Reaction {
   type: string;
   description: string;
   color: string;
+  energy: string;
+  exothermic: boolean;
+  observation: string;
 }
 
 const periodicElements: Element[] = [
@@ -48,15 +51,21 @@ const reactions: Reaction[] = [
     products: ['NaCl', 'H₂O'],
     type: 'Neutralization',
     description: 'Hydrochloric acid reacts with sodium hydroxide to form salt and water',
-    color: '#4ECDC4'
+    color: '#4ECDC4',
+    energy: '−57.3 kJ/mol',
+    exothermic: true,
+    observation: 'The solution warms up. With an indicator, the color shifts as pH moves toward 7. H⁺ from the acid and OH⁻ from the base combine into water.',
   },
   {
     name: 'Combustion of Methane',
-    reactants: ['CH₄', 'O₂'],
-    products: ['CO₂', 'H₂O'],
+    reactants: ['CH₄', '2O₂'],
+    products: ['CO₂', '2H₂O'],
     type: 'Combustion',
     description: 'Methane burns in oxygen to produce carbon dioxide and water',
-    color: '#FF6B6B'
+    color: '#FF6B6B',
+    energy: '−890 kJ/mol',
+    exothermic: true,
+    observation: 'A blue flame — this is what happens in a gas stove. Note the coefficient 2 on O₂ and H₂O: it takes two O₂ molecules to balance the 4 hydrogens and 2 oxygens.',
   },
   {
     name: 'Precipitation',
@@ -64,7 +73,10 @@ const reactions: Reaction[] = [
     products: ['AgCl↓', 'NaNO₃'],
     type: 'Precipitation',
     description: 'Silver nitrate reacts with sodium chloride to form silver chloride precipitate',
-    color: '#FFD93D'
+    color: '#FFD93D',
+    energy: '≈ −65 kJ/mol',
+    exothermic: true,
+    observation: 'A milky white solid (AgCl) suddenly appears and settles — the ↓ arrow means it falls out of solution because it is insoluble in water.',
   },
   {
     name: 'Redox Reaction',
@@ -72,7 +84,10 @@ const reactions: Reaction[] = [
     products: ['ZnSO₄', 'Cu'],
     type: 'Redox',
     description: 'Zinc displaces copper from copper sulfate solution',
-    color: '#95E1D3'
+    color: '#95E1D3',
+    energy: '−219 kJ/mol',
+    exothermic: true,
+    observation: 'The blue Cu²⁺ solution fades as reddish copper metal coats the zinc. Zn loses electrons (oxidized), Cu²⁺ gains them (reduced) — Zn is more reactive, so it wins.',
   },
 ];
 
@@ -118,10 +133,10 @@ export const ChemistryLab: React.FC = () => {
                 onClick={() => setSelectedElement(element)}
               >
                 <div className="text-center">
-                  <div className="text-xs text-gray-600">{element.atomicNumber}</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-300">{element.atomicNumber}</div>
                   <div className="text-2xl font-bold">{element.symbol}</div>
                   <div className="text-xs truncate">{element.name}</div>
-                  <div className="text-xs text-gray-600">{element.atomicMass.toFixed(2)}</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-300">{element.atomicMass.toFixed(2)}</div>
                 </div>
               </Card>
             ))}
@@ -175,13 +190,32 @@ export const ChemistryLab: React.FC = () => {
             ))}
           </div>
 
-          {isReacting && selectedReaction && (
-            <Card className="p-6 bg-gradient-to-r from-orange-100 to-red-100 dark:from-orange-900 dark:to-red-900 animate-pulse">
-              <div className="flex items-center gap-3">
-                <Flame className="h-8 w-8 text-orange-500 animate-bounce" />
-                <div>
-                  <h4 className="font-bold">Reaction in Progress!</h4>
-                  <p className="text-sm">{selectedReaction.name}</p>
+          {selectedReaction && (
+            <Card className={`p-6 ${isReacting ? 'bg-gradient-to-r from-orange-100 to-red-100 dark:from-orange-900/40 dark:to-red-900/40' : 'bg-white dark:bg-gray-800'}`}>
+              <div className="flex items-start gap-3">
+                <Flame className={`h-8 w-8 text-orange-500 flex-shrink-0 ${isReacting ? 'animate-bounce' : ''}`} />
+                <div className="flex-1">
+                  <h4 className="font-bold mb-1">{isReacting ? 'Reaction in progress…' : `Result: ${selectedReaction.name}`}</h4>
+                  <p className="text-lg font-mono mb-2">
+                    {selectedReaction.reactants.join(' + ')} → {selectedReaction.products.join(' + ')}
+                  </p>
+                  <div className="grid sm:grid-cols-2 gap-3 text-sm">
+                    <div className="p-3 rounded bg-orange-50 dark:bg-orange-900/30">
+                      <p className="font-semibold text-orange-800 dark:text-orange-200">
+                        {selectedReaction.exothermic ? '🔥 Exothermic' : '🧊 Endothermic'} · ΔH = {selectedReaction.energy}
+                      </p>
+                      <p className="text-xs mt-1 text-gray-600 dark:text-gray-300">
+                        {selectedReaction.exothermic ? 'Energy is released to the surroundings — the products hold less chemical energy than the reactants.' : 'Energy is absorbed from the surroundings.'}
+                      </p>
+                    </div>
+                    <div className="p-3 rounded bg-blue-50 dark:bg-blue-900/30">
+                      <p className="font-semibold text-blue-800 dark:text-blue-200">👀 What you'd see</p>
+                      <p className="text-xs mt-1 text-gray-600 dark:text-gray-300">{selectedReaction.observation}</p>
+                    </div>
+                  </div>
+                  <p className="text-xs mt-3 text-gray-500 dark:text-gray-400">
+                    ⚖️ The equation is balanced: every atom on the left appears on the right — matter is never created or destroyed, only rearranged.
+                  </p>
                 </div>
               </div>
             </Card>

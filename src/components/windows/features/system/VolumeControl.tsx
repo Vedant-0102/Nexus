@@ -33,11 +33,11 @@ export const VolumeControl = () => {
   return (
     <div className="p-4 h-full">
       <h2 className="text-2xl font-semibold mb-4">Volume Control</h2>
-      <div className="bg-white/50 p-6 rounded-lg max-w-md mx-auto">
+      <div className="bg-white/50 dark:bg-gray-800/50 p-6 rounded-lg max-w-md mx-auto">
         <div className="flex items-center gap-4 mb-6">
-          <button 
+          <button
             onClick={toggleMute}
-            className="p-2 rounded-full hover:bg-gray-200/50 transition-colors"
+            className="p-2 rounded-full hover:bg-gray-200/50 dark:hover:bg-gray-700/50 transition-colors"
           >
             {getVolumeIcon()}
           </button>

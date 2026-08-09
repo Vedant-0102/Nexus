@@ -29,7 +29,7 @@ export const ProjectFolder = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[calc(100%-2rem)]">
         {/* Project List */}
-        <div className="bg-white/50 rounded-lg overflow-y-auto">
+        <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg overflow-y-auto">
           <div className="p-3 border-b border-gray-200">
             <div className="flex items-center gap-2">
               <FolderOpen size={18} />
@@ -40,13 +40,13 @@ export const ProjectFolder = () => {
             {projects.map(project => (
               <div 
                 key={project.id} 
-                className={`flex items-center p-3 hover:bg-gray-200/50 rounded-md cursor-pointer ${selectedProject?.id === project.id ? 'bg-gray-200/70' : ''}`}
+                className={`flex items-center p-3 hover:bg-gray-200/50 dark:hover:bg-gray-700/50 rounded-md cursor-pointer ${selectedProject?.id === project.id ? 'bg-gray-200/70 dark:bg-gray-700/70' : ''}`}
                 onClick={() => setSelectedProject(project)}
               >
                 <FolderOpen size={18} className="mr-3 text-yellow-600" />
                 <div>
                   <div className="font-medium">{project.name}</div>
-                  <div className="text-xs text-gray-600 line-clamp-1">{project.description}</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400 line-clamp-1">{project.description}</div>
                 </div>
               </div>
             ))}
@@ -54,7 +54,7 @@ export const ProjectFolder = () => {
         </div>
         
         {/* Project Details View */}
-        <div className="col-span-2 bg-white/50 rounded-lg overflow-hidden flex flex-col">
+        <div className="col-span-2 bg-white/50 dark:bg-gray-800/50 rounded-lg overflow-hidden flex flex-col">
           {selectedProject ? (
             <div className="h-full flex flex-col">
               <div className="border-b border-gray-200">
@@ -84,10 +84,10 @@ export const ProjectFolder = () => {
                 {activeTab === 'overview' && (
                   <>
                     <h2 className="text-2xl font-bold mb-3">{selectedProject.name}</h2>
-                    <p className="text-gray-600 mb-4">{selectedProject.description}</p>
+                    <p className="text-gray-600 dark:text-gray-400 mb-4">{selectedProject.description}</p>
                     
                     {selectedProject.about && (
-                      <div className="bg-white/60 p-4 rounded-lg mb-4">
+                      <div className="bg-white/60 dark:bg-gray-800/60 p-4 rounded-lg mb-4">
                         <h3 className="font-medium mb-2">About This Project</h3>
                         <p className="text-sm">{selectedProject.about}</p>
                       </div>
@@ -100,7 +100,7 @@ export const ProjectFolder = () => {
                     <h2 className="text-2xl font-bold mb-4">{selectedProject.name}</h2>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="bg-white/60 p-4 rounded-lg">
+                      <div className="bg-white/60 dark:bg-gray-800/60 p-4 rounded-lg">
                         <h3 className="font-medium flex items-center gap-2 mb-3">
                           <Code size={18} />
                           Technologies
@@ -118,7 +118,7 @@ export const ProjectFolder = () => {
                       </div>
                       
                       {selectedProject.features && (
-                        <div className="bg-white/60 p-4 rounded-lg">
+                        <div className="bg-white/60 dark:bg-gray-800/60 p-4 rounded-lg">
                           <h3 className="font-medium flex items-center gap-2 mb-3">
                             <Hash size={18} />
                             Key Features
@@ -138,7 +138,7 @@ export const ProjectFolder = () => {
                   <>
                     <h2 className="text-2xl font-bold mb-4">{selectedProject.name}</h2>
                     
-                    <div className="bg-white/60 p-6 rounded-lg text-center">
+                    <div className="bg-white/60 dark:bg-gray-800/60 p-6 rounded-lg text-center">
                       <h3 className="font-medium mb-4">Project Links</h3>
                       <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
                         {selectedProject.links?.demo && (

@@ -107,7 +107,9 @@ export const DopplerEffect: React.FC = () => {
     const obs = new ResizeObserver(resize);
     obs.observe(canvas);
     return () => obs.disconnect();
-  }, []);
+    // Re-run when the tab changes: the canvas is remounted fresh each time the
+    // visualizer tab is reopened and must be sized/observed again
+  }, [activeTab]);
 
   // ── Derived values ────────────────────────────────────────────────────────
   const approachFreq = baseFrequency * ((SPEED_OF_SOUND + observerVelocity) / (SPEED_OF_SOUND - sourceVelocity));
@@ -332,13 +334,18 @@ export const DopplerEffect: React.FC = () => {
   }, [isPlaying, sourceVelocity, observerVelocity, baseFrequency, approachFreq, recedeFreq]);
 
   useEffect(() => {
+    // The canvas only exists on the visualizer tab; switching away kills the
+    // rAF chain (draw early-returns without scheduling), so restart it on return
+    if (activeTab !== 'visualizer') return;
     if (isPlaying) {
       animFrameRef.current = requestAnimationFrame(draw);
+    } else {
+      draw(); // paint one frame so the canvas isn't blank while paused
     }
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
-  }, [isPlaying, draw]);
+  }, [isPlaying, draw, activeTab]);
 
   // Reset animation
   const handleReset = () => {
@@ -361,24 +368,23 @@ export const DopplerEffect: React.FC = () => {
       }
       formulaLabel="Doppler formula for sound"
       formula={
-        "f_observed = f_source x (v_sound +/- v_observer) / (v_sound -/+ v_source)\n\n" +
-        "Approaching:  f_obs = f_s x (v + v_o) / (v - v_s)\n" +
-        "Receding:     f_obs = f_s x (v - v_o) / (v + v_s)"
+        "f′ = f₀ · (v ± v₀) / (v ∓ vₛ)\n\n" +
+        "Approaching:  f′ = f₀ · (v + v₀) / (v − vₛ)\n" +
+        "Receding:     f′ = f₀ · (v − v₀) / (v + vₛ)\n\n" +
+        "v = speed of sound · v₀ = observer speed · vₛ = source speed"
       }
       example={{
         setup: "An ambulance siren emits at 700 Hz and travels at 30 m/s toward a stationary observer. Speed of sound = 343 m/s.",
         steps: [
-          "f_approach = 700 x (343 + 0) / (343 - 30)",
-          "f_approach = 700 x 343 / 313",
-          "f_approach = 700 x 1.0959",
-          "f_approach = 767.1 Hz",
+          "f′ (approaching) = 700 × (343 + 0) / (343 − 30)",
+          "f′ = 700 × 343 / 313 = 700 × 1.0959",
+          "f′ = 767.1 Hz",
           "",
-          "f_recede = 700 x (343 + 0) / (343 + 30)",
-          "f_recede = 700 x 343 / 373",
-          "f_recede = 700 x 0.9195",
-          "f_recede = 643.7 Hz",
+          "f′ (receding) = 700 × (343 − 0) / (343 + 30)",
+          "f′ = 700 × 343 / 373 = 700 × 0.9195",
+          "f′ = 643.7 Hz",
         ],
-        result: "The observer hears 767 Hz (approaching) dropping to 644 Hz (receding) -- a shift of 123 Hz.",
+        result: "The observer hears 767 Hz approaching → 644 Hz receding — a sudden drop of 123 Hz as it passes.",
       }}
     />
   );
@@ -396,23 +402,22 @@ export const DopplerEffect: React.FC = () => {
       }
       formulaLabel="Relativistic Doppler (light)"
       formula={
-        "z = (lambda_obs - lambda_emit) / lambda_emit\n\n" +
-        "For non-relativistic speeds:\n" +
-        "z ~ v / c\n\n" +
+        "z = (λ_observed − λ_emitted) / λ_emitted\n\n" +
+        "For v ≪ c:   z ≈ v / c\n\n" +
         "Relativistic:\n" +
-        "f_obs = f_s x sqrt( (1 - v/c) / (1 + v/c) )  [receding]\n" +
-        "f_obs = f_s x sqrt( (1 + v/c) / (1 - v/c) )  [approaching]"
+        "f′ = f₀ · √( (1 − v/c) / (1 + v/c) )   [receding]\n" +
+        "f′ = f₀ · √( (1 + v/c) / (1 − v/c) )   [approaching]"
       }
       example={{
-        setup: "A galaxy has a hydrogen-alpha line observed at 665.2 nm instead of the emitted 656.3 nm. Find its recession velocity.",
+        setup: "A galaxy's hydrogen-α line is observed at 665.2 nm instead of the emitted 656.3 nm. Find its recession velocity.",
         steps: [
-          "z = (665.2 - 656.3) / 656.3 = 8.9 / 656.3",
+          "z = (665.2 − 656.3) / 656.3 = 8.9 / 656.3",
           "z = 0.01356",
-          "v = z x c = 0.01356 x 3 x 10^8 m/s",
-          "v = 4.07 x 10^6 m/s",
-          "v ~ 4,070 km/s",
+          "v = z · c = 0.01356 × 3×10⁸ m/s",
+          "v = 4.07×10⁶ m/s",
+          "v ≈ 4,070 km/s",
         ],
-        result: "The galaxy is receding at approximately 4,070 km/s (~1.36% the speed of light).",
+        result: "The galaxy is receding at ≈ 4,070 km/s (about 1.36% of the speed of light).",
       }}
     />
   );
@@ -430,20 +435,22 @@ export const DopplerEffect: React.FC = () => {
       }
       formulaLabel="Radar Doppler formula (round-trip)"
       formula={
-        "delta_f = 2 x f_transmitted x v_target / c\n\n" +
-        "v_target = (delta_f x c) / (2 x f_transmitted)\n\n" +
-        "where c = speed of light = 3 x 10^8 m/s"
+        "Δf = 2 · f · v / c\n\n" +
+        "v = Δf · c / (2 · f)\n\n" +
+        "The factor 2 appears because the wave is shifted twice —\n" +
+        "once reaching the car, once reflecting back.\n" +
+        "c = speed of light = 3×10⁸ m/s"
       }
       example={{
         setup: "A K-band radar gun (24.150 GHz) measures a frequency shift of 3,614 Hz from an approaching car.",
         steps: [
-          "v = (delta_f x c) / (2 x f)",
-          "v = (3614 x 3 x 10^8) / (2 x 24.150 x 10^9)",
-          "v = 1.0842 x 10^12 / 4.83 x 10^10",
+          "v = Δf · c / (2 · f)",
+          "v = (3614 × 3×10⁸) / (2 × 24.150×10⁹)",
+          "v = 1.0842×10¹² / 4.83×10¹⁰",
           "v = 22.45 m/s",
-          "v = 22.45 x 3.6 = 80.8 km/h",
+          "v = 22.45 × 3.6 = 80.8 km/h",
         ],
-        result: "The car is traveling at approximately 80.8 km/h (50.2 mph).",
+        result: "The car is traveling at ≈ 80.8 km/h (50.2 mph).",
       }}
     />
   );
@@ -461,22 +468,22 @@ export const DopplerEffect: React.FC = () => {
       }
       formulaLabel="Doppler ultrasound formula"
       formula={
-        "delta_f = (2 x f_0 x v_blood x cos(theta)) / c_tissue\n\n" +
-        "v_blood = (delta_f x c_tissue) / (2 x f_0 x cos(theta))\n\n" +
-        "c_tissue ~ 1,540 m/s (speed of sound in soft tissue)\n" +
-        "theta = angle between beam and flow direction"
+        "Δf = 2 · f₀ · v · cos θ / c\n\n" +
+        "v = Δf · c / (2 · f₀ · cos θ)\n\n" +
+        "c ≈ 1,540 m/s (speed of sound in soft tissue)\n" +
+        "θ = angle between beam and blood flow"
       }
       example={{
-        setup: "A 5 MHz transducer detects a 2,500 Hz frequency shift. The beam angle to the blood vessel is 60 degrees.",
+        setup: "A 5 MHz transducer detects a 2,500 Hz frequency shift. The beam angle to the blood vessel is 60°.",
         steps: [
-          "v = (delta_f x c) / (2 x f_0 x cos(theta))",
-          "v = (2500 x 1540) / (2 x 5 x 10^6 x cos(60 deg))",
-          "cos(60 deg) = 0.5",
-          "v = 3,850,000 / (2 x 5,000,000 x 0.5)",
+          "v = Δf · c / (2 · f₀ · cos θ)",
+          "v = (2500 × 1540) / (2 × 5×10⁶ × cos 60°)",
+          "cos 60° = 0.5",
+          "v = 3,850,000 / (2 × 5,000,000 × 0.5)",
           "v = 3,850,000 / 5,000,000",
           "v = 0.77 m/s = 77 cm/s",
         ],
-        result: "Blood velocity is approximately 77 cm/s, consistent with normal peak systolic flow in a large artery.",
+        result: "Blood velocity ≈ 77 cm/s — consistent with normal peak systolic flow in a large artery.",
       }}
     />
   );
@@ -494,23 +501,22 @@ export const DopplerEffect: React.FC = () => {
       }
       formulaLabel="Weather radar Doppler formula"
       formula={
-        "v_radial = (delta_f x lambda) / 2\n\n" +
-        "lambda = c / f_radar\n\n" +
+        "v = Δf · λ / 2\n\n" +
+        "λ = c / f\n\n" +
         "Maximum unambiguous velocity:\n" +
-        "v_max = lambda / (4 x PRT)\n" +
-        "where PRT = pulse repetition time"
+        "v_max = λ / (4 · PRT)\n" +
+        "PRT = pulse repetition time"
       }
       example={{
-        setup: "A NEXRAD radar (2.7 GHz, wavelength ~11.1 cm) detects a frequency shift of 540 Hz from storm precipitation.",
+        setup: "A NEXRAD radar (2.7 GHz, wavelength ≈ 11.1 cm) detects a frequency shift of 540 Hz from storm precipitation.",
         steps: [
-          "lambda = c / f = 3 x 10^8 / 2.7 x 10^9 = 0.111 m",
-          "v_radial = (delta_f x lambda) / 2",
-          "v_radial = (540 x 0.111) / 2",
-          "v_radial = 59.94 / 2",
-          "v_radial = 29.97 m/s",
-          "v_radial ~ 30 m/s = 108 km/h",
+          "λ = c / f = 3×10⁸ / 2.7×10⁹ = 0.111 m",
+          "v = Δf · λ / 2",
+          "v = (540 × 0.111) / 2",
+          "v = 59.94 / 2 = 29.97 m/s",
+          "v ≈ 30 m/s = 108 km/h",
         ],
-        result: "The precipitation (and wind driving it) is moving at ~108 km/h toward or away from the radar, indicating severe wind speeds.",
+        result: "The precipitation (and the wind driving it) is moving at ≈ 108 km/h along the beam — severe wind speeds.",
       }}
     />
   );
@@ -527,7 +533,7 @@ export const DopplerEffect: React.FC = () => {
       <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-100 dark:border-purple-800">
         <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 mb-1 uppercase tracking-wide">General Formula</p>
         <p className="font-mono text-sm text-purple-900 dark:text-purple-200">
-          f_obs = f_s x (v + v_o) / (v - v_s)
+          f′ = f₀ · (v ± v₀) / (v ∓ vₛ)
         </p>
       </div>
 
@@ -535,13 +541,13 @@ export const DopplerEffect: React.FC = () => {
       <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-100 dark:border-blue-800">
         <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-2">Approaching (source toward observer)</p>
         <p className="font-mono text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
-          f = {baseFrequency} x ({SPEED_OF_SOUND} + {observerVelocity}) / ({SPEED_OF_SOUND} - {sourceVelocity})
+          f′ = {baseFrequency} × ({SPEED_OF_SOUND} + {observerVelocity}) / ({SPEED_OF_SOUND} − {sourceVelocity})
         </p>
         <p className="font-mono text-xs text-blue-800 dark:text-blue-200">
-          f = {baseFrequency} x {(SPEED_OF_SOUND + observerVelocity).toFixed(0)} / {(SPEED_OF_SOUND - sourceVelocity).toFixed(0)}
+          f′ = {baseFrequency} × {(SPEED_OF_SOUND + observerVelocity).toFixed(0)} / {(SPEED_OF_SOUND - sourceVelocity).toFixed(0)}
         </p>
         <p className="font-mono text-sm font-bold text-blue-900 dark:text-blue-100 mt-1">
-          f = {approachFreq.toFixed(2)} Hz
+          f′ = {approachFreq.toFixed(2)} Hz
         </p>
         <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
           Wavelength: {approachWavelength.toFixed(4)} m (vs {baseWavelength.toFixed(4)} m at rest)
@@ -552,13 +558,13 @@ export const DopplerEffect: React.FC = () => {
       <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-100 dark:border-red-800">
         <p className="text-xs font-semibold text-red-700 dark:text-red-300 mb-2">Receding (source away from observer)</p>
         <p className="font-mono text-xs text-red-800 dark:text-red-200 leading-relaxed">
-          f = {baseFrequency} x ({SPEED_OF_SOUND} - {observerVelocity}) / ({SPEED_OF_SOUND} + {sourceVelocity})
+          f′ = {baseFrequency} × ({SPEED_OF_SOUND} − {observerVelocity}) / ({SPEED_OF_SOUND} + {sourceVelocity})
         </p>
         <p className="font-mono text-xs text-red-800 dark:text-red-200">
-          f = {baseFrequency} x {(SPEED_OF_SOUND - observerVelocity).toFixed(0)} / {(SPEED_OF_SOUND + sourceVelocity).toFixed(0)}
+          f′ = {baseFrequency} × {(SPEED_OF_SOUND - observerVelocity).toFixed(0)} / {(SPEED_OF_SOUND + sourceVelocity).toFixed(0)}
         </p>
         <p className="font-mono text-sm font-bold text-red-900 dark:text-red-100 mt-1">
-          f = {recedeFreq.toFixed(2)} Hz
+          f′ = {recedeFreq.toFixed(2)} Hz
         </p>
         <p className="text-xs text-red-600 dark:text-red-400 mt-1">
           Wavelength: {recedeWavelength.toFixed(4)} m (vs {baseWavelength.toFixed(4)} m at rest)
