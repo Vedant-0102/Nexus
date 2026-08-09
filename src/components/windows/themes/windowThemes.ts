@@ -202,10 +202,26 @@ const ACCENT_RGB: Partial<Record<WindowThemeName, string>> = {
 export function getTheme(themeName: WindowThemeName, isDark: boolean): WindowTheme {
   const base = WINDOW_THEMES[themeName];
 
-  // Dark theme already handles itself
-  if (themeName === 'dark') return base;
+  // Window body lightness must ALWAYS follow the OS light/dark mode: app
+  // content inside styles itself with Tailwind `dark:` classes driven by
+  // html.dark, so a dark body in light mode (or vice versa) makes that
+  // content unreadable.
+  if (themeName === 'dark') {
+    if (isDark) return base;
+    // Light mode: keep the dark-accent header but give the body a light
+    // background so light-mode content stays readable.
+    return {
+      ...base,
+      bodyBg: 'rgba(249, 250, 251, 0.95)',
+      bodyText: '#1f2937',
+      borderColor: 'rgba(107, 114, 128, 0.45)',
+      shadowColor: 'rgba(0, 0, 0, 0.18)',
+    };
+  }
 
-  // Glass theme: light mode uses dark text on semi-opaque white, dark mode uses white text
+  // Glass theme: keep the frosted look but guarantee contrast — semi-opaque
+  // white with dark text in light mode, semi-opaque near-black with light
+  // text in dark mode (pure 5% white was illegible over light wallpapers).
   if (themeName === 'glass') {
     if (!isDark) {
       return {
@@ -218,7 +234,11 @@ export function getTheme(themeName: WindowThemeName, isDark: boolean): WindowThe
         accentColor: '#0078D4',
       };
     }
-    return base;
+    return {
+      ...base,
+      headerBg: 'rgba(17, 24, 39, 0.45)',
+      bodyBg: 'rgba(17, 24, 39, 0.55)',
+    };
   }
 
   if (!isDark) return base;

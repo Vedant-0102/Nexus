@@ -3,6 +3,14 @@
 @tailwind utilities;
 
 @layer base {
+  /* Native UI (scrollbars, form controls, pickers) follows the app theme */
+  :root {
+    color-scheme: light;
+  }
+  .dark {
+    color-scheme: dark;
+  }
+
   :root {
     --background: 0 0% 100%;
     --foreground: 0 0% 3.9%;

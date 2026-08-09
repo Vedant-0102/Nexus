@@ -1,11 +1,11 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useWindows } from './context/WindowsContext';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Moon, Sun, Clock, Battery, Palette, Settings as SettingsIcon, Monitor } from 'lucide-react';
-import { WALLPAPER_TO_THEME, WINDOW_THEMES, WindowThemeName } from './themes/windowThemes';
+import { getTheme } from './themes/windowThemes';
 
 export type SettingsType = {
   theme: 'light' | 'dark';
@@ -19,8 +19,10 @@ export type SettingsType = {
 };
 
 interface SettingsAppProps {
-  initialSettings: SettingsType;
-  onApply: (newSettings: SettingsType) => void;
+  /** Legacy props — settings now come straight from WindowsContext so the UI
+   *  can never drift out of sync with the applied state. */
+  initialSettings?: SettingsType;
+  onApply?: (newSettings: SettingsType) => void;
 }
 
 const WALLPAPER_PRESETS = [
@@ -42,20 +44,18 @@ const WALLPAPER_PRESETS = [
   { name: 'Coral', value: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)' },
 ];
 
-export const SettingsApp: React.FC<SettingsAppProps> = ({ initialSettings, onApply }) => {
-  const [settings, setSettings] = useState<SettingsType>(initialSettings);
-  const { setWallpaper, wallpaper, globalWindowTheme } = useWindows();
+export const SettingsApp: React.FC<SettingsAppProps> = () => {
+  // Read/write the live context state directly: the window content is created
+  // once and kept alive, so a local copy of the settings would go stale the
+  // moment the theme changes from anywhere else.
+  const { settings, setSettings, setWallpaper, wallpaper, globalWindowTheme, isDarkMode } = useWindows();
 
   const handleThemeChange = (theme: 'light' | 'dark') => {
-    const newSettings = { ...settings, theme };
-    setSettings(newSettings);
-    onApply(newSettings);
+    setSettings({ ...settings, theme });
   };
 
-  const handleToggleChange = (key: keyof SettingsType, value: boolean) => {
-    const newSettings = { ...settings, [key]: value };
-    setSettings(newSettings);
-    onApply(newSettings);
+  const handleToggleChange = (key: keyof SettingsType, value: boolean | number) => {
+    setSettings({ ...settings, [key]: value });
   };
 
   const handleWallpaperChange = (value: string) => {
@@ -129,11 +129,11 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({ initialSettings, onApp
                     type="range"
                     min="0"
                     max="100"
-                    value={settings.transparency || 50}
-                    onChange={(e) => setSettings({ ...settings, transparency: parseInt(e.target.value) })}
+                    value={settings.transparency ?? 50}
+                    onChange={(e) => handleToggleChange('transparency', parseInt(e.target.value))}
                     className="w-full accent-blue-500"
                   />
-                  <span className="text-sm text-gray-600 dark:text-gray-400 w-8">{settings.transparency || 50}%</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400 w-8">{settings.transparency ?? 50}%</span>
                 </div>
               </div>
 
@@ -143,7 +143,7 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({ initialSettings, onApp
                 </div>
                 <Switch
                   checked={settings.animations !== false}
-                  onCheckedChange={(checked) => setSettings({ ...settings, animations: checked })}
+                  onCheckedChange={(checked) => handleToggleChange('animations', checked)}
                 />
               </div>
             </div>
@@ -197,7 +197,7 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({ initialSettings, onApp
             <div className="flex items-center gap-3">
               <div
                 className="w-10 h-10 rounded-lg border-2 border-white dark:border-gray-600 shadow-md"
-                style={{ background: WINDOW_THEMES[globalWindowTheme]?.headerBg || '#0078D4' }}
+                style={{ background: getTheme(globalWindowTheme, isDarkMode).headerBg || '#0078D4' }}
               />
               <div>
                 <p className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">{globalWindowTheme}</p>
@@ -241,7 +241,7 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({ initialSettings, onApp
                 </div>
                 <Switch
                   checked={settings.notifications !== false}
-                  onCheckedChange={(checked) => setSettings({ ...settings, notifications: checked })}
+                  onCheckedChange={(checked) => handleToggleChange('notifications', checked)}
                 />
               </div>
             </div>

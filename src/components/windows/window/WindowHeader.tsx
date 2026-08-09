@@ -32,8 +32,9 @@ const THEME_SWATCHES: Record<string, string> = {
   indigo: '#6366f1',
   teal: '#14b8a6',
   slate: '#64748b',
-  glass: 'rgba(255,255,255,0.2)',
-  minimal: '#e5e7eb',
+  // Visible in the picker on both light and dark panels
+  glass: 'linear-gradient(135deg, rgba(148,163,184,0.55) 0%, rgba(255,255,255,0.9) 100%)',
+  minimal: 'linear-gradient(135deg, #ffffff 50%, #111827 50%)',
 };
 
 export const WindowHeader: React.FC<WindowHeaderProps> = ({
