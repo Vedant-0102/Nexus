@@ -12,7 +12,7 @@ export default defineConfig({
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     coverage: {
       reporter: ['text', 'html'],
-      include: ['src/physics/**', 'src/lib/**', 'src/components/windows/features/cryptography/**', 'src/components/windows/features/networking/**'],
+      include: ['src/components/windows/physics/**', 'src/lib/**', 'src/components/windows/features/cryptography/**', 'src/components/windows/features/networking/**'],
     },
   },
   resolve: {
