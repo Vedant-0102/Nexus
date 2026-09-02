@@ -286,7 +286,11 @@ export function resolveThemeName(theme: WindowTheme | undefined): WindowThemeNam
 }
 
 // Map wallpaper preset values to matching window theme names
+/** Sentinel wallpaper value meaning "render the animated DarkVeil shader". */
+export const DARK_VEIL = 'darkveil' as const;
+
 export const WALLPAPER_TO_THEME: Record<string, WindowThemeName> = {
+  [DARK_VEIL]: 'indigo',
   '#0078D4': 'default',
   '#1a1a2e': 'dark',
   '#0f0c29': 'dark',
