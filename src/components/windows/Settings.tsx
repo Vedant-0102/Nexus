@@ -6,6 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Moon, Sun, Clock, Battery, Palette, Settings as SettingsIcon, Monitor } from 'lucide-react';
 import { getTheme } from './themes/windowThemes';
+import { DARK_VEIL } from './themes/windowThemes';
 
 export type SettingsType = {
   theme: 'light' | 'dark';
@@ -26,6 +27,7 @@ interface SettingsAppProps {
 }
 
 const WALLPAPER_PRESETS = [
+  { name: 'Dark Veil', value: DARK_VEIL },
   { name: 'Windows Blue', value: '#0078D4' },
   { name: 'Dark', value: '#1a1a2e' },
   { name: 'Midnight', value: '#0f0c29' },
@@ -156,8 +158,9 @@ export const SettingsApp: React.FC<SettingsAppProps> = () => {
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Choose a background for your desktop</p>
             <div className="grid grid-cols-4 gap-3">
               {WALLPAPER_PRESETS.map(preset => {
-                const isActive = wallpaper === preset.value || (!wallpaper && preset.value === '#0078D4');
+                const isActive = wallpaper === preset.value || (!wallpaper && preset.value === DARK_VEIL);
                 const isGradient = preset.value.startsWith('linear-gradient(');
+                const isVeil = preset.value === DARK_VEIL;
                 return (
                   <button
                     key={preset.name}
@@ -166,7 +169,13 @@ export const SettingsApp: React.FC<SettingsAppProps> = () => {
                         ? 'border-blue-500 ring-2 ring-blue-500 shadow-lg'
                         : 'border-gray-200 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                     }`}
-                    style={isGradient ? { background: preset.value } : { backgroundColor: preset.value }}
+                    style={
+                      isVeil
+                        ? { background: 'radial-gradient(circle at 30% 35%, #3b2f7a 0%, #16143a 45%, #07070f 100%)' }
+                        : isGradient
+                          ? { background: preset.value }
+                          : { backgroundColor: preset.value }
+                    }
                     onClick={() => handleWallpaperChange(preset.value)}
                   >
                     <span className="absolute bottom-1 left-0 right-0 text-[10px] text-white font-medium drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] text-center">
@@ -183,7 +192,8 @@ export const SettingsApp: React.FC<SettingsAppProps> = () => {
             <div
               className="w-full h-24 rounded-lg border border-gray-200 dark:border-gray-700"
               style={(() => {
-                const wp = wallpaper || '#0078D4';
+                const wp = wallpaper || DARK_VEIL;
+                if (wp === DARK_VEIL) return { background: 'radial-gradient(circle at 30% 35%, #3b2f7a 0%, #16143a 45%, #07070f 100%)' };
                 if (wp.startsWith('linear-gradient(') || wp.startsWith('radial-gradient(')) return { background: wp };
                 if (wp.startsWith('#') || wp.startsWith('rgb')) return { backgroundColor: wp };
                 return { backgroundImage: `url(${wp})`, backgroundSize: 'cover' as const, backgroundPosition: 'center' };

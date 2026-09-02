@@ -1,216 +1,280 @@
-import React, { createContext, useState, useContext, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef, useMemo, useCallback, startTransition } from 'react';
 import { WindowType } from '../types/WindowTypes';
-import { WINDOW_THEMES, WALLPAPER_TO_THEME, WindowThemeName } from '../themes/windowThemes';
+import { WINDOW_THEMES, WALLPAPER_TO_THEME, WindowThemeName, DARK_VEIL } from '../themes/windowThemes';
 import { Settings as SettingsIcon, Clock, FileText, Battery, Timer, Terminal as TerminalIcon, StickyNote, Gamepad, PaintBucket, Folder, Crown, Globe, RefreshCcw, Code, Layers, Flag, Cloud, Image, Table, Presentation, TrendingUp, Bitcoin, Trophy, Rocket, Briefcase, Repeat, FlaskConical, BarChart3, Beaker, Zap, Atom, QrCode, Plane, Ship, Palette, Sparkles, CheckCircle2, Eye, Cpu, Waves, Brain, ClipboardList, CheckSquare, Ruler, Weight, DollarSign, Sigma, Calculator, Grid3x3, PieChart, Calendar as CalendarIcon, GitBranch, Gauge, Thermometer, Droplet, Shield, Wind, Microscope, Dna, Heart, Circle, Lightbulb, Scan, Settings, Sun, Moon, Mountain, Star, Binary, CircuitBoard, MemoryStick, Cog, Wrench, Bolt, Lock, Key, Hash, Fingerprint, KeyRound, FileKey, AlertTriangle, Bug, Users, Database } from 'lucide-react';
-import { Notepad } from '../features/office/Notepad';
-import { TextEditor } from '../features/office/TextEditor';
-import { FormBuilder } from '../features/office/FormBuilder';
-import { KanbanBoard } from '../features/office/KanbanBoard';
-import { Paint } from '../features/creative/Paint';
-import { SuperCalculator } from '../features/math/SuperCalculator';
-import { GeometryCalculator } from '../features/math/GeometryCalculator';
-import { Calendar } from '../features/utilities/Calendar';
-import { Browser } from '../features/utilities/Browser';
-import { UtilitiesFolder } from '../features/utilities/UtilitiesFolder';
-import { MindMapCreator } from '../features/creative/engine/MindMapCreator';
-import { GitVisualizer } from '../features/development/GitVisualizer';
-import { ElectromagneticLab } from '../features/science/physics/ElectromagneticLab';
-import { OpticsSimulator } from '../features/science/physics/OpticsSimulator';
-import { ElectricFieldVisualizer } from '../features/science/physics/ElectricFieldVisualizer';
-import { MagneticFieldVisualizer } from '../features/science/physics/MagneticFieldVisualizer';
-import { RocketPropulsion } from '../features/science/physics/RocketPropulsion';
-import { BatteryLevel } from '../features/system/BatteryLevel';
-import { UnifiedClock } from '../features/productivity/UnifiedClock';
-import { StickyNotes } from '../features/productivity/StickyNotes';
-import { TaskManager } from '../features/system/TaskManager';
-import { Terminal } from '../features/development/Terminal';
-import { TicTacToe } from '../features/games/TicTacToe';
-import { SnakeGame } from '../features/games/SnakeGame';
-import { SettingsApp } from '../Settings';
-import { Minesweeper } from '../features/games/Minesweeper';
-import { Checkers } from '../features/games/Checkers';
-import { FlappyBird } from '../features/games/FlappyBird';
-import { PacMan } from '../features/games/PacMan';
-import { FolderContent } from '../features/system/FolderContent';
-import { ChessGame } from '../features/chess/ChessGame';
-import { DatabaseApp } from '../features/database/DatabaseApp';
-import { FileManager } from '../features/system/FileManager';
-import { Wikipedia } from '../features/internet/Wikipedia';
-import { PingPong } from '../features/games/PingPong';
-import { CodeEditor } from '../features/development/CodeEditor';
-import { NoCodeBuilder } from '../features/creative/NoCodeBuilder';
-import { F1App } from '../features/media/F1App';
-import { WeatherApp } from '../features/internet/WeatherApp';
-import { ImageConverter } from '../features/converters/ImageConverter';
-import { DocumentConverter } from '../features/converters/DocumentConverter';
-import { TextToHTML } from '../features/converters/TextToHTML';
-import { LengthConverter } from '../features/converters/LengthConverter';
-import { WeightConverter } from '../features/converters/WeightConverter';
-import { CurrencyConverter } from '../features/converters/CurrencyConverter';
-import { MarkdownEditor } from '../features/converters/MarkdownEditor';
-import { LoremIpsumGenerator } from '../features/converters/LoremIpsumGenerator';
-import { ChartBuilder } from '../features/converters/ChartBuilder';
-import { APITester } from '../features/creative/engine/APITester';
-import { RegexTester } from '../features/converters/RegexTester';
-import { DataFormatter } from '../features/converters/DataFormatter';
-import { Base64Converter } from '../features/converters/Base64Converter';
-import { PasswordGenerator } from '../features/converters/PasswordGenerator';
-import { TemperatureConverter } from '../features/converters/TemperatureConverter';
-import { SpeedConverter } from '../features/converters/SpeedConverter';
-import { EnergyConverter } from '../features/converters/EnergyConverter';
-import { PowerConverter } from '../features/converters/PowerConverter';
-import { PressureConverter } from '../features/converters/PressureConverter';
-import { VolumeConverter } from '../features/converters/VolumeConverter';
-import { TimeConverter } from '../features/converters/TimeConverter';
-import { AreaConverter } from '../features/converters/AreaConverter';
-import { ColorPicker } from '../features/colors/ColorPicker';
-import { Spreadsheet } from '../features/office/Spreadsheet';
-import { Presentation as PresentationApp } from '../features/office/Presentation';
-import { StockMarket } from '../features/data/StockMarket';
-import { Cryptocurrency } from '../features/data/Cryptocurrency';
-import { SportsApp } from '../features/data/SportsApp';
-import { NASAApp } from '../features/data/NASAApp';
-import { FlightTracker } from '../features/data/FlightTracker';
-import { Tetris } from '../features/games/Tetris';
-import { Game2048 } from '../features/games/Game2048';
-import { Sudoku } from '../features/games/Sudoku';
-import { Breakout } from '../features/games/Breakout';
-import { MemoryMatch } from '../features/games/MemoryMatch';
-import { SpaceInvaders } from '../features/games/SpaceInvaders';
-import { SortingVisualizer } from '../features/visualizers/SortingVisualizer';
-import { PathfindingVisualizer } from '../features/visualizers/PathfindingVisualizer';
-import { PeriodicTable } from '../features/science/chemistry/PeriodicTable';
-import { MolecularViewer } from '../features/science/chemistry/MolecularViewer';
-import { ReactionSimulator } from '../features/science/chemistry/ReactionSimulator';
-import { EquationBalancer } from '../features/science/chemistry/EquationBalancer';
-import { ProjectileMotion } from '../features/science/physics/ProjectileMotion';
-import { PendulumSimulator } from '../features/science/physics/PendulumSimulator';
-import { SpringSimulator } from '../features/science/physics/SpringSimulator';
-import { FlashcardGame } from '../features/office/FlashcardGame';
-import { WaveSimulator } from '../features/science/physics/WaveSimulator';
-import { CollisionSimulator } from '../features/science/physics/CollisionSimulator';
-import { CNNVisualizer } from '../features/visualizers/CNNVisualizer';
-import { QRCodeVisualizer } from '../features/visualizers/QRCodeVisualizer';
-import { ShipTracker } from '../features/data/ShipTracker';
-import { Maze3D } from '../features/games/Maze3D';
-import { UniverseSimulator } from '../features/science/UniverseSimulator';
-import { ColorPaletteTool } from '../features/creative/ColorPaletteTool';
-import { ColorsFolder } from '../features/colors/ColorsFolder';
-import { ColorPaletteGenerator } from '../features/colors/ColorPaletteGenerator';
-import { ContrastChecker } from '../features/colors/ContrastChecker';
-import { TrendingPalettes } from '../features/colors/TrendingPalettes';
-import { HexCodeParser } from '../features/colors/HexCodeParser';
-import { PaletteVisualizer } from '../features/colors/PaletteVisualizer';
-import { Battleship } from '../features/games/Battleship';
-import { Connect4 } from '../features/games/Connect4';
-import { GradientGenerator } from '../features/colors/GradientGenerator';
-import { PixelArtEditor as PixelArtEditorColors } from '../features/colors/PixelArtEditor';
-import { VirtualEngineFolder } from '../features/folders/VirtualEngineFolder';
-import { PixelArtEditor } from '../features/office/PixelArtEditor';
-import { InvoiceGenerator } from '../features/office/InvoiceGenerator';
-import { DVDScreensaver } from '../features/games/DVDScreensaver';
-import { SandFalling } from '../features/games/SandFalling';
-import { Puzzle15 } from '../features/games/Puzzle15';
-import { Minecraft } from '../features/games/Minecraft';
-import { MathFolder } from '../features/math/MathFolder';
-import { QuadraticSolver } from '../features/math/QuadraticSolver';
-import { LinearSystemSolver } from '../features/math/LinearSystemSolver';
-import { MatrixCalculator } from '../features/math/MatrixCalculator';
-import { GraphPlotter } from '../features/math/GraphPlotter';
-import { StatisticsCalculator } from '../features/math/StatisticsCalculator';
-import { DerivativeCalculator } from '../features/math/DerivativeCalculator';
-import { IntegralCalculator } from '../features/math/IntegralCalculator';
-import { TrigCalculator } from '../features/math/TrigCalculator';
-import { NumberTheory } from '../features/math/NumberTheory';
-import { PercentageCalculator } from '../features/math/PercentageCalculator';
 
 // Import Mock Visualizer Components
-import { MockLandingPage } from '../features/colors/visualizer/MockLandingPage';
-import { MockDashboard } from '../features/colors/visualizer/MockDashboard';
-import { MockSocialMediaPage } from '../features/colors/visualizer/MockSocialMediaPage';
-import { MockBlogPage } from '../features/colors/visualizer/MockBlogPage';
 
 // Science Module Imports
-import { MathVisualizerFolder } from '../features/science/MathVisualizerFolder';
-import { BiologyLabFolder } from '../features/science/BiologyLabFolder';
-import { ScienceLabsFolder } from '../features/science/ScienceLabsFolder';
-import { TitrationSimulator } from '../features/science/chemistry/TitrationSimulator';
-import { GasLawsSimulator } from '../features/science/chemistry/GasLawsSimulator';
-import { Electrochemistry } from '../features/science/chemistry/Electrochemistry';
-import { SpectroscopySimulator } from '../features/science/chemistry/SpectroscopySimulator';
-import { NuclearDecay } from '../features/science/chemistry/NuclearDecay';
-import { PHScale } from '../features/science/chemistry/PHScale';
-import { OrganicChemistry } from '../features/science/chemistry/OrganicChemistry';
-import { PolymerBuilder } from '../features/science/chemistry/PolymerBuilder';
-import { ChemistryCalculator } from '../features/science/chemistry/ChemistryCalculator';
-import { FlameTest } from '../features/science/chemistry/FlameTest';
-import { CellDivision } from '../features/science/biology/CellDivision';
-import { DNAReplication } from '../features/science/biology/DNAReplication';
-import { NeuronSignal } from '../features/science/biology/NeuronSignal';
-import { HeartCirculation } from '../features/science/biology/HeartCirculation';
-import { FunctionGrapher3D } from '../features/science/math/FunctionGrapher3D';
-import { FractalGenerator } from '../features/science/math/FractalGenerator';
-import { FourierTransform } from '../features/science/math/FourierTransform';
-import { CalculusVisualizer } from '../features/science/math/CalculusVisualizer';
-import { LinearAlgebra } from '../features/science/math/LinearAlgebra';
-import { PrimeSieve } from '../features/science/math/PrimeSieve';
-import { ProbabilityDistributions } from '../features/science/math/ProbabilityDistributions';
-import { GraphTheory } from '../features/science/math/GraphTheory';
-import { DopplerEffect } from '../features/science/physics/DopplerEffect';
-import { QuantumTunneling } from '../features/science/physics/QuantumTunneling';
-import { BernoulliPrinciple } from '../features/science/physics/BernoulliPrinciple';
-import { Thermodynamics } from '../features/science/physics/Thermodynamics';
-import { SpecialRelativity } from '../features/science/physics/SpecialRelativity';
-import { BlackHoleGravityWell } from '../features/science/physics/BlackHoleGravityWell';
-import { LCCircuit } from '../features/science/physics/LCCircuit';
-import { SnellsLaw } from '../features/science/physics/SnellsLaw';
-import { DiffractionGrating } from '../features/science/physics/DiffractionGrating';
-import { Buoyancy } from '../features/science/physics/Buoyancy';
-import { HydraulicSystem } from '../features/science/physics/HydraulicSystem';
-import { SimpleMachines } from '../features/science/physics/SimpleMachines';
-import { ElectricalCircuit } from '../features/science/physics/ElectricalCircuit';
 
 // Biology Lab - New
 
 // Earth & Space Sciences
-import { SolarSystem } from '../features/science/earthspace/SolarSystem';
-import { MoonPhases } from '../features/science/earthspace/MoonPhases';
-import { PlateTectonics } from '../features/science/earthspace/PlateTectonics';
-import { AtmosphericLayers } from '../features/science/earthspace/AtmosphericLayers';
-import { StarLifeCycle } from '../features/science/earthspace/StarLifeCycle';
-import { EclipseSimulator } from '../features/science/earthspace/EclipseSimulator';
-import { SeasonsEarthTilt } from '../features/science/earthspace/SeasonsEarthTilt';
 
 // Engine/CS - New
-import { BinaryConverter } from '../features/converters/BinaryConverter';
-import { LogicGates } from '../features/algorithms/LogicGates';
-import { CPUSimulator } from '../features/algorithms/CPUSimulator';
-import { MemoryAllocator } from '../features/algorithms/MemoryAllocator';
-import { TuringMachine } from '../features/algorithms/TuringMachine';
-import { PIDController } from '../features/algorithms/PIDController';
-import { TreeTraversals } from '../features/algorithms/TreeTraversals';
-import { GraphAlgorithms } from '../features/algorithms/GraphAlgorithms';
-import { DPVisualizer } from '../features/algorithms/DPVisualizer';
-import { HashingVisualizer } from '../features/algorithms/HashingVisualizer';
-import { MemoryStackHeap } from '../features/algorithms/MemoryStackHeap';
-import { BigOComparator } from '../features/algorithms/BigOComparator';
-import { BacktrackingVisualizer } from '../features/algorithms/BacktrackingVisualizer';
-import { TrieSegmentTree } from '../features/algorithms/TrieSegmentTree';
-import { ComplexityAnalyzer } from '../features/algorithms/ComplexityAnalyzer';
-import { VirtualInstruments, BeatSequencer, WaveformVisualizer, EffectsRack, PianoRoll, ChordProgressionHelper, MusicTheoryHelper, Arpeggiator, SamplePad, DAWStudio } from '../features/music';
 import { Music } from 'lucide-react';
-import { UUIDGenerator, TokenGenerator, HashingTool, HMACGenerator, BcryptTool, StringObfuscation, JWTDecoder, ClassicalCiphers, AESEncryption, RSASandbox } from '../features/cryptography';
-import { SubnetCalculator, IPv4Converter, IPv4RangeExpander, MACAddressTool, IPv6ULAGenerator } from '../features/networking';
-import { ImageEditor, VideoEditor } from '../features/editing';
 import { Network, Scissors } from 'lucide-react';
+
+// ---------------------------------------------------------------------------
+// App components are code-split: each is fetched on first open rather than
+// bundled into the initial payload. Window content is rendered inside a
+// <Suspense> boundary (see WindowsDisplay) that shows a loading placeholder.
+// ---------------------------------------------------------------------------
+const AESEncryption = React.lazy(() => import('../features/cryptography/AESEncryption').then(m => ({ default: m.AESEncryption })));
+const APITester = React.lazy(() => import('../features/creative/engine/APITester').then(m => ({ default: m.APITester })));
+const AlgorithmExplainers = React.lazy(() => import('../features/engine/machine-learning/AlgorithmExplainers').then(m => ({ default: m.AlgorithmExplainers })));
+const AreaConverter = React.lazy(() => import('../features/converters/AreaConverter').then(m => ({ default: m.AreaConverter })));
+const Arpeggiator = React.lazy(() => import('../features/music/Arpeggiator').then(m => ({ default: m.Arpeggiator })));
+const AtmosphericLayers = React.lazy(() => import('../features/science/earthspace/AtmosphericLayers').then(m => ({ default: m.AtmosphericLayers })));
+const BacktrackingVisualizer = React.lazy(() => import('../features/algorithms/BacktrackingVisualizer').then(m => ({ default: m.BacktrackingVisualizer })));
+const Base64Converter = React.lazy(() => import('../features/converters/Base64Converter').then(m => ({ default: m.Base64Converter })));
+const BatteryLevel = React.lazy(() => import('../features/system/BatteryLevel').then(m => ({ default: m.BatteryLevel })));
+const Battleship = React.lazy(() => import('../features/games/Battleship').then(m => ({ default: m.Battleship })));
+const BcryptTool = React.lazy(() => import('../features/cryptography/BcryptTool').then(m => ({ default: m.BcryptTool })));
+const BeatSequencer = React.lazy(() => import('../features/music/BeatSequencer').then(m => ({ default: m.BeatSequencer })));
+const BernoulliPrinciple = React.lazy(() => import('../features/science/physics/BernoulliPrinciple').then(m => ({ default: m.BernoulliPrinciple })));
+const BiasVarianceTradeoff = React.lazy(() => import('../features/engine/machine-learning/BiasVarianceTradeoff').then(m => ({ default: m.BiasVarianceTradeoff })));
+const BigOComparator = React.lazy(() => import('../features/algorithms/BigOComparator').then(m => ({ default: m.BigOComparator })));
+const BinaryConverter = React.lazy(() => import('../features/converters/BinaryConverter').then(m => ({ default: m.BinaryConverter })));
+const BiologyLabFolder = React.lazy(() => import('../features/science/BiologyLabFolder').then(m => ({ default: m.BiologyLabFolder })));
+const BlackHoleGravityWell = React.lazy(() => import('../features/science/physics/BlackHoleGravityWell').then(m => ({ default: m.BlackHoleGravityWell })));
+const Breakout = React.lazy(() => import('../features/games/Breakout').then(m => ({ default: m.Breakout })));
+const Browser = React.lazy(() => import('../features/utilities/Browser').then(m => ({ default: m.Browser })));
+const Buoyancy = React.lazy(() => import('../features/science/physics/Buoyancy').then(m => ({ default: m.Buoyancy })));
+const CIATriadExplainer = React.lazy(() => import('../features/engine/cybersecurity/CIATriadExplainer').then(m => ({ default: m.CIATriadExplainer })));
+const CLab = React.lazy(() => import('../features/engine/programming/CLab').then(m => ({ default: m.CLab })));
+const CNNVisualizer = React.lazy(() => import('../features/visualizers/CNNVisualizer').then(m => ({ default: m.CNNVisualizer })));
+const CPUSimulator = React.lazy(() => import('../features/algorithms/CPUSimulator').then(m => ({ default: m.CPUSimulator })));
+const CSharpLab = React.lazy(() => import('../features/engine/programming/CSharpLab').then(m => ({ default: m.CSharpLab })));
+const CTFChallenge = React.lazy(() => import('../features/engine/cybersecurity/CTFChallenge').then(m => ({ default: m.CTFChallenge })));
+const CalculusVisualizer = React.lazy(() => import('../features/science/math/CalculusVisualizer').then(m => ({ default: m.CalculusVisualizer })));
+const Calendar = React.lazy(() => import('../features/utilities/Calendar').then(m => ({ default: m.Calendar })));
+const CellDivision = React.lazy(() => import('../features/science/biology/CellDivision').then(m => ({ default: m.CellDivision })));
+const ChartBuilder = React.lazy(() => import('../features/converters/ChartBuilder').then(m => ({ default: m.ChartBuilder })));
+const Checkers = React.lazy(() => import('../features/games/Checkers').then(m => ({ default: m.Checkers })));
+const ChemistryCalculator = React.lazy(() => import('../features/science/chemistry/ChemistryCalculator').then(m => ({ default: m.ChemistryCalculator })));
+const ChessGame = React.lazy(() => import('../features/chess/ChessGame').then(m => ({ default: m.ChessGame })));
+const ChordProgressionHelper = React.lazy(() => import('../features/music/ChordProgressionHelper').then(m => ({ default: m.ChordProgressionHelper })));
+const ClassicalCiphers = React.lazy(() => import('../features/cryptography/ClassicalCiphers').then(m => ({ default: m.ClassicalCiphers })));
+const CodeEditor = React.lazy(() => import('../features/development/CodeEditor').then(m => ({ default: m.CodeEditor })));
+const CollisionSimulator = React.lazy(() => import('../features/science/physics/CollisionSimulator').then(m => ({ default: m.CollisionSimulator })));
+const ColorPaletteGenerator = React.lazy(() => import('../features/colors/ColorPaletteGenerator').then(m => ({ default: m.ColorPaletteGenerator })));
+const ColorPaletteTool = React.lazy(() => import('../features/creative/ColorPaletteTool').then(m => ({ default: m.ColorPaletteTool })));
+const ColorPicker = React.lazy(() => import('../features/colors/ColorPicker').then(m => ({ default: m.ColorPicker })));
+const ColorsFolder = React.lazy(() => import('../features/colors/ColorsFolder').then(m => ({ default: m.ColorsFolder })));
+const ComplexityAnalyzer = React.lazy(() => import('../features/algorithms/ComplexityAnalyzer').then(m => ({ default: m.ComplexityAnalyzer })));
+const Connect4 = React.lazy(() => import('../features/games/Connect4').then(m => ({ default: m.Connect4 })));
+const ContrastChecker = React.lazy(() => import('../features/colors/ContrastChecker').then(m => ({ default: m.ContrastChecker })));
+const CppLab = React.lazy(() => import('../features/engine/programming/CppLab').then(m => ({ default: m.CppLab })));
+const Cryptocurrency = React.lazy(() => import('../features/data/Cryptocurrency').then(m => ({ default: m.Cryptocurrency })));
+const CurrencyConverter = React.lazy(() => import('../features/converters/CurrencyConverter').then(m => ({ default: m.CurrencyConverter })));
+const DAWStudio = React.lazy(() => import('../features/music/DAWStudio').then(m => ({ default: m.DAWStudio })));
+const DNAReplication = React.lazy(() => import('../features/science/biology/DNAReplication').then(m => ({ default: m.DNAReplication })));
+const DPVisualizer = React.lazy(() => import('../features/algorithms/DPVisualizer').then(m => ({ default: m.DPVisualizer })));
+const DVDScreensaver = React.lazy(() => import('../features/games/DVDScreensaver').then(m => ({ default: m.DVDScreensaver })));
+const DashboardBuilder = React.lazy(() => import('../features/engine/data-visualizer/DashboardBuilder').then(m => ({ default: m.DashboardBuilder })));
+const DataFormatter = React.lazy(() => import('../features/converters/DataFormatter').then(m => ({ default: m.DataFormatter })));
+const DataVisualizer = React.lazy(() => import('../features/engine/data-visualizer/DataVisualizer').then(m => ({ default: m.DataVisualizer })));
+const DatabaseApp = React.lazy(() => import('../features/database/DatabaseApp').then(m => ({ default: m.DatabaseApp })));
+const DatasetAnalyzer = React.lazy(() => import('../features/engine/machine-learning/DatasetAnalyzer').then(m => ({ default: m.DatasetAnalyzer })));
+const DeepLearningBuilder = React.lazy(() => import('../features/engine/machine-learning/DeepLearningBuilder').then(m => ({ default: m.DeepLearningBuilder })));
+const DerivativeCalculator = React.lazy(() => import('../features/math/DerivativeCalculator').then(m => ({ default: m.DerivativeCalculator })));
+const DiffractionGrating = React.lazy(() => import('../features/science/physics/DiffractionGrating').then(m => ({ default: m.DiffractionGrating })));
+const DocumentConverter = React.lazy(() => import('../features/converters/DocumentConverter').then(m => ({ default: m.DocumentConverter })));
+const DopplerEffect = React.lazy(() => import('../features/science/physics/DopplerEffect').then(m => ({ default: m.DopplerEffect })));
+const EclipseSimulator = React.lazy(() => import('../features/science/earthspace/EclipseSimulator').then(m => ({ default: m.EclipseSimulator })));
+const EffectsRack = React.lazy(() => import('../features/music/EffectsRack').then(m => ({ default: m.EffectsRack })));
+const ElectricFieldVisualizer = React.lazy(() => import('../features/science/physics/ElectricFieldVisualizer').then(m => ({ default: m.ElectricFieldVisualizer })));
+const ElectricalCircuit = React.lazy(() => import('../features/science/physics/ElectricalCircuit').then(m => ({ default: m.ElectricalCircuit })));
+const Electrochemistry = React.lazy(() => import('../features/science/chemistry/Electrochemistry').then(m => ({ default: m.Electrochemistry })));
+const ElectromagneticLab = React.lazy(() => import('../features/science/physics/ElectromagneticLab').then(m => ({ default: m.ElectromagneticLab })));
+const EnergyConverter = React.lazy(() => import('../features/converters/EnergyConverter').then(m => ({ default: m.EnergyConverter })));
+const EquationBalancer = React.lazy(() => import('../features/science/chemistry/EquationBalancer').then(m => ({ default: m.EquationBalancer })));
+const F1App = React.lazy(() => import('../features/media/F1App').then(m => ({ default: m.F1App })));
+const FeatureImportanceVisualizer = React.lazy(() => import('../features/engine/machine-learning/FeatureImportanceVisualizer').then(m => ({ default: m.FeatureImportanceVisualizer })));
+const FileManager = React.lazy(() => import('../features/system/FileManager').then(m => ({ default: m.FileManager })));
+const FirewallRuleBuilder = React.lazy(() => import('../features/engine/cybersecurity/FirewallRuleBuilder').then(m => ({ default: m.FirewallRuleBuilder })));
+const FlameTest = React.lazy(() => import('../features/science/chemistry/FlameTest').then(m => ({ default: m.FlameTest })));
+const FlappyBird = React.lazy(() => import('../features/games/FlappyBird').then(m => ({ default: m.FlappyBird })));
+const FlashcardGame = React.lazy(() => import('../features/office/FlashcardGame').then(m => ({ default: m.FlashcardGame })));
+const FlightTracker = React.lazy(() => import('../features/data/FlightTracker').then(m => ({ default: m.FlightTracker })));
+const FolderContent = React.lazy(() => import('../features/system/FolderContent').then(m => ({ default: m.FolderContent })));
+const FormBuilder = React.lazy(() => import('../features/office/FormBuilder').then(m => ({ default: m.FormBuilder })));
+const FourierTransform = React.lazy(() => import('../features/science/math/FourierTransform').then(m => ({ default: m.FourierTransform })));
+const FractalGenerator = React.lazy(() => import('../features/science/math/FractalGenerator').then(m => ({ default: m.FractalGenerator })));
+const FunctionGrapher3D = React.lazy(() => import('../features/science/math/FunctionGrapher3D').then(m => ({ default: m.FunctionGrapher3D })));
+const Game2048 = React.lazy(() => import('../features/games/Game2048').then(m => ({ default: m.Game2048 })));
+const GasLawsSimulator = React.lazy(() => import('../features/science/chemistry/GasLawsSimulator').then(m => ({ default: m.GasLawsSimulator })));
+const GeometryCalculator = React.lazy(() => import('../features/math/GeometryCalculator').then(m => ({ default: m.GeometryCalculator })));
+const GitVisualizer = React.lazy(() => import('../features/development/GitVisualizer').then(m => ({ default: m.GitVisualizer })));
+const GoLab = React.lazy(() => import('../features/engine/programming/GoLab').then(m => ({ default: m.GoLab })));
+const GradientDescentSimulator = React.lazy(() => import('../features/engine/machine-learning/GradientDescentSimulator').then(m => ({ default: m.GradientDescentSimulator })));
+const GradientGenerator = React.lazy(() => import('../features/colors/GradientGenerator').then(m => ({ default: m.GradientGenerator })));
+const GraphAlgorithms = React.lazy(() => import('../features/algorithms/GraphAlgorithms').then(m => ({ default: m.GraphAlgorithms })));
+const GraphPlotter = React.lazy(() => import('../features/math/GraphPlotter').then(m => ({ default: m.GraphPlotter })));
+const GraphTheory = React.lazy(() => import('../features/science/math/GraphTheory').then(m => ({ default: m.GraphTheory })));
+const HMACGenerator = React.lazy(() => import('../features/cryptography/HMACGenerator').then(m => ({ default: m.HMACGenerator })));
+const HashingTool = React.lazy(() => import('../features/cryptography/HashingTool').then(m => ({ default: m.HashingTool })));
+const HashingVisualizer = React.lazy(() => import('../features/algorithms/HashingVisualizer').then(m => ({ default: m.HashingVisualizer })));
+const HeartCirculation = React.lazy(() => import('../features/science/biology/HeartCirculation').then(m => ({ default: m.HeartCirculation })));
+const HexCodeParser = React.lazy(() => import('../features/colors/HexCodeParser').then(m => ({ default: m.HexCodeParser })));
+const HtmlCssLab = React.lazy(() => import('../features/engine/programming/HtmlCssLab').then(m => ({ default: m.HtmlCssLab })));
+const HydraulicSystem = React.lazy(() => import('../features/science/physics/HydraulicSystem').then(m => ({ default: m.HydraulicSystem })));
+const HyperparameterTuning = React.lazy(() => import('../features/engine/machine-learning/HyperparameterTuning').then(m => ({ default: m.HyperparameterTuning })));
+const IPv4Converter = React.lazy(() => import('../features/networking/IPv4Converter').then(m => ({ default: m.IPv4Converter })));
+const IPv4RangeExpander = React.lazy(() => import('../features/networking/IPv4RangeExpander').then(m => ({ default: m.IPv4RangeExpander })));
+const IPv6ULAGenerator = React.lazy(() => import('../features/networking/IPv6ULAGenerator').then(m => ({ default: m.IPv6ULAGenerator })));
+const ImageConverter = React.lazy(() => import('../features/converters/ImageConverter').then(m => ({ default: m.ImageConverter })));
+const ImageEditor = React.lazy(() => import('../features/editing').then(m => ({ default: m.ImageEditor })));
+const IntegralCalculator = React.lazy(() => import('../features/math/IntegralCalculator').then(m => ({ default: m.IntegralCalculator })));
+const InvoiceGenerator = React.lazy(() => import('../features/office/InvoiceGenerator').then(m => ({ default: m.InvoiceGenerator })));
+const JWTDecoder = React.lazy(() => import('../features/cryptography/JWTDecoder').then(m => ({ default: m.JWTDecoder })));
+const JavaLab = React.lazy(() => import('../features/engine/programming/JavaLab').then(m => ({ default: m.JavaLab })));
+const JavaScriptLab = React.lazy(() => import('../features/engine/programming/JavaScriptLab').then(m => ({ default: m.JavaScriptLab })));
+const KanbanBoard = React.lazy(() => import('../features/office/KanbanBoard').then(m => ({ default: m.KanbanBoard })));
+const LCCircuit = React.lazy(() => import('../features/science/physics/LCCircuit').then(m => ({ default: m.LCCircuit })));
+const LengthConverter = React.lazy(() => import('../features/converters/LengthConverter').then(m => ({ default: m.LengthConverter })));
+const LinearAlgebra = React.lazy(() => import('../features/science/math/LinearAlgebra').then(m => ({ default: m.LinearAlgebra })));
+const LinearSystemSolver = React.lazy(() => import('../features/math/LinearSystemSolver').then(m => ({ default: m.LinearSystemSolver })));
+const LogicGates = React.lazy(() => import('../features/algorithms/LogicGates').then(m => ({ default: m.LogicGates })));
+const LoremIpsumGenerator = React.lazy(() => import('../features/converters/LoremIpsumGenerator').then(m => ({ default: m.LoremIpsumGenerator })));
+const MACAddressTool = React.lazy(() => import('../features/networking/MACAddressTool').then(m => ({ default: m.MACAddressTool })));
+const MagneticFieldVisualizer = React.lazy(() => import('../features/science/physics/MagneticFieldVisualizer').then(m => ({ default: m.MagneticFieldVisualizer })));
+const MarkdownEditor = React.lazy(() => import('../features/converters/MarkdownEditor').then(m => ({ default: m.MarkdownEditor })));
+const MathFolder = React.lazy(() => import('../features/math/MathFolder').then(m => ({ default: m.MathFolder })));
+const MathVisualizerFolder = React.lazy(() => import('../features/science/MathVisualizerFolder').then(m => ({ default: m.MathVisualizerFolder })));
+const MatrixCalculator = React.lazy(() => import('../features/math/MatrixCalculator').then(m => ({ default: m.MatrixCalculator })));
+const Maze3D = React.lazy(() => import('../features/games/Maze3D').then(m => ({ default: m.Maze3D })));
+const MemoryAllocator = React.lazy(() => import('../features/algorithms/MemoryAllocator').then(m => ({ default: m.MemoryAllocator })));
+const MemoryMatch = React.lazy(() => import('../features/games/MemoryMatch').then(m => ({ default: m.MemoryMatch })));
+const MemoryStackHeap = React.lazy(() => import('../features/algorithms/MemoryStackHeap').then(m => ({ default: m.MemoryStackHeap })));
+const MindMapCreator = React.lazy(() => import('../features/creative/engine/MindMapCreator').then(m => ({ default: m.MindMapCreator })));
+const Minecraft = React.lazy(() => import('../features/games/Minecraft').then(m => ({ default: m.Minecraft })));
+const Minesweeper = React.lazy(() => import('../features/games/Minesweeper').then(m => ({ default: m.Minesweeper })));
+const MockBlogPage = React.lazy(() => import('../features/colors/visualizer/MockBlogPage').then(m => ({ default: m.MockBlogPage })));
+const MockDashboard = React.lazy(() => import('../features/colors/visualizer/MockDashboard').then(m => ({ default: m.MockDashboard })));
+const MockLandingPage = React.lazy(() => import('../features/colors/visualizer/MockLandingPage').then(m => ({ default: m.MockLandingPage })));
+const MockSocialMediaPage = React.lazy(() => import('../features/colors/visualizer/MockSocialMediaPage').then(m => ({ default: m.MockSocialMediaPage })));
+const ModelComparison = React.lazy(() => import('../features/engine/machine-learning/ModelComparison').then(m => ({ default: m.ModelComparison })));
+const ModelMetrics = React.lazy(() => import('../features/engine/machine-learning/ModelMetrics').then(m => ({ default: m.ModelMetrics })));
+const ModelWizard = React.lazy(() => import('../features/engine/machine-learning/ModelWizard').then(m => ({ default: m.ModelWizard })));
+const MolecularViewer = React.lazy(() => import('../features/science/chemistry/MolecularViewer').then(m => ({ default: m.MolecularViewer })));
+const MoonPhases = React.lazy(() => import('../features/science/earthspace/MoonPhases').then(m => ({ default: m.MoonPhases })));
+const MusicTheoryHelper = React.lazy(() => import('../features/music/MusicTheoryHelper').then(m => ({ default: m.MusicTheoryHelper })));
+const NASAApp = React.lazy(() => import('../features/data/NASAApp').then(m => ({ default: m.NASAApp })));
+const NeuronSignal = React.lazy(() => import('../features/science/biology/NeuronSignal').then(m => ({ default: m.NeuronSignal })));
+const NoCodeBuilder = React.lazy(() => import('../features/creative/NoCodeBuilder').then(m => ({ default: m.NoCodeBuilder })));
+const NodeJsLab = React.lazy(() => import('../features/engine/programming/NodeJsLab').then(m => ({ default: m.NodeJsLab })));
+const Notepad = React.lazy(() => import('../features/office/Notepad').then(m => ({ default: m.Notepad })));
+const NuclearDecay = React.lazy(() => import('../features/science/chemistry/NuclearDecay').then(m => ({ default: m.NuclearDecay })));
+const NumberTheory = React.lazy(() => import('../features/math/NumberTheory').then(m => ({ default: m.NumberTheory })));
+const OWASPTop10 = React.lazy(() => import('../features/engine/cybersecurity/OWASPTop10').then(m => ({ default: m.OWASPTop10 })));
+const OpticsSimulator = React.lazy(() => import('../features/science/physics/OpticsSimulator').then(m => ({ default: m.OpticsSimulator })));
+const OrganicChemistry = React.lazy(() => import('../features/science/chemistry/OrganicChemistry').then(m => ({ default: m.OrganicChemistry })));
+const PHScale = React.lazy(() => import('../features/science/chemistry/PHScale').then(m => ({ default: m.PHScale })));
+const PIDController = React.lazy(() => import('../features/algorithms/PIDController').then(m => ({ default: m.PIDController })));
+const PacMan = React.lazy(() => import('../features/games/PacMan').then(m => ({ default: m.PacMan })));
+const PacketSnifferVisualizer = React.lazy(() => import('../features/engine/cybersecurity/PacketSnifferVisualizer').then(m => ({ default: m.PacketSnifferVisualizer })));
+const Paint = React.lazy(() => import('../features/creative/Paint').then(m => ({ default: m.Paint })));
+const PaletteVisualizer = React.lazy(() => import('../features/colors/PaletteVisualizer').then(m => ({ default: m.PaletteVisualizer })));
+const ParameterTuner = React.lazy(() => import('../features/engine/machine-learning/ParameterTuner').then(m => ({ default: m.ParameterTuner })));
+const PasswordCrackingDemo = React.lazy(() => import('../features/engine/cybersecurity/PasswordCrackingDemo').then(m => ({ default: m.PasswordCrackingDemo })));
+const PasswordGenerator = React.lazy(() => import('../features/converters/PasswordGenerator').then(m => ({ default: m.PasswordGenerator })));
+const PathfindingVisualizer = React.lazy(() => import('../features/visualizers/PathfindingVisualizer').then(m => ({ default: m.PathfindingVisualizer })));
+const PendulumSimulator = React.lazy(() => import('../features/science/physics/PendulumSimulator').then(m => ({ default: m.PendulumSimulator })));
+const PercentageCalculator = React.lazy(() => import('../features/math/PercentageCalculator').then(m => ({ default: m.PercentageCalculator })));
+const PeriodicTable = React.lazy(() => import('../features/science/chemistry/PeriodicTable').then(m => ({ default: m.PeriodicTable })));
+const PhishingAnalyzer = React.lazy(() => import('../features/engine/cybersecurity/PhishingAnalyzer').then(m => ({ default: m.PhishingAnalyzer })));
+const PianoRoll = React.lazy(() => import('../features/music/PianoRoll').then(m => ({ default: m.PianoRoll })));
+const PingPong = React.lazy(() => import('../features/games/PingPong').then(m => ({ default: m.PingPong })));
+const PixelArtEditor = React.lazy(() => import('../features/office/PixelArtEditor').then(m => ({ default: m.PixelArtEditor })));
+const PixelArtEditorColors = React.lazy(() => import('../features/colors/PixelArtEditor').then(m => ({ default: m.PixelArtEditor })));
+const PlateTectonics = React.lazy(() => import('../features/science/earthspace/PlateTectonics').then(m => ({ default: m.PlateTectonics })));
+const PolymerBuilder = React.lazy(() => import('../features/science/chemistry/PolymerBuilder').then(m => ({ default: m.PolymerBuilder })));
+const PortScannerVisualizer = React.lazy(() => import('../features/engine/cybersecurity/PortScannerVisualizer').then(m => ({ default: m.PortScannerVisualizer })));
+const PowerConverter = React.lazy(() => import('../features/converters/PowerConverter').then(m => ({ default: m.PowerConverter })));
+const PresentationApp = React.lazy(() => import('../features/office/Presentation').then(m => ({ default: m.Presentation })));
+const PressureConverter = React.lazy(() => import('../features/converters/PressureConverter').then(m => ({ default: m.PressureConverter })));
+const PrimeSieve = React.lazy(() => import('../features/science/math/PrimeSieve').then(m => ({ default: m.PrimeSieve })));
+const ProbabilityDistributions = React.lazy(() => import('../features/science/math/ProbabilityDistributions').then(m => ({ default: m.ProbabilityDistributions })));
+const ProjectileMotion = React.lazy(() => import('../features/science/physics/ProjectileMotion').then(m => ({ default: m.ProjectileMotion })));
+const Puzzle15 = React.lazy(() => import('../features/games/Puzzle15').then(m => ({ default: m.Puzzle15 })));
+const PythonLab = React.lazy(() => import('../features/engine/programming/PythonLab').then(m => ({ default: m.PythonLab })));
+const QRCodeVisualizer = React.lazy(() => import('../features/visualizers/QRCodeVisualizer').then(m => ({ default: m.QRCodeVisualizer })));
+const QuadraticSolver = React.lazy(() => import('../features/math/QuadraticSolver').then(m => ({ default: m.QuadraticSolver })));
+const QuantumTunneling = React.lazy(() => import('../features/science/physics/QuantumTunneling').then(m => ({ default: m.QuantumTunneling })));
+const RSASandbox = React.lazy(() => import('../features/cryptography/RSASandbox').then(m => ({ default: m.RSASandbox })));
+const ReactionSimulator = React.lazy(() => import('../features/science/chemistry/ReactionSimulator').then(m => ({ default: m.ReactionSimulator })));
+const RegexTester = React.lazy(() => import('../features/converters/RegexTester').then(m => ({ default: m.RegexTester })));
+const RocketPropulsion = React.lazy(() => import('../features/science/physics/RocketPropulsion').then(m => ({ default: m.RocketPropulsion })));
+const RustLab = React.lazy(() => import('../features/engine/programming/RustLab').then(m => ({ default: m.RustLab })));
+const SQLInjectionDemo = React.lazy(() => import('../features/engine/cybersecurity/SQLInjectionDemo').then(m => ({ default: m.SQLInjectionDemo })));
+const SQLLab = React.lazy(() => import('../features/engine/programming/SQLLab').then(m => ({ default: m.SQLLab })));
+const SamplePad = React.lazy(() => import('../features/music/SamplePad').then(m => ({ default: m.SamplePad })));
+const SandFalling = React.lazy(() => import('../features/games/SandFalling').then(m => ({ default: m.SandFalling })));
+const ScienceLabsFolder = React.lazy(() => import('../features/science/ScienceLabsFolder').then(m => ({ default: m.ScienceLabsFolder })));
+const SeasonsEarthTilt = React.lazy(() => import('../features/science/earthspace/SeasonsEarthTilt').then(m => ({ default: m.SeasonsEarthTilt })));
+const SettingsApp = React.lazy(() => import('../Settings').then(m => ({ default: m.SettingsApp })));
+const ShipTracker = React.lazy(() => import('../features/data/ShipTracker').then(m => ({ default: m.ShipTracker })));
+const SimpleMachines = React.lazy(() => import('../features/science/physics/SimpleMachines').then(m => ({ default: m.SimpleMachines })));
+const SnakeGame = React.lazy(() => import('../features/games/SnakeGame').then(m => ({ default: m.SnakeGame })));
+const SnellsLaw = React.lazy(() => import('../features/science/physics/SnellsLaw').then(m => ({ default: m.SnellsLaw })));
+const SocialEngineeringWalkthroughs = React.lazy(() => import('../features/engine/cybersecurity/SocialEngineeringWalkthroughs').then(m => ({ default: m.SocialEngineeringWalkthroughs })));
+const SolarSystem = React.lazy(() => import('../features/science/earthspace/SolarSystem').then(m => ({ default: m.SolarSystem })));
+const SortingVisualizer = React.lazy(() => import('../features/visualizers/SortingVisualizer').then(m => ({ default: m.SortingVisualizer })));
+const SpaceInvaders = React.lazy(() => import('../features/games/SpaceInvaders').then(m => ({ default: m.SpaceInvaders })));
+const SpecialRelativity = React.lazy(() => import('../features/science/physics/SpecialRelativity').then(m => ({ default: m.SpecialRelativity })));
+const SpectroscopySimulator = React.lazy(() => import('../features/science/chemistry/SpectroscopySimulator').then(m => ({ default: m.SpectroscopySimulator })));
+const SpeedConverter = React.lazy(() => import('../features/converters/SpeedConverter').then(m => ({ default: m.SpeedConverter })));
+const SportsApp = React.lazy(() => import('../features/data/SportsApp').then(m => ({ default: m.SportsApp })));
+const Spreadsheet = React.lazy(() => import('../features/office/Spreadsheet').then(m => ({ default: m.Spreadsheet })));
+const SpringSimulator = React.lazy(() => import('../features/science/physics/SpringSimulator').then(m => ({ default: m.SpringSimulator })));
+const StarLifeCycle = React.lazy(() => import('../features/science/earthspace/StarLifeCycle').then(m => ({ default: m.StarLifeCycle })));
+const StatisticsCalculator = React.lazy(() => import('../features/math/StatisticsCalculator').then(m => ({ default: m.StatisticsCalculator })));
+const StickyNotes = React.lazy(() => import('../features/productivity/StickyNotes').then(m => ({ default: m.StickyNotes })));
+const StockMarket = React.lazy(() => import('../features/data/StockMarket').then(m => ({ default: m.StockMarket })));
+const StringObfuscation = React.lazy(() => import('../features/cryptography/StringObfuscation').then(m => ({ default: m.StringObfuscation })));
+const SubnetCalculator = React.lazy(() => import('../features/networking/SubnetCalculator').then(m => ({ default: m.SubnetCalculator })));
+const Sudoku = React.lazy(() => import('../features/games/Sudoku').then(m => ({ default: m.Sudoku })));
+const SuperCalculator = React.lazy(() => import('../features/math/SuperCalculator').then(m => ({ default: m.SuperCalculator })));
+const TaskManager = React.lazy(() => import('../features/system/TaskManager').then(m => ({ default: m.TaskManager })));
+const TemperatureConverter = React.lazy(() => import('../features/converters/TemperatureConverter').then(m => ({ default: m.TemperatureConverter })));
+const Terminal = React.lazy(() => import('../features/development/Terminal').then(m => ({ default: m.Terminal })));
+const Tetris = React.lazy(() => import('../features/games/Tetris').then(m => ({ default: m.Tetris })));
+const TextEditor = React.lazy(() => import('../features/office/TextEditor').then(m => ({ default: m.TextEditor })));
+const TextToHTML = React.lazy(() => import('../features/converters/TextToHTML').then(m => ({ default: m.TextToHTML })));
+const Thermodynamics = React.lazy(() => import('../features/science/physics/Thermodynamics').then(m => ({ default: m.Thermodynamics })));
+const TicTacToe = React.lazy(() => import('../features/games/TicTacToe').then(m => ({ default: m.TicTacToe })));
+const TimeConverter = React.lazy(() => import('../features/converters/TimeConverter').then(m => ({ default: m.TimeConverter })));
+const TitrationSimulator = React.lazy(() => import('../features/science/chemistry/TitrationSimulator').then(m => ({ default: m.TitrationSimulator })));
+const TokenGenerator = React.lazy(() => import('../features/cryptography/TokenGenerator').then(m => ({ default: m.TokenGenerator })));
+const TrainTestSplitVisualizer = React.lazy(() => import('../features/engine/machine-learning/TrainTestSplitVisualizer').then(m => ({ default: m.TrainTestSplitVisualizer })));
+const TreeTraversals = React.lazy(() => import('../features/algorithms/TreeTraversals').then(m => ({ default: m.TreeTraversals })));
+const TrendingPalettes = React.lazy(() => import('../features/colors/TrendingPalettes').then(m => ({ default: m.TrendingPalettes })));
+const TrieSegmentTree = React.lazy(() => import('../features/algorithms/TrieSegmentTree').then(m => ({ default: m.TrieSegmentTree })));
+const TrigCalculator = React.lazy(() => import('../features/math/TrigCalculator').then(m => ({ default: m.TrigCalculator })));
+const TuringMachine = React.lazy(() => import('../features/algorithms/TuringMachine').then(m => ({ default: m.TuringMachine })));
+const TypeScriptLab = React.lazy(() => import('../features/engine/programming/TypeScriptLab').then(m => ({ default: m.TypeScriptLab })));
+const UUIDGenerator = React.lazy(() => import('../features/cryptography/UUIDGenerator').then(m => ({ default: m.UUIDGenerator })));
+const UnifiedClock = React.lazy(() => import('../features/productivity/UnifiedClock').then(m => ({ default: m.UnifiedClock })));
+const UniverseSimulator = React.lazy(() => import('../features/science/UniverseSimulator').then(m => ({ default: m.UniverseSimulator })));
+const UtilitiesFolder = React.lazy(() => import('../features/utilities/UtilitiesFolder').then(m => ({ default: m.UtilitiesFolder })));
+const VideoEditor = React.lazy(() => import('../features/editing').then(m => ({ default: m.VideoEditor })));
+const VirtualEngineFolder = React.lazy(() => import('../features/folders/VirtualEngineFolder').then(m => ({ default: m.VirtualEngineFolder })));
+const VirtualInstruments = React.lazy(() => import('../features/music/VirtualInstruments').then(m => ({ default: m.VirtualInstruments })));
+const VolumeConverter = React.lazy(() => import('../features/converters/VolumeConverter').then(m => ({ default: m.VolumeConverter })));
+const VulnerabilityScanningDemo = React.lazy(() => import('../features/engine/cybersecurity/VulnerabilityScanningDemo').then(m => ({ default: m.VulnerabilityScanningDemo })));
+const WaveSimulator = React.lazy(() => import('../features/science/physics/WaveSimulator').then(m => ({ default: m.WaveSimulator })));
+const WaveformVisualizer = React.lazy(() => import('../features/music/WaveformVisualizer').then(m => ({ default: m.WaveformVisualizer })));
+const WeatherApp = React.lazy(() => import('../features/internet/WeatherApp').then(m => ({ default: m.WeatherApp })));
+const WeightConverter = React.lazy(() => import('../features/converters/WeightConverter').then(m => ({ default: m.WeightConverter })));
+const Wikipedia = React.lazy(() => import('../features/internet/Wikipedia').then(m => ({ default: m.Wikipedia })));
+const XSSSimulator = React.lazy(() => import('../features/engine/cybersecurity/XSSSimulator').then(m => ({ default: m.XSSSimulator })));
+
 // Cybersecurity Tools
-import { SQLInjectionDemo, XSSSimulator, PhishingAnalyzer, PacketSnifferVisualizer, FirewallRuleBuilder, PasswordCrackingDemo, CTFChallenge, CIATriadExplainer, SocialEngineeringWalkthroughs, OWASPTop10, PortScannerVisualizer, VulnerabilityScanningDemo } from '../features/engine/cybersecurity';
 // Machine Learning
-import { AlgorithmExplainers, ParameterTuner, DatasetAnalyzer, TrainTestSplitVisualizer, ModelMetrics, BiasVarianceTradeoff, FeatureImportanceVisualizer, HyperparameterTuning, ModelComparison, ModelWizard, DeepLearningBuilder, GradientDescentSimulator } from '../features/engine/machine-learning';
 // Data Visualizer
-import { DataVisualizer, DashboardBuilder } from '../features/engine/data-visualizer';
 // Programming
-import { PythonLab, JavaScriptLab, CLab, CppLab, JavaLab, CSharpLab, TypeScriptLab, GoLab, RustLab, SQLLab, HtmlCssLab, NodeJsLab } from '../features/engine/programming';
 
 const BASE_ZINDEX = 100000;
 const FOLDER_ZINDEX = BASE_ZINDEX;
@@ -341,7 +405,7 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Auto-derive global window theme when wallpaper changes
   useEffect(() => {
-    const wp = wallpaper || '#0078D4';
+    const wp = wallpaper || DARK_VEIL;
     const matched = WALLPAPER_TO_THEME[wp];
     if (matched) {
       setGlobalWindowTheme(matched);
@@ -4099,7 +4163,7 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Window state is not persisted - app starts fresh on every refresh
   // Only settings, theme, and wallpaper are persisted
 
-  const toggleWindow = (id: string) => {
+  const toggleWindow = useCallback((id: string) => startTransition(() => {
     // Check if physics mode is active - prevent opening windows during physics mode
     const isPhysicsActive = sessionStorage.getItem('win11-physics-active') === 'true';
     if (isPhysicsActive) {
@@ -4180,9 +4244,9 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         });
       });
     }, 50);
-  };
+  }), [minimizedWindows]);
 
-  const closeWindow = (id: string) => {
+  const closeWindow = useCallback((id: string) => {
     setWindows(prevWindows =>
       prevWindows.map(window => {
         if (window.id === id) {
@@ -4195,9 +4259,9 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
       })
     );
     setMinimizedWindows(prev => prev.filter(winId => winId !== id));
-  };
+  }, []);
 
-  const minimizeWindow = (id: string) => {
+  const minimizeWindow = useCallback((id: string) => {
     setWindows(prevWindows =>
       prevWindows.map(window => {
         if (window.id === id) {
@@ -4214,9 +4278,9 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!minimizedWindows.includes(id)) {
       setMinimizedWindows(prev => [...prev, id]);
     }
-  };
+  }, []);
 
-  const bringToFront = (id: string) => {
+  const bringToFront = useCallback((id: string) => {
     setWindows(prevWindows => {
       const currentMaxZIndex = Math.max(...prevWindows.map(w => w.zIndex || 0));
       const newZIndex = Math.max(currentMaxZIndex, APP_ZINDEX) + ZINDEX_INCREMENT;
@@ -4235,30 +4299,38 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
 
     setMinimizedWindows(prev => prev.filter(winId => winId !== id));
-  };
+  }, []);
 
+
+  // A stable context value: rebuilding this object on every render made every
+  // consumer re-render on any state change, including on each frame of a
+  // window drag.
+  const contextValue = useMemo(() => ({
+    windows,
+    highestZIndex,
+    toggleWindow,
+    closeWindow,
+    minimizeWindow,
+    bringToFront,
+    settings,
+    setSettings,
+    minimizedWindows,
+    setWallpaper,
+    wallpaper,
+    isDarkMode,
+    windowThemeOverrides,
+    setWindowTheme,
+    globalWindowTheme,
+    setGlobalWindowTheme,
+  }), [
+    windows, highestZIndex, toggleWindow, closeWindow, minimizeWindow,
+    bringToFront, settings, minimizedWindows, setWallpaper, wallpaper,
+    isDarkMode, windowThemeOverrides, setWindowTheme, globalWindowTheme,
+    setGlobalWindowTheme,
+  ]);
 
   return (
-    <WindowsContext.Provider
-      value={{
-        windows,
-        highestZIndex,
-        toggleWindow,
-        closeWindow,
-        minimizeWindow,
-        bringToFront,
-        settings,
-        setSettings,
-        minimizedWindows,
-        setWallpaper,
-        wallpaper,
-        isDarkMode,
-        windowThemeOverrides,
-        setWindowTheme,
-        globalWindowTheme,
-        setGlobalWindowTheme,
-      }}
-    >
+    <WindowsContext.Provider value={contextValue}>
       {children}
     </WindowsContext.Provider>
   );

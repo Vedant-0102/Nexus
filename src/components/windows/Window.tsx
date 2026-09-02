@@ -8,6 +8,7 @@ import { usePhysicsBody } from './hooks/usePhysicsBody';
 import { usePhysics } from './context/PhysicsContext';
 import { WindowHeader } from './window/WindowHeader';
 import { WindowContent } from './window/WindowContent';
+import { AppBoundary } from './components/AppBoundary';
 import { WindowResizeHandles } from './window/WindowResizeHandles';
 import { getTheme, resolveThemeName, WindowThemeName } from './themes/windowThemes';
 import { useWindows } from './context/WindowsContext';
@@ -407,7 +408,10 @@ export const Window = ({ window, onClose, onMinimize, onFocus }: WindowProps) =>
       </div>
 
       <WindowContent windowRef={windowRef}>
-        {contentRef.current}
+        {/* Apps are code-split, so their chunk may still be in flight when the
+            window first paints. This boundary supplies the loading state and
+            keeps a failed chunk from taking down the whole desktop. */}
+        <AppBoundary>{contentRef.current}</AppBoundary>
       </WindowContent>
 
       {!isMaximized && !isSnapped && window.isResizable !== false && !isPhysicsActive && (

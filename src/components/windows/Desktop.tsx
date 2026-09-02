@@ -19,6 +19,8 @@ import { SnapPreviewGlobal } from './components/SnapPreviewGlobal';
 import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp';
 import { PhysicsToggle } from './components/PhysicsToggle';
 import { BallPitDesktop } from './features/games/BallPitDesktop';
+import { DARK_VEIL } from './themes/windowThemes';
+import { VeilBackdrop, VEIL_BASE_COLOR } from './components/VeilBackdrop';
 import { RefreshCw } from 'lucide-react';
 
 export const Desktop = () => (
@@ -58,7 +60,11 @@ const SystemShell: React.FC = () => {
 
 const DesktopSession: React.FC = () => {
   const { wallpaper } = useWindows();
-  const { power } = useSystem();
+  const { power, state } = useSystem();
+  // Unset is the first-run state; DARK_VEIL is the explicit choice in Settings.
+  // The desktop stays mounted under the lock and login screens, and those draw
+  // their own veil, so only run this one when the desktop is actually on top.
+  const showDarkVeil = (!wallpaper || wallpaper === DARK_VEIL) && state === 'desktop';
   const [isStartMenuOpen, setIsStartMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
@@ -118,7 +124,9 @@ const DesktopSession: React.FC = () => {
     <div
       className="h-screen w-screen relative overflow-hidden"
       style={(() => {
-        if (!wallpaper) return { backgroundColor: '#0078D4' };
+        // A dark fill sits under the shader so there is no flash before WebGL
+        // has its first frame up.
+        if (!wallpaper || wallpaper === DARK_VEIL) return { backgroundColor: VEIL_BASE_COLOR };
         if (wallpaper.startsWith('linear-gradient(') || wallpaper.startsWith('radial-gradient(')) {
           return { background: wallpaper };
         }
@@ -130,6 +138,7 @@ const DesktopSession: React.FC = () => {
       onContextMenu={handleContextMenu}
       onClick={handleDesktopClick}
     >
+      {showDarkVeil && <VeilBackdrop />}
       {!isBallPitMode && <DesktopIcons />}
       {isBallPitMode && <div className="absolute inset-0 bottom-12"><BallPitDesktop /></div>}
       <WindowsDisplay />
