@@ -350,8 +350,8 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // chosen theme and wallpaper reset on every refresh.
   const [wallpaper, setWallpaper] = useState<string>(() => {
     try {
-      return localStorage.getItem('win11-wallpaper') || '';
-    } catch { return ''; }
+      return localStorage.getItem('win11-wallpaper') || DARK_VEIL;
+    } catch { return DARK_VEIL; }
   });
 
   const [settings, setSettings] = useState<SettingsType>(() => {
