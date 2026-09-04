@@ -1,53 +1,17 @@
 import React, { useState, useMemo } from 'react';
 import { Copy, Check, ArrowLeftRight } from 'lucide-react';
 
-function isValidIp(ip: string): boolean {
-  const parts = ip.split('.');
-  if (parts.length !== 4) return false;
-  return parts.every(p => { const n = Number(p); return !isNaN(n) && n >= 0 && n <= 255 && String(n) === p; });
-}
-function ipToOctets(ip: string): number[] { return ip.split('.').map(Number); }
-function octetToBin(n: number): string { return n.toString(2).padStart(8, '0'); }
-function octetToHex(n: number): string { return n.toString(16).padStart(2, '0').toUpperCase(); }
-function octetToOct(n: number): string { return n.toString(8); }
-function getIpClass(firstOctet: number): string {
-  if (firstOctet < 128) return 'A';
-  if (firstOctet < 192) return 'B';
-  if (firstOctet < 224) return 'C';
-  if (firstOctet < 240) return 'D (Multicast)';
-  return 'E (Reserved)';
-}
-function isPrivate(octets: number[]): boolean {
-  if (octets[0] === 10) return true;
-  if (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) return true;
-  if (octets[0] === 192 && octets[1] === 168) return true;
-  if (octets[0] === 127) return true;
-  return false;
-}
-function getSpecialType(octets: number[]): string {
-  if (octets[0] === 127) return 'Loopback';
-  if (octets[0] === 0) return 'This Network';
-  if (octets[0] === 169 && octets[1] === 254) return 'Link-Local (APIPA)';
-  if (octets[0] >= 224 && octets[0] <= 239) return 'Multicast';
-  if (octets[0] >= 240) return 'Reserved';
-  return '';
-}
+import {
+  isValidIp, ipToOctets, octetToBin, octetToHex, octetToOct,
+  ipClassLetter, isPrivateIp, isLoopbackIp, getSpecialType, reverseConvert, ipToNum,
+} from '@/lib/network/ipv4';
 
-// Reverse: integer or hex → dotted decimal
-function reverseConvert(input: string): string | null {
-  input = input.trim();
-  let num: number | null = null;
-  if (/^0x[0-9a-fA-F]{1,8}$/.test(input)) {
-    num = parseInt(input, 16);
-  } else if (/^\d+$/.test(input)) {
-    const n = parseInt(input, 10);
-    if (n >= 0 && n <= 4294967295) num = n;
-  } else if (/^[0-9a-fA-F]{8}$/.test(input)) {
-    num = parseInt(input, 16);
-  }
-  if (num === null) return null;
-  const n = num >>> 0;
-  return [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.');
+/** Long-form class label used by this app's UI. */
+function getIpClass(firstOctet: number): string {
+  const letter = ipClassLetter((firstOctet << 24) >>> 0);
+  if (letter === 'D') return 'D (Multicast)';
+  if (letter === 'E') return 'E (Reserved)';
+  return letter;
 }
 
 function CopyBtn({ text }: { text: string }) {
@@ -77,8 +41,8 @@ export const IPv4Converter: React.FC = () => {
       octal: octets.map(octetToOct).join('.'),
       integer: num,
       ipClass: getIpClass(octets[0]),
-      isPrivate: isPrivate(octets),
-      special: getSpecialType(octets),
+      scope: isPrivateIp(ip) ? 'Private' : getSpecialType(ip) ? 'Special' : 'Public',
+      special: getSpecialType(ip),
       reverseDns: [...octets].reverse().join('.') + '.in-addr.arpa',
       octets,
     };
@@ -154,8 +118,8 @@ export const IPv4Converter: React.FC = () => {
             </div>
             <div className="flex items-center justify-between py-1.5 border-b border-gray-100 dark:border-gray-700">
               <span className="text-xs text-gray-500 font-medium">Type</span>
-              <span className={`text-xs font-medium px-2 py-0.5 rounded ${result.isPrivate ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300'}`}>
-                {result.isPrivate ? 'Private' : 'Public'}
+              <span className={`text-xs font-medium px-2 py-0.5 rounded ${result.scope === 'Private' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : result.scope === 'Special' ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300' : 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300'}`}>
+                {result.scope}
               </span>
             </div>
             {result.special && (

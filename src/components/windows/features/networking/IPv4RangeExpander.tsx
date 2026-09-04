@@ -1,40 +1,6 @@
 import React, { useState, useMemo } from 'react';
 
-function isValidIp(ip: string): boolean {
-  const parts = ip.trim().split('.');
-  if (parts.length !== 4) return false;
-  return parts.every(p => { const n = Number(p); return !isNaN(n) && n >= 0 && n <= 255 && String(n) === p.trim(); });
-}
-
-function ipToNum(ip: string): number {
-  const p = ip.trim().split('.').map(Number);
-  return ((p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3]) >>> 0;
-}
-
-function numToIp(n: number): string {
-  return [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.');
-}
-
-function rangeToCidrs(start: number, end: number): string[] {
-  const cidrs: string[] = [];
-  let cur = start;
-  while (cur <= end) {
-    let maxBit = 32;
-    while (maxBit > 0) {
-      const mask = ~((1 << (32 - maxBit + 1)) - 1) >>> 0;
-      const net = cur & mask;
-      if (net === cur) maxBit--;
-      else break;
-    }
-    const x = Math.log2(end - cur + 1) | 0;
-    maxBit = Math.max(32 - x, maxBit);
-    const hostBits = 32 - maxBit;
-    cidrs.push(numToIp(cur) + '/' + maxBit);
-    cur += (1 << hostBits) >>> 0;
-    if (cur === 0) break; // overflow
-  }
-  return cidrs;
-}
+import { isValidIp, ipToNum, numToIp, rangeToCidrs } from '@/lib/network/ipv4';
 
 export const IPv4RangeExpander: React.FC = () => {
   const [startIp, setStartIp] = useState('192.168.1.0');
