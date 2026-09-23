@@ -5,6 +5,7 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Copy, RefreshCw, Check } from 'lucide-react';
+import { randomPassword } from '@/lib/crypto/random';
 
 export const PasswordGenerator: React.FC = () => {
   const [password, setPassword] = useState('');
@@ -16,26 +17,21 @@ export const PasswordGenerator: React.FC = () => {
   const [copied, setCopied] = useState(false);
 
   const generatePassword = () => {
-    let charset = '';
-    if (includeUppercase) charset += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    if (includeLowercase) charset += 'abcdefghijklmnopqrstuvwxyz';
-    if (includeNumbers) charset += '0123456789';
-    if (includeSymbols) charset += '!@#$%^&*()_+-=[]{}|;:,.<>?';
+    const sets: string[] = [];
+    if (includeUppercase) sets.push('ABCDEFGHIJKLMNOPQRSTUVWXYZ');
+    if (includeLowercase) sets.push('abcdefghijklmnopqrstuvwxyz');
+    if (includeNumbers) sets.push('0123456789');
+    if (includeSymbols) sets.push('!@#$%^&*()_+-=[]{}|;:,.<>?');
 
-    if (charset === '') {
+    if (sets.length === 0) {
       setPassword('Please select at least one character type');
       return;
     }
 
-    let result = '';
-    const array = new Uint32Array(length);
-    crypto.getRandomValues(array);
-    
-    for (let i = 0; i < length; i++) {
-      result += charset[array[i] % charset.length];
-    }
-    
-    setPassword(result);
+    // randomPassword draws without modulo bias and guarantees at least one
+    // character from each selected set, so the result always satisfies the
+    // policy the user picked.
+    setPassword(randomPassword(sets, length));
     setCopied(false);
   };
 

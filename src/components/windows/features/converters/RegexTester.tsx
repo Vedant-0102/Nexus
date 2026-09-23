@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { AlertCircle, CheckCircle2, Copy, HelpCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { escapeHtml, highlightRanges } from '@/lib/security/sanitize';
 
 export const RegexTester: React.FC = () => {
   const [pattern, setPattern] = useState<string>('\\b[A-Z][a-z]+\\b');
@@ -29,24 +30,17 @@ export const RegexTester: React.FC = () => {
     }
   }, [pattern, flags, testString, replaceWith]);
 
+  // Escapes the subject string and marks the match ranges in one pass. The
+  // previous version spliced markup in while tracking a running offset, which
+  // both drifted (it advanced by 47 for 54 inserted characters) and rendered
+  // the unescaped subject.
   const highlightMatches = () => {
-    if (!result?.matches.length) return testString;
-
-    let highlighted = testString;
-    let offset = 0;
-
-    result.matches.forEach((match) => {
-      const start = match.index! + offset;
-      const end = start + match[0].length;
-      const before = highlighted.slice(0, start);
-      const matchText = highlighted.slice(start, end);
-      const after = highlighted.slice(end);
-
-      highlighted = `${before}<mark class="bg-yellow-300 dark:bg-yellow-600">${matchText}</mark>${after}`;
-      offset += 47; // Length of mark tags
-    });
-
-    return highlighted;
+    if (!result?.matches.length) return escapeHtml(testString);
+    const ranges = result.matches.map(m => ({
+      start: m.index as number,
+      end: (m.index as number) + m[0].length,
+    }));
+    return highlightRanges(testString, ranges);
   };
 
   const copyToClipboard = (text: string) => {

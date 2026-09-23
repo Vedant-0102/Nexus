@@ -34,7 +34,7 @@ export const LoremIpsumGenerator: React.FC = () => {
   };
 
   const generateSentence = (wordCount: number = 10): string => {
-    const sentence = [];
+    const sentence: string[] = [];
     for (let i = 0; i < wordCount; i++) {
       sentence.push(generateWord());
     }
@@ -43,7 +43,7 @@ export const LoremIpsumGenerator: React.FC = () => {
   };
 
   const generateParagraph = (sentenceCount: number = 5): string => {
-    const sentences = [];
+    const sentences: string[] = [];
     for (let i = 0; i < sentenceCount; i++) {
       sentences.push(generateSentence(Math.floor(Math.random() * 10) + 5));
     }
@@ -51,7 +51,7 @@ export const LoremIpsumGenerator: React.FC = () => {
   };
 
   const generateByParagraphs = () => {
-    const result = [];
+    const result: string[] = [];
     for (let i = 0; i < paragraphs; i++) {
       result.push(generateParagraph(Math.floor(Math.random() * 5) + 3));
     }
@@ -59,7 +59,7 @@ export const LoremIpsumGenerator: React.FC = () => {
   };
 
   const generateByWords = () => {
-    const result = [];
+    const result: string[] = [];
     for (let i = 0; i < words; i++) {
       result.push(generateWord());
     }
@@ -67,7 +67,7 @@ export const LoremIpsumGenerator: React.FC = () => {
   };
 
   const generateBySentences = () => {
-    const result = [];
+    const result: string[] = [];
     for (let i = 0; i < sentences; i++) {
       result.push(generateSentence(Math.floor(Math.random() * 10) + 5));
     }
