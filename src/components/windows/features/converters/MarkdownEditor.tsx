@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Eye, Code, Download, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { markdownToHtml } from '@/lib/security/markdown';
 
 export const MarkdownEditor: React.FC = () => {
   const [markdown, setMarkdown] = useState(`# Welcome to Markdown Editor
@@ -63,61 +64,9 @@ Start editing to see the live preview!
   const [copied, setCopied] = useState(false);
 
   // Simple markdown to HTML converter
-  const convertMarkdownToHTML = (md: string): string => {
-    let html = md;
-
-    // Headers
-    html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
-    html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
-    html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
-
-    // Bold
-    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    
-    // Italic
-    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-    
-    // Strikethrough
-    html = html.replace(/~~(.+?)~~/g, '<del>$1</del>');
-    
-    // Inline code
-    html = html.replace(/`(.+?)`/g, '<code>$1</code>');
-    
-    // Code blocks
-    html = html.replace(/```(\w+)?\n([\s\S]+?)```/g, '<pre><code class="language-$1">$2</code></pre>');
-    
-    // Links
-    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-    
-    // Images
-    html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />');
-    
-    // Blockquotes
-    html = html.replace(/^> (.+)$/gim, '<blockquote>$1</blockquote>');
-    
-    // Horizontal rule
-    html = html.replace(/^---$/gim, '<hr />');
-    
-    // Unordered lists
-    html = html.replace(/^\- (.+)$/gim, '<li>$1</li>');
-    html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
-    
-    // Ordered lists
-    html = html.replace(/^\d+\. (.+)$/gim, '<li>$1</li>');
-    
-    // Tables
-    html = html.replace(/\|(.+)\|/g, (match) => {
-      const cells = match.split('|').filter(cell => cell.trim());
-      return '<tr>' + cells.map(cell => `<td>${cell.trim()}</td>`).join('') + '</tr>';
-    });
-    html = html.replace(/(<tr>.*<\/tr>)/s, '<table>$1</table>');
-    
-    // Line breaks
-    html = html.replace(/\n\n/g, '</p><p>');
-    html = '<p>' + html + '</p>';
-    
-    return html;
-  };
+  // Escape-first conversion: user-supplied HTML can no longer reach the
+  // dangerouslySetInnerHTML sinks below.
+  const convertMarkdownToHTML = (md: string): string => markdownToHtml(md);
 
   const downloadMarkdown = () => {
     const blob = new Blob([markdown], { type: 'text/markdown' });
