@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { randomString, entropyBits } from '@/lib/crypto/random';
 
 type TokenType = 'hex' | 'alphanumeric' | 'url-safe' | 'numeric' | 'custom';
 
@@ -10,13 +11,11 @@ const CHARSETS: Record<Exclude<TokenType, 'custom'>, string> = {
 };
 
 function generateToken(charset: string, length: number): string {
-  const values = new Uint32Array(length);
-  crypto.getRandomValues(values);
-  return Array.from(values, v => charset[v % charset.length]).join('');
+  return randomString(charset, length);
 }
 
 function getEntropy(charsetSize: number, length: number): number {
-  return Math.floor(Math.log2(charsetSize) * length);
+  return Math.floor(entropyBits(charsetSize, length));
 }
 
 function getStrength(entropy: number): { label: string; color: string } {

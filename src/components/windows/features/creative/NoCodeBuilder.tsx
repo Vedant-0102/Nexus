@@ -284,7 +284,14 @@ export const NoCodeBuilder: React.FC = () => {
               <h3 className="font-semibold text-gray-900 dark:text-gray-100">Preview</h3>
               <Button onClick={() => setShowPreview(false)} variant="ghost" size="sm">✕</Button>
             </div>
-            <iframe srcDoc={generateHTML()} className="flex-1 border-none" title="Preview" />
+            <iframe
+              srcDoc={generateHTML()}
+              className="flex-1 border-none"
+              // srcDoc content is same-origin with the app, so without a sandbox
+              // the preview could read this page's DOM and localStorage.
+              sandbox="allow-scripts"
+              title="Preview"
+            />
           </div>
         </div>
       )}

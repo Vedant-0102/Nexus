@@ -173,8 +173,8 @@ export const JWTDecoder: React.FC = () => {
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-semibold text-rose-700 dark:text-rose-300">Header</span>
                 <div className="flex items-center gap-1">
-                  {decoded.header.alg && <span className="px-1.5 py-0.5 bg-rose-200 dark:bg-rose-800 rounded text-[9px] font-bold text-rose-800 dark:text-rose-200">{String(decoded.header.alg)}</span>}
-                  {decoded.header.typ && <span className="px-1.5 py-0.5 bg-rose-200 dark:bg-rose-800 rounded text-[9px] font-bold text-rose-800 dark:text-rose-200">{String(decoded.header.typ)}</span>}
+                  {!!decoded.header.alg && <span className="px-1.5 py-0.5 bg-rose-200 dark:bg-rose-800 rounded text-[9px] font-bold text-rose-800 dark:text-rose-200">{String(decoded.header.alg)}</span>}
+                  {!!decoded.header.typ && <span className="px-1.5 py-0.5 bg-rose-200 dark:bg-rose-800 rounded text-[9px] font-bold text-rose-800 dark:text-rose-200">{String(decoded.header.typ)}</span>}
                 </div>
               </div>
               <pre className="text-[10px] font-mono text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{JSON.stringify(decoded.header, null, 2)}</pre>

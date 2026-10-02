@@ -1,34 +1,15 @@
 import React, { useState } from 'react';
 import { Code, Copy, Check } from 'lucide-react';
+import { markdownToHtml } from '@/lib/security/markdown';
 
 export const TextToHTML: React.FC = () => {
   const [markdown, setMarkdown] = useState('# Hello World\n\nThis is **bold** and this is *italic*.\n\n- List item 1\n- List item 2');
   const [copied, setCopied] = useState(false);
 
-  const convertToHTML = (md: string): string => {
-    let html = md;
-    
-    // Headers
-    html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
-    html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
-    html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
-    
-    // Bold
-    html = html.replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>');
-    
-    // Italic
-    html = html.replace(/\*(.*?)\*/gim, '<em>$1</em>');
-    
-    // Lists
-    html = html.replace(/^\- (.*$)/gim, '<li>$1</li>');
-    html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
-    
-    // Line breaks
-    html = html.replace(/\n\n/g, '</p><p>');
-    html = '<p>' + html + '</p>';
-    
-    return html;
-  };
+  // Shares the escape-first converter with the Markdown editor: user-supplied
+  // HTML is escaped before any formatting runs, so the preview below cannot
+  // execute injected script.
+  const convertToHTML = (md: string): string => markdownToHtml(md);
 
   const htmlOutput = convertToHTML(markdown);
 

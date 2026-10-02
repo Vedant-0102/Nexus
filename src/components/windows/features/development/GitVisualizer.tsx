@@ -724,7 +724,7 @@ function makeHash(n: number): string {
 }
 
 function simulateFileChanges(files: SimFile[]): SimFile[] {
-  const updated = files.map(f => ({ ...f, status: 'committed' as FileStatus, diff: undefined }));
+  const updated: SimFile[] = files.map(f => ({ ...f, status: 'committed' as FileStatus, diff: undefined }));
   // After a commit, randomly modify 1-2 files to simulate ongoing work
   const indices = [Math.floor(Math.random() * updated.length)];
   if (Math.random() > 0.5 && updated.length > 1) {
