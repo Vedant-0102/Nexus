@@ -26,6 +26,18 @@ export function loadSampleData(engine: DatabaseEngine): void {
     engine.execute("INSERT INTO customers VALUES (2, 'Jane Smith', 'jane@example.com', 'Los Angeles')");
     engine.execute("INSERT INTO customers VALUES (3, 'Mike Wilson', 'mike@example.com', 'Chicago')");
 
+    engine.execute('CREATE TABLE departments (name, location, budget)');
+    engine.execute("INSERT INTO departments VALUES ('Engineering', 'Building A', '500000')");
+    engine.execute("INSERT INTO departments VALUES ('Marketing', 'Building B', '200000')");
+    engine.execute("INSERT INTO departments VALUES ('HR', 'Building C', '120000')");
+    engine.execute("INSERT INTO departments VALUES ('Sales', 'Building D', '180000')");
+
+    engine.execute('CREATE TABLE orders (id, customer_id, product_id, quantity)');
+    engine.execute("INSERT INTO orders VALUES (1, '1', '1', '2')");
+    engine.execute("INSERT INTO orders VALUES (2, '2', '3', '1')");
+    engine.execute("INSERT INTO orders VALUES (3, '1', '2', '4')");
+    engine.execute("INSERT INTO orders VALUES (4, '3', '4', '1')");
+
     console.log('Sample data loaded successfully');
   } catch (error) {
     console.error('Error loading sample data:', error);
