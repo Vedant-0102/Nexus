@@ -112,7 +112,7 @@ export const DatabaseApp: React.FC = () => {
     try {
       loadSampleData(engine);
       refreshTables();
-      addConsoleLog('Sample data loaded (employees, products, customers)', 'success');
+      addConsoleLog('Sample data loaded (employees, products, customers, departments, orders)', 'success');
     } catch (error) {
       addConsoleLog('Error loading sample data: ' + (error instanceof Error ? error.message : 'Unknown error'), 'error');
     }
@@ -260,7 +260,7 @@ export const DatabaseApp: React.FC = () => {
               placeholder="Enter SQL command... (Ctrl+Enter to execute)"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Examples: CREATE TABLE users (id, name, email) | INSERT INTO users VALUES (1, 'Alice', 'alice@example.com') | SELECT * FROM users
+              Examples: SELECT * FROM users | SELECT * FROM employees LEFT JOIN departments ON employees.department = departments.name | SELECT department, COUNT(*) FROM employees GROUP BY department
             </p>
           </div>
 
