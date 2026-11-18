@@ -11,7 +11,7 @@ import {
   generateRandomSubstitution, substitutionEncrypt, substitutionDecrypt,
   MORSE, morseEncode, morseDecode,
   letterFrequency, CIPHER_INFO,
-} from '@/lib/crypto/classicalCiphers';
+} from '@/lib/crypto/classical-ciphers';
 
 function CopyBtn({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -307,3 +307,4 @@ export const ClassicalCiphers: React.FC = () => {
     </div>
   );
 };
+
