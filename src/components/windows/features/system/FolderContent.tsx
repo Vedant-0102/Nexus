@@ -45,7 +45,7 @@ export const FolderContent: React.FC<FolderContentProps> = ({ type }) => {
     } else if (type === 'earth-space') {
       return ['solar-system', 'moon-phases', 'plate-tectonics', 'atmospheric-layers', 'star-life-cycle', 'eclipse-simulator', 'seasons-earth-tilt'].includes(app.id);
     } else if (type === 'crypt') {
-      return ['base64-converter', 'regex-tester', 'password-generator', 'data-formatter', 'lorem-ipsum', 'token-generator', 'string-obfuscation', 'bcrypt-tool', 'uuid-generator', 'hashing-tool', 'classical-ciphers', 'aes-encryption', 'hmac-generator', 'rsa-sandbox', 'jwt-decoder'].includes(app.id);
+      return ['base64-converter', 'regex-tester', 'password-generator', 'data-formatter', 'lorem-ipsum', 'token-generator', 'string-obfuscation', 'bcrypt-tool', 'uuid-generator', 'hashing-tool', 'aes-encryption', 'hmac-generator', 'rsa-sandbox', 'jwt-decoder'].includes(app.id);
     } else if (type === 'networks') {
       return ['subnet-calculator', 'ipv4-converter', 'ipv4-range-expander', 'mac-address-tool', 'ipv6-ula-generator'].includes(app.id);
     } else if (type === 'editing') {

@@ -55,7 +55,6 @@ const Checkers = React.lazy(() => import('../features/games/Checkers').then(m =>
 const ChemistryCalculator = React.lazy(() => import('../features/science/chemistry/ChemistryCalculator').then(m => ({ default: m.ChemistryCalculator })));
 const ChessGame = React.lazy(() => import('../features/chess/ChessGame').then(m => ({ default: m.ChessGame })));
 const ChordProgressionHelper = React.lazy(() => import('../features/music/ChordProgressionHelper').then(m => ({ default: m.ChordProgressionHelper })));
-const ClassicalCiphers = React.lazy(() => import('../features/cryptography/ClassicalCiphers').then(m => ({ default: m.ClassicalCiphers })));
 const CodeEditor = React.lazy(() => import('../features/development/CodeEditor').then(m => ({ default: m.CodeEditor })));
 const CollisionSimulator = React.lazy(() => import('../features/science/physics/CollisionSimulator').then(m => ({ default: m.CollisionSimulator })));
 const ColorPaletteGenerator = React.lazy(() => import('../features/colors/ColorPaletteGenerator').then(m => ({ default: m.ColorPaletteGenerator })));
@@ -1261,17 +1260,6 @@ export const WindowsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         zIndex: 100,
         showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
         defaultSize: { width: 900, height: 650 },
-      },
-      {
-        id: 'classical-ciphers',
-        title: 'Classical Ciphers',
-        content: <ClassicalCiphers />,
-        isOpen: openWindowIds.includes('classical-ciphers'),
-        isMinimized: minimizedWindowIds.includes('classical-ciphers'),
-        icon: <Shield className="h-5 w-5 text-orange-600" />,
-        zIndex: 100,
-        showInStartMenu: false, showInTaskbar: false, isResizable: true, isMaximizable: true,
-        defaultSize: { width: 950, height: 700 },
       },
       {
         id: 'aes-encryption',

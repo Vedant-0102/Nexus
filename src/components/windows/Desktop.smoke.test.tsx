@@ -45,7 +45,6 @@ beforeAll(() => {
  */
 const SMOKE_APP_IDS = [
   'subnet-calculator',
-  'classical-ciphers',
   'hashing-tool',
   'jwt-decoder',
   'terminal',
