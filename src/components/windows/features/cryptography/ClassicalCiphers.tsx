@@ -1,17 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Copy, Check, BarChart2, Search } from 'lucide-react';
 
-import {
-  CipherType,
-  caesarEncrypt, caesarDecrypt,
-  affineEncrypt, affineDecrypt, AFFINE_VALID_A, gcd, modInverse,
-  vigenereEncrypt, vigenereDecrypt,
-  atbash,
-  railFenceEncrypt, railFenceDecrypt,
-  generateRandomSubstitution, substitutionEncrypt, substitutionDecrypt,
-  MORSE, MORSE_REV, morseEncode, morseDecode,
-  letterFrequency, CIPHER_INFO,
-} from '@/lib/crypto/classicalCiphers';
+type CipherType = 'caesar' | 'rot13' | 'vigenere' | 'atbash' | 'affine' | 'rail-fence' | 'substitution' | 'morse';
 
 function CopyBtn({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
