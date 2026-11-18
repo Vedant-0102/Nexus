@@ -66,3 +66,4 @@ export interface QueryResult {
   data?: TableData;
   error?: string;
 }
+

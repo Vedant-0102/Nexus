@@ -341,3 +341,4 @@ export const DatabaseApp: React.FC = () => {
     </div>
   );
 };
+

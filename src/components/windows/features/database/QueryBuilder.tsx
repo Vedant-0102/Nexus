@@ -859,3 +859,4 @@ export const QueryBuilder: React.FC<QueryBuilderProps> = ({ tables, onGenerateQu
     </div>
   );
 };
+

@@ -43,3 +43,4 @@ export function loadSampleData(engine: DatabaseEngine): void {
     console.error('Error loading sample data:', error);
   }
 }
+

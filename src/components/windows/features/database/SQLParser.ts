@@ -601,3 +601,4 @@ export class SQLParser {
     return parts;
   }
 }
+
